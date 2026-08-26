@@ -1,15 +1,25 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import mongoose from "mongoose";
+
+dotenv.config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
+const PORT = 5000;
+
+const MONGODB_URL = process.env.MONGODB_URL;
+
+mongoose.connect(MONGODB_URL).then(() => {
+  console.log("MONGO DB CONNECTED");
+});
+
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
-
-const PORT = 5000;
 
 app.listen(PORT, () => {
   console.log(`Server is running at port: ${PORT}`);
