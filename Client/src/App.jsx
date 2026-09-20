@@ -11,7 +11,7 @@ function Login() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-[#13131f]">
-      <div className="bg-[#1c1c2b] p-8 rounded-lg w-96">
+      <div className="bg-[#13131f] p-8 rounded-lg w-96">
         <h1 className="text-white text-lg font-semibold text-center mb-6">
           Welcome to Cremoso
         </h1>
@@ -39,7 +39,7 @@ function Login() {
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
           >
-            Sign In
+            Login
           </button>
         </form>
 
@@ -47,7 +47,7 @@ function Login() {
           type="button"
           className="w-full mt-3 bg-[#2a2a3d] text-white py-2 rounded-md border border-[#3a3a4d] hover:bg-[#33334a] transition"
         >
-          Sign in with Google
+          Login with Google
         </button>
       </div>
     </div>

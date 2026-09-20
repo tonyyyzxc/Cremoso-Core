@@ -1,109 +1,63 @@
 # Cremoso-Core
 
-## Overview
-
-Cremoso-Core centralizes and streamlines operations across multiple company branches by integrating four core modules into a single platform.
-
-## Objectives
-
-### Specific
-
-Develop and deploy a web-based multi-branch management platform tailored for Team Kondisyones, integrating four core modules:
-
-- **Inventory Centralization** – real-time stock tracking across all branches
-- **Operations Management** – daily workflows, task allocation, and performance monitoring
-- **Point of Sales (POS)** – fast transaction processing with automatic server sync
-- **System Audit Logs** – time-stamped action tracking
-
-### Measurable
-
-- Eliminate manual end-of-day sales reconciliations and manual stock logging across 100% of participating company branches.
-- Maintain a complete, time-stamped audit record for 100% of sales transactions, inventory adjustments, and pricing modifications to safeguard data integrity and accountability.
-
-## Tech Stack
-
-- **MongoDB** – Database
-- **Express.js** – Backend framework
-- **React (Vite)** – Frontend
-- **Node.js** – Runtime environment
+Full-stack app with a React (Vite) client and an Express/MongoDB server.
 
 ## Project Structure
 
 ```
 Cremoso-Core/
-├── Client/          # React + Vite + Tailwind frontend
-├── server/          # Express + Node backend
-├── .gitignore
-├── package.json     # root-level, runs both apps together via concurrently
-└── README.md
+├── Client/     # React frontend (Vite + Tailwind)
+├── server/     # Express backend + MongoDB (Mongoose)
+└── package.json  # Root scripts to run both together
 ```
 
-## Getting Started
+## Prerequisites
 
-### Prerequisites
+- Node.js (LTS recommended)
+- npm
+- MongoDB (local install or a connection string to Atlas)
 
-- Node.js installed
-- MongoDB instance (local or Atlas)
+## First-Time Setup
 
-### Installation
+1. Clone the repo:
 
-```bash
-# Clone the repository
-git clone https://github.com/tonyyyzxc/Cremoso-Core.git
-cd Cremoso-Core
+   ```bash
+   git clone https://github.com/tonyyyzxc/Cremoso-Core.git
+   cd Cremoso-Core
+   ```
 
-# Install root dependencies (concurrently)
-npm install
+2. Install dependencies in **all three** locations:
 
-# Install backend dependencies
-cd server
-npm install
+   ```bash
+   npm install
+   npm install --prefix Client
+   npm install --prefix server
+   ```
 
-# Install frontend dependencies
-cd ../Client
-npm install
-```
+3. Set up environment variables. See `Client/README.md` and `server/README.md` for what each `.env` needs.
 
-### Environment Variables
+## Running the App
 
-Create a `.env` file inside `server` (and `Client` if needed). Ask a teammate for the required values. Frontend variables must be prefixed with `VITE_`.
-
-### Running the Project
-
-Run both frontend and backend together from the project root:
+Run both client and server together from the root:
 
 ```bash
 npm run dev
 ```
 
-Or run them separately in two terminals:
+This uses `concurrently` to start:
 
-```bash
-# Terminal 1 - backend
-cd server
-npm run dev
+- The client (Vite dev server)
+- The server (Express + nodemon)
 
-# Terminal 2 - frontend
-cd Client
-npm run dev
-```
+### Running them separately
 
-## Core Modules
+If you only need one side running, see:
 
-1. **Inventory Centralization** – Real-time stock tracking synced across all branches.
-2. **Operations Management** – Manages daily workflows, task allocation, and performance monitoring.
-3. **Point of Sales (POS)** – Processes transactions quickly with automatic sync to the server.
-4. **System Audit Logs** – Records time-stamped actions for accountability and traceability.
+- [`Client/README.md`](./Client/README.md)
+- [`server/README.md`](./server/README.md)
 
-## Academic Context
+## Tech Stack
 
-This project is a collaborative web development project developed for an actual client, integrating the following subjects:
-
-- Systems Integration & Architecture 1
-- Advanced Database Systems
-- Integrative Programming Technologies 1
-- Information Assurance & Security 1
-
-## License
-
-This project was developed as part of an academic web development project in collaboration with an actual client. All rights reserved. Not licensed for public use or redistribution.
+- **Frontend:** React, Vite, Tailwind CSS, React Router
+- **Backend:** Express, Mongoose (MongoDB), CORS, dotenv
+- **Dev tooling:** nodemon, concurrently, ESLint, Prettier
