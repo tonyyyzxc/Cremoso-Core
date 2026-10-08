@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
-const JWT_SECRET = "mag initialize pakas .env ani container rani";
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function signToken(payload, expiresIn) {
   const token = jwt.sign(payload, JWT_SECRET, { expiresIn });
