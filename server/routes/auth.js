@@ -1,16 +1,15 @@
 import express, { Router } from "express";
 import { signToken } from "../utils/jwt";
-import { hashPassword, comparePassword } from "../utils/password";
 import User from "../models/user.js";
-import { requireAuth } from "../middleware/authMiddleware";
-import { IdTokenClient, OAuth2Client } from "google-auth-library";
+import { OAuth2Client } from "google-auth-library";
 
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const verifyGoogleToken = async (IdToken) => {
-  const ticket = client.verifyIdToken({
-    IdToken,
+// Verify the credential's signature and audience so clients cannot forge a Google identity.
+const verifyGoogleToken = async (idToken) => {
+  const ticket = await client.verifyIdToken({
+    idToken,
     audience: process.env.GOOGLE_CLIENT_ID,
   });
   return ticket.getPayload();
@@ -18,13 +17,16 @@ const verifyGoogleToken = async (IdToken) => {
 
 router.post("/google", async (req, res) => {
   try {
-    const { IdToken } = req.body;
-    const payload = await verifyGoogleToken();
+    const { idToken } = req.body;
+    // Reject empty requests before asking Google's verifier to process a credential.
+    if (!idToken) return res.status(400).json({ error: "Google credential is required" });
+    const payload = await verifyGoogleToken(idToken);
 
     if (!payload.email_verified) {
       return res.status(400).json({ error: "Email not verified" });
     }
 
+    // This app allows sign-in only for users already provisioned in its database.
     const user = await User.findOne({ email: payload.email.toLowerCase() });
 
     if (!user) {
@@ -43,6 +45,7 @@ router.post("/google", async (req, res) => {
 
     if (changed) await user.save();
 
+    // Google proves identity; this JWT is the session token used by Cremoso after login.
     const token = signToken(
       { id: user._id, email: user.email, role: user.role },
       "7d",

@@ -7,7 +7,7 @@ export function requireAuth(req, res, next) {
   }
 
   try {
-    const decoded = verifyToken(authHeader.split("")[1]);
+    const decoded = verifyToken(authHeader.split(" ")[1]);
     req.user = decoded;
     next();
   } catch (err) {
