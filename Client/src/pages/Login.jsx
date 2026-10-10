@@ -1,0 +1,362 @@
+import { useState, useRef } from "react";
+import { GoogleLogin } from "@react-oauth/google";
+import { LockKeyhole, Mail } from "lucide-react";
+import { useToast } from "../hooks/UseToast.jsx";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const toast = useToast();
+  const hiddenGoogleBtn = useRef(null);
+
+  // Backend contract: POST /api/auth/login with { email, password }.
+  // Expected success response: { token, user } (same session shape as Google login).
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const result = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await result.json().catch(() => ({}));
+
+      if (!result.ok) {
+        const message = data.error || "Email or password is incorrect.";
+        toast.error(message);
+        return;
+      }
+
+      if (!data.token || !data.user) {
+        const message = "Login response is missing the session token or user.";
+        toast.error(message);
+        return;
+      }
+
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      toast.success("Signed in successfully");
+      window.location.href = "/dashboard";
+    } catch (err) {
+      console.error("Email/password login error:", err);
+      const message = "Unable to reach the server. Please try again.";
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Google returns a signed credential; send it to our server so the server can verify it
+  // and issue the app's own session token.
+  const handleGoogleSuccess = async (response) => {
+    try {
+      const result = await fetch(`${API_URL}/api/auth/google`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        // The server expects this exact property name: idToken.
+        body: JSON.stringify({ idToken: response.credential }),
+      });
+      const data = await result.json();
+
+      if (!result.ok) {
+        const message = data.error || "Google sign-in failed";
+        toast.error(message);
+        return;
+      }
+
+      // Keep the app session so later API requests can authenticate the signed-in user.
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(data.user));
+      toast.success("Signed in successfully");
+      window.location.href = "/dashboard";
+    } catch (err) {
+      console.error("Google login error:", err);
+      toast.error("Something went wrong. Try again.");
+    }
+  };
+
+  const handleGoogleError = () => {
+    const message = "Google sign-in failed. Try again.";
+    toast.error(message);
+  };
+
+  const triggerGoogleLogin = () => {
+    const realButton =
+      hiddenGoogleBtn.current?.querySelector('div[role="button"]');
+    realButton?.click();
+  };
+
+  return (
+    <div className="relative min-h-screen bg-[#FBF6EF] flex items-center justify-center px-4 py-10 overflow-hidden">
+      {/* Animated background layer */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+        {Array.from({ length: 12 }).map((_, i) => (
+          <span
+            key={i}
+            className="bubble"
+            style={{
+              left: `${(i * 8.3) % 100}%`,
+              animationDelay: `${i * 1.1}s`,
+              animationDuration: `${9 + (i % 5)}s`,
+              width: `${6 + (i % 4) * 3}px`,
+              height: `${6 + (i % 4) * 3}px`,
+            }}
+          />
+        ))}
+      </div>
+
+      <style>{`
+        @keyframes drift1 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          33% { transform: translate(30px, -40px) scale(1.08); }
+          66% { transform: translate(-20px, 20px) scale(0.95); }
+        }
+        @keyframes drift2 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          50% { transform: translate(-40px, -30px) scale(1.1); }
+        }
+        @keyframes drift3 {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          40% { transform: translate(25px, 35px) scale(1.05); }
+          70% { transform: translate(-30px, -15px) scale(0.92); }
+        }
+        @keyframes rise {
+          0% { transform: translateY(0) translateX(0); opacity: 0; }
+          10% { opacity: 0.5; }
+          90% { opacity: 0.35; }
+          100% { transform: translateY(-100vh) translateX(15px); opacity: 0; }
+        }
+        .blob {
+          position: absolute;
+          border-radius: 50%;
+          filter: blur(60px);
+          opacity: 0.35;
+        }
+        .blob-1 {
+          width: 420px; height: 420px;
+          top: -100px; left: -100px;
+          background: #0A8B8E;
+          animation: drift1 16s ease-in-out infinite;
+        }
+        .blob-2 {
+          width: 320px; height: 320px;
+          bottom: -80px; right: -60px;
+          background: #F2C879;
+          opacity: 0.3;
+          animation: drift2 20s ease-in-out infinite;
+        }
+        .blob-3 {
+          width: 260px; height: 260px;
+          bottom: 10%; left: 8%;
+          background: #0A8B8E;
+          opacity: 0.15;
+          animation: drift3 18s ease-in-out infinite;
+        }
+        .bubble {
+          position: absolute;
+          bottom: -20px;
+          border-radius: 50%;
+          background: radial-gradient(circle at 30% 30%, rgba(10,139,142,0.5), rgba(10,139,142,0.1));
+          animation-name: rise;
+          animation-timing-function: ease-in;
+          animation-iteration-count: infinite;
+        }
+      `}</style>
+
+      <div className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2">
+        {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
+        <div className="relative bg-[#0A8B8E] flex flex-col items-center justify-center px-8 py-14 md:py-0 overflow-hidden">
+          {/* Soft-serve swirl icon */}
+          <img
+            src="/android-chrome-512x512.png"
+            alt="Cremoso icon"
+            className="relative z-10 w-28 md:w-32 h-auto mb-4 brightness-0 invert"
+          />
+
+          {/* Wordmark */}
+          <h1 className="relative z-10 text-white text-4xl md:text-5xl font-serif font-bold tracking-wide text-center">
+            CREMOSO
+          </h1>
+
+          {/* Tagline */}
+          <p className="relative z-10 text-white text-xs md:text-sm font-semibold tracking-wide mt-3 text-center">
+            SOFT-SERVE&nbsp;|&nbsp;FROZEN YOGURT&nbsp;|&nbsp;ICED COFFEE
+          </p>
+
+          {/* Sub-tagline */}
+          <p className="relative z-10 text-[#FBF6EF]/70 text-xs tracking-wide mt-1 text-center">
+            By Ahavah &amp; The Backyard
+          </p>
+        </div>
+
+        {/* Right panel — form side */}
+        <div className="flex flex-col justify-center px-8 py-12 md:px-12">
+          <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
+            Welcome!
+          </h2>
+          <p className="text-gray-500 text-sm mb-7">
+            Login to your Cremoso account
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4 mb-5">
+            <div className="relative">
+              <Mail
+                size={18}
+                aria-hidden="true"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 pl-11 pr-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
+                required
+              />
+            </div>
+
+            <div className="relative">
+              <LockKeyhole
+                size={18}
+                aria-hidden="true"
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 pl-11 pr-12 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0A8B8E] transition"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <EyeIcon open={showPassword} />
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {isSubmitting ? "Logging in..." : "Login"}
+            </button>
+          </form>
+
+          <div className="flex items-center gap-3 my-5">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs text-gray-400">Or continue with</span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
+
+          <button
+            type="button"
+            onClick={triggerGoogleLogin}
+            className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
+          >
+            <GoogleIcon />
+            Google
+          </button>
+
+          <div
+            ref={hiddenGoogleBtn}
+            style={{
+              position: "absolute",
+              opacity: 0,
+              pointerEvents: "none",
+              height: 0,
+              overflow: "hidden",
+            }}
+          >
+            <GoogleLogin
+              locale="en"
+              text="continue_with"
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+            />
+          </div>
+
+          <p className="text-center text-sm text-gray-500 mt-6">
+            Having trouble logging in? Contact{" "}
+            <span className="text-[#0A8B8E] font-medium cursor-pointer hover:underline">
+              Admin
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EyeIcon({ open, ...props }) {
+  return open ? (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ) : (
+    <svg
+      width="20"
+      height="20"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  );
+}
+
+function GoogleIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+      <path
+        fill="#FFC107"
+        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+      />
+      <path
+        fill="#FF3D00"
+        d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+      />
+      <path
+        fill="#4CAF50"
+        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+      />
+      <path
+        fill="#1976D2"
+        d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+      />
+    </svg>
+  );
+}
+
+export default Login;
