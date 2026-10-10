@@ -1,7 +1,8 @@
 import express, { Router } from "express";
-import { signToken } from "../utils/jwt";
+import { signToken } from "../utils/jwt.js";
 import User from "../models/user.js";
 import { OAuth2Client } from "google-auth-library";
+import { configDotenv } from "dotenv";
 
 const router = express.Router();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -19,7 +20,8 @@ router.post("/google", async (req, res) => {
   try {
     const { idToken } = req.body;
     // Reject empty requests before asking Google's verifier to process a credential.
-    if (!idToken) return res.status(400).json({ error: "Google credential is required" });
+    if (!idToken)
+      return res.status(400).json({ error: "Google credential is required" });
     const payload = await verifyGoogleToken(idToken);
 
     if (!payload.email_verified) {
