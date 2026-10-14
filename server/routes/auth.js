@@ -13,7 +13,7 @@ const verifyGoogleToken = async (idToken) => {
     idToken,
     audience: process.env.GOOGLE_CLIENT_ID,
   });
-  return ticket.getPayload();
+  return ticket.getPayload();    
 };
 
 router.post("/google", async (req, res) => {
