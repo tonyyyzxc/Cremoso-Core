@@ -22,12 +22,14 @@ Express API backed by MongoDB (via Mongoose).
    npm install
    ```
 
-3. Create a `.env` file in this folder (copy from `.env.example` if one exists) with at least:
+3. Create a `.env` file in this folder with the required settings:
    ```
-   PORT=5000
-   MONGO_URI=mongodb://localhost:27017/cremoso-core
+   MONGODB_URL=mongodb://127.0.0.1:27017/cremoso-core
+   JWT_SECRET=replace-with-a-long-random-secret
    ```
-   Adjust `MONGO_URI` if you're using Atlas or a different local setup.
+   For Google sign-in, also set `GOOGLE_CLIENT_ID` to your Google OAuth web client ID. To create the first administrator, temporarily set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`; see the root README for details.
+
+   `MONGODB_URL` is the variable the server reads. It listens on port `5000`, which is currently set in `server.js`; `PORT` is not read from `.env`.
 
 ## Running
 
@@ -35,21 +37,6 @@ Start the server with auto-restart on file changes (nodemon):
 
 ```bash
 npm run dev
-```
-
-> If your `package.json` doesn't have a `dev` script yet, add one:
->
-> ```json
-> "scripts": {
->   "dev": "nodemon server.js",
->   "start": "node server.js"
-> }
-> ```
-
-For a plain run without auto-restart:
-
-```bash
-npm start
 ```
 
 ## Tech Stack
@@ -72,4 +59,4 @@ server/
 ## Notes for Contributors
 
 - Never commit `.env` — it's already in `.gitignore`.
-- Make sure MongoDB is running before starting the server, or `MONGO_URI` points to a reachable database.
+- Make sure MongoDB is running before starting the server, or `MONGODB_URL` points to a reachable database.

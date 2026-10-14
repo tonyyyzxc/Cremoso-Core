@@ -83,7 +83,11 @@ Create a file named `.env` inside `server/` (next to `server.js`). Do not commit
 MONGODB_URL=mongodb://127.0.0.1:27017/cremoso-core
 JWT_SECRET=replace-with-a-long-random-secret
 GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
+BOOTSTRAP_ADMIN_EMAIL=admin@example.com
+BOOTSTRAP_ADMIN_PASSWORD=use-a-strong-one-time-password
 ```
+
+`BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD` are optional but recommended for the first setup. When both are set, server startup creates that administrator account if needed, or promotes the matching existing account to active ADMIN. Once you have signed in and confirmed admin access, remove these two entries from `server/.env`; the admin account remains in MongoDB. Never commit these values.
 
 ### MongoDB connection
 
@@ -97,7 +101,7 @@ GOOGLE_CLIENT_ID=your-google-oauth-client-id.apps.googleusercontent.com
 
 ### Google sign-in
 
-The server verifies Google credentials against `GOOGLE_CLIENT_ID`. Use the same OAuth client ID in the frontend settings below. In Google Cloud Console, configure the OAuth client as a Web application and add `http://localhost:5173` as an authorized JavaScript origin for local development. Google sign-in also requires the email to belong to a user already present in the application's MongoDB database; it does not create a new account by itself.
+The server verifies Google credentials against `GOOGLE_CLIENT_ID`. Use the same OAuth client ID in the frontend settings below. In Google Cloud Console, configure the OAuth client as a Web application and add `http://localhost:5173` as an authorized JavaScript origin for local development. A successful first Google sign-in creates a STAFF account; using an email matching the bootstrap admin account signs into that ADMIN account.
 
 The server currently listens on port `5000` in `server/server.js`. Its port is hard-coded there; setting a `PORT` entry in `.env` does not change it.
 
@@ -142,9 +146,15 @@ You can also run either command from inside the corresponding folder with `npm r
 
 ## 6. Sign-in and local data
 
-Google sign-in sends a verified Google credential to `POST /api/auth/google`. The backend looks up an existing user by email, so your MongoDB database must already contain a user with the Google account's email address. If it does not, the API responds that no account was found. Arrange access to an appropriate development database or have an authorized project administrator provision a development user.
+The login screen supports account creation and sign-in. Registration asks for a name, username, email, and password; usernames are unique and new accounts receive the `staff` role. Passwords are stored as bcrypt hashes. Sign-in accepts either username or email with the password. Administrators can promote or demote accounts from **Settings → User access**. Admins land on the menu management page after sign-in; staff land on the dashboard.
 
-The frontend also presents an email-and-password form. In the current source, that form sends a request to `POST /api/auth/login`; the backend currently defines the Google endpoint (`POST /api/auth/google`) but does not define that email-and-password endpoint. Use Google sign-in for the implemented authentication flow unless the API is extended.
+Google sign-in sends a verified Google credential to `POST /api/auth/google`. On the first successful sign-in with a verified Google account, the backend creates a MongoDB user with the `staff` role; later Google sign-ins reuse that account. Email and Google sign-in can be linked by using the same verified email address. Sessions are stored server-side and revoked by the **Log out** button. Signing out invalidates that browser session immediately.
+
+### Menu, variants, channels, and payments
+
+Open **Menu** to manage the catalog. Administrators can create and edit categorized products, set base prices, configure cup-size variants and priced add-ons, change option order, reorder products, toggle product or option availability, and archive or restore products. Archived items stay in MongoDB. Staff can view the catalog but cannot change it.
+
+The **Channels & payments** tab lets administrators toggle Foodpanda, Facebook, and Walk-in sales channels, plus Cash, GCash, and Card payment modes. Settings are stored in MongoDB and staff accounts can view but not edit them. The **Settings → User access** page lists accounts and lets admins assign ADMIN or STAFF roles. API endpoints enforce the same permissions as the interface.
 
 ## Useful commands
 

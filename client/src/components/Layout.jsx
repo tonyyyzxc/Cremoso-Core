@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
 import SidebarNav from "./Sidebar";
 import TopBar from "./Topbar";
+import { apiRequest } from "../utils/api.js";
 
 const titleMap = {
   dashboard: "Dashboard",
@@ -39,10 +40,15 @@ export default function Layout() {
 
   const handleSelect = (id) => navigate(`/${id}`);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await apiRequest("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Always clear this browser's credentials, even if the API cannot be reached.
+    }
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    navigate("/");
+    navigate("/login", { replace: true });
   };
 
   return (
@@ -52,6 +58,7 @@ export default function Layout() {
           activeId={activeId}
           onSelect={handleSelect}
           onLogout={handleLogout}
+          isAdmin={user?.role === "admin"}
         />
       )}
       <div className="flex-1 flex flex-col">
@@ -59,8 +66,7 @@ export default function Layout() {
           pageTitle={titleMap[activeId] || "Dashboard"}
           userName={user?.name || user?.email || ""}
           userEmail={user?.email || ""}
-          userRole={[user?.role, user?.office].filter(Boolean).join(" · ")}
-          userRoleOnly={user?.role || ""}
+          userRole={[user?.role?.toUpperCase(), user?.office].filter(Boolean).join(" / ")}
           userPicture={user?.picture}
           onViewProfile={() => navigate("/settings")}
           sidebarOpen={sidebarOpen}
