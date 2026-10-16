@@ -13,53 +13,48 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRouter);
-app.use("/api/menu", menuRouter);
-app.use("/api/store-config", storeConfigRouter);
+// app.use("/api/menu", menuRouter);
+// app.use("/api/store-config", storeConfigRouter);
 app.use("/api/users", usersRouter);
 
 const PORT = 5000;
 
-app.get("/", (req, res) => {
-  res.send("Server is running");
-});
+async function seedAdmin() {
+  const email = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.BOOTSTRAP_ADMIN_PASSWORD;
+  if (!email || !password) return;
 
-async function startServer() {
-  if (!process.env.MONGODB_URL) {
-    throw new Error("MONGODB_URL is required in server/.env");
-  }
-  await mongoose.connect(process.env.MONGODB_URL);
-  console.log("MONGO DB CONNECTED");
-
-  const bootstrapEmail = process.env.BOOTSTRAP_ADMIN_EMAIL?.trim().toLowerCase();
-  const bootstrapPassword = process.env.BOOTSTRAP_ADMIN_PASSWORD;
-  if (bootstrapEmail && bootstrapPassword) {
-    let admin = await User.findOne({ email: bootstrapEmail });
-    if (!admin) {
-      admin = await User.create({
-        name: "Administrator",
-        email: bootstrapEmail,
-        passwordHash: await hashPassword(bootstrapPassword),
-        role: "admin",
-        status: "active",
-      });
-    } else if (admin.role !== "admin" || admin.status !== "active") {
-      admin.role = "admin";
-      admin.status = "active";
-      await admin.save();
-    }
-    if (!admin.passwordHash) {
-      admin.passwordHash = await hashPassword(bootstrapPassword);
-      await admin.save();
-    }
-    console.log(`Bootstrap admin ready: ${bootstrapEmail}`);
+  const admin = await User.findOne({ email });
+  const passwordHash = await hashPassword(password);
+  if (admin) {
+    admin.passwordHash = passwordHash;
+    admin.role = "admin";
+    admin.status = "active";
+    await admin.save();
+    return;
   }
 
-  app.listen(PORT, () => {
-    console.log(`Server is running at port: ${PORT}`);
+  await User.create({
+    email,
+    name: "Administrator",
+    passwordHash,
+    role: "admin",
+    status: "active",
   });
 }
 
-startServer().catch((error) => {
-  console.error("Server startup failed:", error);
-  process.exit(1);
-});
+async function start() {
+  try {
+    await mongoose.connect(process.env.MONGODB_URL);
+    console.log("MongoDB connected");
+
+    await seedAdmin();
+
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  } catch (err) {
+    console.error("Startup error:", err);
+    process.exit(1);
+  }
+}
+
+start();

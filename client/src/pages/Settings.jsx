@@ -57,7 +57,7 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
-      <p className="text-xs text-gray-500 dark:text-gray-400">New email/password registrations and first-time Google accounts start as STAFF. Keep at least one active administrator account.</p>
+      <p className="text-xs text-gray-500 dark:text-gray-400">First-time Google sign-ins start as STAFF. Keep at least one active administrator account.</p>
     </section>
   );
 }
