@@ -146,7 +146,7 @@ You can also run either command from inside the corresponding folder with `npm r
 
 ## 6. Sign-in and local data
 
-The login screen supports account creation and sign-in. Registration asks for a name, username, email, and password; usernames are unique and new accounts receive the `staff` role. Passwords are stored as bcrypt hashes. Sign-in accepts either username or email with the password. Administrators can promote or demote accounts from **Settings → User access**. Admins land on the menu management page after sign-in; staff land on the dashboard.
+The login screen supports manual sign-in with a username or email and password, plus Google sign-in. There is no public email/password registration; manual login is for accounts provisioned by the administrator. Administrators can promote or demote accounts from **Settings → User access**. Admins land on the menu management page after sign-in; staff land on the dashboard.
 
 Google sign-in sends a verified Google credential to `POST /api/auth/google`. On the first successful sign-in with a verified Google account, the backend creates a MongoDB user with the `staff` role; later Google sign-ins reuse that account. Email and Google sign-in can be linked by using the same verified email address. Sessions are stored server-side and revoked by the **Log out** button. Signing out invalidates that browser session immediately.
 

@@ -6,32 +6,28 @@ import { useToast } from "../hooks/UseToast.jsx";
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function Login() {
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [isRegistering, setIsRegistering] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
   const hiddenGoogleBtn = useRef(null);
 
-  // Registration and password login share this form and return { token, user }.
+  // Password login returns { token, user }.
   const handleSubmit = async (event) => {
     event.preventDefault();
     setIsSubmitting(true);
 
     try {
-      const result = await fetch(`${API_URL}/api/auth/${isRegistering ? "register" : "login"}`, {
+      const result = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(isRegistering ? { name, username, email, password } : { identifier, password }),
+        body: JSON.stringify({ identifier, password }),
       });
       const data = await result.json().catch(() => ({}));
 
       if (!result.ok) {
-        const message = data.error || (isRegistering ? "Unable to create account." : "Email or password is incorrect.");
+        const message = data.error || "Email or password is incorrect.";
         toast.error(message);
         return;
       }
@@ -44,7 +40,7 @@ function Login() {
 
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
-      toast.success(isRegistering ? "Account created successfully" : "Signed in successfully");
+      toast.success("Signed in successfully");
       window.location.href = data.user.role === "admin" ? "/menu" : "/dashboard";
     } catch (err) {
       console.error("Email/password login error:", err);
@@ -207,39 +203,10 @@ function Login() {
             Welcome!
           </h2>
           <p className="text-gray-500 text-sm mb-7">
-            {isRegistering ? "Create your Cremoso account" : "Login to your Cremoso account"}
+            Login to your Cremoso account
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4 mb-5">
-            {isRegistering && (
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Full name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  autoComplete="name"
-                  className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
-                  required
-                />
-              </div>
-            )}
-            {isRegistering && (
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Username"
-                  value={username}
-                  onChange={(event) => setUsername(event.target.value.toLowerCase())}
-                  autoComplete="username"
-                  minLength={3}
-                  maxLength={30}
-                  pattern="[a-zA-Z0-9._-]{3,30}"
-                  className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
-                  required
-                />
-              </div>
-            )}
             <div className="relative">
               <Mail
                 size={18}
@@ -247,11 +214,11 @@ function Login() {
                 className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
               />
               <input
-                type={isRegistering ? "email" : "text"}
-                placeholder={isRegistering ? "Email" : "Username or email"}
-                autoComplete={isRegistering ? "email" : "username"}
-                value={isRegistering ? email : identifier}
-                onChange={(event) => isRegistering ? setEmail(event.target.value) : setIdentifier(event.target.value)}
+                type="text"
+                placeholder="Username or email"
+                autoComplete="username"
+                value={identifier}
+                onChange={(event) => setIdentifier(event.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 pl-11 pr-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
                 required
               />
@@ -266,8 +233,7 @@ function Login() {
               <input
                 type={showPassword ? "text" : "password"}
                 placeholder="Password"
-                autoComplete={isRegistering ? "new-password" : "current-password"}
-                minLength={isRegistering ? 8 : undefined}
+                autoComplete="current-password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 pl-11 pr-12 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
@@ -288,20 +254,9 @@ function Login() {
               disabled={isSubmitting}
               className="w-full bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Please wait..." : isRegistering ? "Create account" : "Login"}
+              {isSubmitting ? "Please wait..." : "Login"}
             </button>
           </form>
-
-          <p className="text-center text-sm text-gray-500">
-            {isRegistering ? "Already have an account?" : "New to Cremoso?"}{" "}
-            <button
-              type="button"
-              onClick={() => setIsRegistering((value) => !value)}
-              className="font-medium text-[#0A8B8E] hover:underline"
-            >
-              {isRegistering ? "Login" : "Create an account"}
-            </button>
-          </p>
 
           <div className="flex items-center gap-3 my-5">
             <div className="h-px flex-1 bg-gray-200" />

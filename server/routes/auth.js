@@ -4,7 +4,7 @@ import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.js";
 import Session from "../models/session.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
-import { comparePassword, hashPassword } from "../utils/password.js";
+import { comparePassword } from "../utils/password.js";
 import { signToken } from "../utils/jwt.js";
 
 const router = express.Router();
@@ -30,44 +30,6 @@ const createSession = async (user, res) => {
   );
   return res.json({ token, user: publicUser(user) });
 };
-
-router.post("/register", async (req, res) => {
-  try {
-    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
-    const username = typeof req.body.username === "string" ? req.body.username.trim().toLowerCase() : "";
-    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
-    const password = typeof req.body.password === "string" ? req.body.password : "";
-
-    if (!name || !username || !email || !password) {
-      return res.status(400).json({ error: "Name, username, email, and password are required." });
-    }
-    if (!/^[a-z0-9._-]{3,30}$/.test(username)) {
-      return res.status(400).json({ error: "Username must be 3–30 characters using letters, numbers, dot, underscore, or hyphen." });
-    }
-    if (password.length < 8) {
-      return res.status(400).json({ error: "Password must be at least 8 characters." });
-    }
-    if (await User.exists({ email })) {
-      return res.status(409).json({ error: "That email or username is already in use." });
-    }
-
-    const user = await User.create({
-      name,
-      username,
-      email,
-      passwordHash: await hashPassword(password),
-      role: "staff",
-      status: "active",
-    });
-    return await createSession(user, res);
-  } catch (error) {
-    if (error?.code === 11000) {
-      return res.status(409).json({ error: "That email or username is already in use." });
-    }
-    console.error("Registration error:", error);
-    return res.status(500).json({ error: "Unable to create account." });
-  }
-});
 
 router.post("/login", async (req, res) => {
   try {
