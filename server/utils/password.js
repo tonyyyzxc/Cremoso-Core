@@ -1,3 +1,4 @@
+// Utility for hashing and comparing passwords using bcrypt
 import bcrypt from "bcrypt";
 
 const rounds = 10;
