@@ -3,8 +3,9 @@ import { randomUUID } from "node:crypto";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.js";
 import Session from "../models/session.js";
+import AuthConfig from "../models/authConfig.js";
 import { requireAuth } from "../middleware/authMiddleware.js";
-import { comparePassword } from "../utils/password.js";
+import { comparePassword, hashPassword } from "../utils/password.js";
 import { signToken } from "../utils/jwt.js";
 
 const router = express.Router();
@@ -46,6 +47,9 @@ router.post("/login", async (req, res) => {
     if (!user?.passwordHash || !(await comparePassword(password, user.passwordHash))) {
       return res.status(401).json({ error: "Email or password is incorrect." });
     }
+    if (user.status !== "active") {
+      return res.status(403).json({ error: "This account is not active." });
+    }
 
     return await createSession(user, res);
   } catch (error) {
@@ -74,29 +78,48 @@ router.post("/google", async (req, res) => {
     }
 
     const email = payload.email.toLowerCase();
-    let user = await User.findOne({ email });
+    const user = await User.findOne({ email });
     if (!user) {
-      user = await User.create({
-        name: payload.name || "",
-        email,
-        googleId: payload.sub,
-        role: "staff",
-        status: "active",
-      });
-    } else {
-      if (user.googleId && user.googleId !== payload.sub) {
-        return res.status(401).json({ error: "This account is linked to a different Google account." });
-      }
-      user.googleId = payload.sub;
-      user.status = "active";
-      if (!user.name && payload.name) user.name = payload.name;
-      await user.save();
+      return res.status(403).json({ error: "This Gmail account has not been added by an administrator." });
     }
+    if (user.status !== "active") {
+      return res.status(403).json({ error: "This account is not active." });
+    }
+    if (user.role === "staff") {
+      const config = await AuthConfig.findOne({ key: "default" });
+      if (config?.staffGoogleAuthEnabled === false) {
+        return res.status(403).json({ error: "Google sign-in is disabled for staff. Please sign in with your password." });
+      }
+    }
+    if (user.googleId && user.googleId !== payload.sub) {
+      return res.status(401).json({ error: "This account is linked to a different Google account." });
+    }
+    user.googleId = payload.sub;
+    if (!user.name && payload.name) user.name = payload.name;
+    await user.save();
 
     return await createSession(user, res);
   } catch (error) {
     console.error("Google auth error:", error);
     return res.status(401).json({ error: "Google authentication failed." });
+  }
+});
+
+router.put("/password", requireAuth, async (req, res) => {
+  const password = typeof req.body.password === "string" ? req.body.password : "";
+  if (password.length < 8) {
+    return res.status(400).json({ error: "Password must be at least 8 characters long." });
+  }
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    user.passwordHash = await hashPassword(password);
+    await user.save();
+    return res.json({ message: "Password saved successfully." });
+  } catch (error) {
+    console.error("Password update error:", error);
+    return res.status(500).json({ error: "Unable to save your password." });
   }
 });
 
