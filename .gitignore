@@ -26,3 +26,8 @@ dist-ssr
 # Environment variables
 .env
 notes/.obsidian/
+notes/*.md
+
+# Project configuration files that should not be committed
+AGENTS.md
+opencode.json
