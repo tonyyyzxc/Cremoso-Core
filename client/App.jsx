@@ -17,12 +17,6 @@ function RequireAuth({ children }) {
   return localStorage.getItem("token") ? children : <Navigate to="/login" replace />;
 }
 
-function RequireAdmin({ children }) {
-  return getStoredUser()?.role === "admin"
-    ? children
-    : <Navigate to="/dashboard" replace />;
-}
-
 function LoginRoute() {
   if (localStorage.getItem("token")) {
     return <Navigate to={getStoredUser()?.role === "admin" ? "/menu" : "/dashboard"} replace />;
@@ -46,7 +40,7 @@ function App() {
           path="/inventory"
           element={<p>Inventory page is not implemented yet.</p>}
         />
-        <Route path="/settings" element={<RequireAdmin><SettingsPage /></RequireAdmin>} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<p>404 - Page not found</p>} />
     </Routes>
