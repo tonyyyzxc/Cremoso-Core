@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import mongoose from "mongoose";
 import authRouter from "./routes/auth.js";
+import authConfigRouter from "./routes/authConfig.js";
 import usersRouter from "./routes/users.js";
 
 dotenv.config();
@@ -11,6 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRouter);
+app.use("/api/auth-settings", authConfigRouter);
 app.use("/api/users", usersRouter);
 
 const PORT = 5000;

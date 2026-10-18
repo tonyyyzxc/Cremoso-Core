@@ -58,7 +58,6 @@ export default function Layout() {
           activeId={activeId}
           onSelect={handleSelect}
           onLogout={handleLogout}
-          isAdmin={user?.role === "admin"}
         />
       )}
       <div className="flex-1 flex flex-col">
