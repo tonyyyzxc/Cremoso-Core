@@ -1,62 +1,43 @@
-# Server (Backend)
+﻿# Server (Backend)
 
-Express API backed by MongoDB (via Mongoose).
+Express and MongoDB backend for Cremoso-Core.
 
 ## Prerequisites
 
 - Node.js (LTS recommended)
 - npm
-- MongoDB running locally, or a MongoDB Atlas connection string
+- MongoDB connection settings for your environment
 
-## Setup
+## Install
 
-1. Navigate into the folder:
+From the project root, install the backend dependencies with:
 
-   ```bash
-   cd server
-   ```
+```bash
+cd server
+npm install
+```
 
-2. Install dependencies:
+This installs the dependencies listed in `package.json`:
 
-   ```bash
-   npm install
-   ```
+- `bcrypt`
+- `cors`
+- `dotenv`
+- `express`
+- `google-auth-library`
+- `jsonwebtoken`
+- `mongoose`
+- `nodemon` (development dependency)
 
-3. Create a `.env` file in this folder with the required settings:
-   ```
-   MONGODB_URL=mongodb://127.0.0.1:27017/cremoso-core
-   JWT_SECRET=replace-with-a-long-random-secret
-   ```
-   For Google sign-in, also set `GOOGLE_CLIENT_ID` to your Google OAuth web client ID. To create the first administrator, temporarily set `BOOTSTRAP_ADMIN_EMAIL` and `BOOTSTRAP_ADMIN_PASSWORD`; see the root README for details.
+## Configure
 
-   `MONGODB_URL` is the variable the server reads. It listens on port `5000`, which is currently set in `server.js`; `PORT` is not read from `.env`.
+Create or update the backend environment file in this folder with the connection settings provided for your environment. Do not commit credentials or secrets.
 
-## Running
+## Run
 
-Start the server with auto-restart on file changes (nodemon):
+Start the backend development server from this folder:
 
 ```bash
 npm run dev
 ```
 
-## Tech Stack
-
-- Express 5
-- Mongoose (MongoDB)
-- CORS
-- dotenv
-- nodemon (dev only)
-
-## Project Structure
-
-```
-server/
-├── server.js        # Entry point
-├── .env              # Environment variables (not committed)
-└── ...               # routes/, models/, controllers/ as the project grows
-```
-
-## Notes for Contributors
-
-- Never commit `.env` — it's already in `.gitignore`.
-- Make sure MongoDB is running before starting the server, or `MONGODB_URL` points to a reachable database.
+The server listens on port `5000`.
