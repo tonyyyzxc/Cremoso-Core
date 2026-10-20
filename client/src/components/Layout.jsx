@@ -6,8 +6,11 @@ import { apiRequest } from "../utils/api.js";
 
 const titleMap = {
   dashboard: "Dashboard",
+  staff: "Staff",
+  "new-order": "New Order",
   orders: "Orders",
   menu: "Menu",
+  management: "Management",
   inventory: "Inventory",
   settings: "Settings",
 };
@@ -23,11 +26,22 @@ export default function Layout() {
 
   const [user] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem("user"));
+      return JSON.parse(sessionStorage.getItem("user"));
     } catch {
       return null;
     }
   });
+
+  const [branchName, setBranchName] = useState("");
+
+  useEffect(() => {
+    if (user?.role !== "staff") return;
+    apiRequest("/api/staff/branch")
+      .then((data) => setBranchName(data.branch?.name || ""))
+      .catch(() => {
+        // Keep showing the person's name if the branch cannot be loaded.
+      });
+  }, [user?.role]);
 
   useEffect(() => {
     document.title = `${titleMap[activeId] || "Dashboard"} | Cremoso`;
@@ -44,10 +58,10 @@ export default function Layout() {
     try {
       await apiRequest("/api/auth/logout", { method: "POST" });
     } catch {
-      // Always clear this browser's credentials, even if the API cannot be reached.
+      // Clear this browser's credentials even if the API cannot be reached.
     }
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("user");
     navigate("/login", { replace: true });
   };
 
@@ -58,14 +72,17 @@ export default function Layout() {
           activeId={activeId}
           onSelect={handleSelect}
           onLogout={handleLogout}
+          userRole={user?.role}
         />
       )}
       <div className="flex-1 flex flex-col">
         <TopBar
           pageTitle={titleMap[activeId] || "Dashboard"}
-          userName={user?.name || user?.email || ""}
+          userName={branchName || user?.name || user?.email || ""}
           userEmail={user?.email || ""}
-          userRole={[user?.role?.toUpperCase(), user?.office].filter(Boolean).join(" / ")}
+          userRole={[user?.role?.toUpperCase(), user?.office]
+            .filter(Boolean)
+            .join(" / ")}
           userPicture={user?.picture}
           onViewProfile={() => navigate("/settings")}
           sidebarOpen={sidebarOpen}

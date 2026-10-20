@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Archive, ArrowDown, ArrowUp, Plus, Save, X } from "lucide-react";
+import { Archive, ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 
 const blankItem = (displayOrder = 0) => ({
@@ -22,11 +22,12 @@ export default function MenuPage() {
   const [items, setItems] = useState([]);
   const [config, setConfig] = useState({ channels: [], paymentMethods: [] });
   const [form, setForm] = useState(null);
+  const [itemMenu, setItemMenu] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const isAdmin = useMemo(() => {
-    try { return JSON.parse(localStorage.getItem("user") || "null")?.role === "admin"; }
+    try { return JSON.parse(sessionStorage.getItem("user") || "null")?.role === "admin"; }
     catch { return false; }
   }, []);
 
@@ -42,6 +43,20 @@ export default function MenuPage() {
   useEffect(() => {
     refresh().catch((err) => setError(err.message));
   }, [refresh]);
+
+  useEffect(() => {
+    if (!itemMenu) return undefined;
+    const closeMenu = () => setItemMenu(null);
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") closeMenu();
+    };
+    window.addEventListener("click", closeMenu);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("click", closeMenu);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [itemMenu]);
 
   const visibleItems = items.filter((item) => showArchived || !item.archived);
 
@@ -75,6 +90,17 @@ export default function MenuPage() {
     try {
       await apiRequest(`/api/menu/${item._id}`, { method: "PATCH", body: JSON.stringify(changes) });
       await refresh();
+    } catch (err) { setError(err.message); }
+  };
+
+  const deleteItem = async () => {
+    const item = itemMenu?.item;
+    setItemMenu(null);
+    if (!item || !window.confirm(`Permanently delete "${item.name}"? This cannot be undone.`)) return;
+    setError("");
+    try {
+      await apiRequest(`/api/menu/${item._id}`, { method: "DELETE" });
+      setItems((current) => current.filter((entry) => entry._id !== item._id));
     } catch (err) { setError(err.message); }
   };
 
@@ -190,7 +216,10 @@ export default function MenuPage() {
           <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300"><input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />Show archived items</label>
           {!visibleItems.length && <div className={cardClass}><p className="text-sm text-gray-500">No menu items yet.{isAdmin ? " Add your first item to begin." : ""}</p></div>}
           {visibleItems.map((item, index) => (
-            <article key={item._id} className={`${cardClass} flex flex-wrap items-center justify-between gap-4 ${item.archived ? "opacity-60" : ""}`}>
+            <article key={item._id} onContextMenu={isAdmin ? (event) => {
+              event.preventDefault();
+              setItemMenu({ item, x: Math.min(event.clientX, window.innerWidth - 190), y: Math.min(event.clientY, window.innerHeight - 60) });
+            } : undefined} className={`${cardClass} flex flex-wrap items-center justify-between gap-4 ${item.archived ? "opacity-60" : ""}`}>
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-center gap-2"><h3 className="font-semibold">{item.name}</h3><span className="rounded-full bg-gray-100 px-2.5 py-1 text-xs dark:bg-neutral-800">{item.category}</span><span className={`rounded-full px-2.5 py-1 text-xs ${item.active && !item.archived ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300" : "bg-gray-100 text-gray-600 dark:bg-neutral-800"}`}>{item.archived ? "Archived" : item.active ? "Available" : "Unavailable"}</span></div>
                 {item.description && <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{item.description}</p>}
@@ -205,6 +234,14 @@ export default function MenuPage() {
               </div>}
             </article>
           ))}
+        </div>
+      )}
+
+      {itemMenu && isAdmin && (
+        <div className="fixed z-50 min-w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900" style={{ left: itemMenu.x, top: itemMenu.y }} onClick={(event) => event.stopPropagation()}>
+          <button type="button" onClick={deleteItem} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">
+            <Trash2 size={16} /> Delete menu item
+          </button>
         </div>
       )}
 
