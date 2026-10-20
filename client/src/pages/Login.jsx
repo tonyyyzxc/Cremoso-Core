@@ -38,8 +38,8 @@ function Login() {
         return;
       }
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
       toast.success("Signed in successfully");
       window.location.href = data.user.role === "admin" ? "/menu" : "/dashboard";
     } catch (err) {
@@ -70,8 +70,8 @@ function Login() {
       }
 
       // Keep the app session so later API requests can authenticate the signed-in user.
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
       toast.success("Signed in successfully");
       window.location.href = data.user.role === "admin" ? "/menu" : "/dashboard";
     } catch (err) {

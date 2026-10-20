@@ -4,21 +4,37 @@ import Layout from "./src/components/Layout.jsx";
 import Dashboard from "./src/pages/Dashboard.jsx";
 import MenuPage from "./src/pages/Menu.jsx";
 import SettingsPage from "./src/pages/Settings.jsx";
+import ManagementPage from "./src/pages/Management.jsx";
+import StaffPage from "./src/pages/Staff.jsx";
+import OrdersPage from "./src/pages/Orders.jsx";
+import NewOrderPage from "./src/pages/NewOrder.jsx";
 
 function getStoredUser() {
   try {
-    return JSON.parse(localStorage.getItem("user") || "null");
+    return JSON.parse(sessionStorage.getItem("user") || "null");
   } catch {
     return null;
   }
 }
 
 function RequireAuth({ children }) {
-  return localStorage.getItem("token") ? children : <Navigate to="/login" replace />;
+  return sessionStorage.getItem("token") ? children : <Navigate to="/login" replace />;
+}
+
+function RequireAdmin({ children }) {
+  return getStoredUser()?.role === "admin"
+    ? children
+    : <Navigate to="/dashboard" replace />;
+}
+
+function RequireStaff({ children }) {
+  return getStoredUser()?.role === "staff"
+    ? children
+    : <Navigate to="/dashboard" replace />;
 }
 
 function LoginRoute() {
-  if (localStorage.getItem("token")) {
+  if (sessionStorage.getItem("token")) {
     return <Navigate to={getStoredUser()?.role === "admin" ? "/menu" : "/dashboard"} replace />;
   }
   return <Login />;
@@ -31,11 +47,11 @@ function App() {
       <Route path="/login" element={<LoginRoute />} />
       <Route element={<RequireAuth><Layout /></RequireAuth>}>
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route
-          path="/orders"
-          element={<p>Orders page is not implemented yet.</p>}
-        />
+        <Route path="/orders" element={<RequireAdmin><OrdersPage /></RequireAdmin>} />
+        <Route path="/new-order" element={<RequireStaff><NewOrderPage /></RequireStaff>} />
         <Route path="/menu" element={<MenuPage />} />
+        <Route path="/management" element={<RequireAdmin><ManagementPage /></RequireAdmin>} />
+        <Route path="/staff" element={<RequireStaff><StaffPage /></RequireStaff>} />
         <Route
           path="/inventory"
           element={<p>Inventory page is not implemented yet.</p>}
