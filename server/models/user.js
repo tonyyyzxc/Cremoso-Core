@@ -12,6 +12,16 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    phone: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    branchId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      default: null,
+    },
     username: {
       type: String,
       trim: true,

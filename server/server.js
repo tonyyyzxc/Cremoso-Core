@@ -4,6 +4,11 @@ import cors from "cors";
 import mongoose from "mongoose";
 import authRouter from "./routes/auth.js";
 import authConfigRouter from "./routes/authConfig.js";
+import branchesRouter from "./routes/branches.js";
+import menuRouter from "./routes/menu.js";
+import ordersRouter from "./routes/orders.js";
+import staffRouter from "./routes/staff.js";
+import storeConfigRouter from "./routes/storeConfig.js";
 import usersRouter from "./routes/users.js";
 
 dotenv.config();
@@ -13,6 +18,11 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/auth", authRouter);
 app.use("/api/auth-settings", authConfigRouter);
+app.use("/api/branches", branchesRouter);
+app.use("/api/menu", menuRouter);
+app.use("/api/orders", ordersRouter);
+app.use("/api/staff", staffRouter);
+app.use("/api/store-config", storeConfigRouter);
 app.use("/api/users", usersRouter);
 
 const PORT = 5000;
