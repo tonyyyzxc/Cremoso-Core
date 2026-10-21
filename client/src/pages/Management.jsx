@@ -36,6 +36,7 @@ export default function ManagementPage() {
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [workers, setWorkers] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [currentUser] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -65,17 +66,20 @@ export default function ManagementPage() {
   const [workerBranchFilter, setWorkerBranchFilter] = useState("all");
   const [busy, setBusy] = useState(false);
   const [busyUserId, setBusyUserId] = useState("");
+  const [busyApplicationId, setBusyApplicationId] = useState("");
   const [error, setError] = useState("");
 
   const loadData = useCallback(async () => {
-    const [loadedUsers, loadedBranches, loadedWorkers] = await Promise.all([
+    const [loadedUsers, loadedBranches, loadedWorkers, loadedApplications] = await Promise.all([
       apiRequest("/api/users"),
       apiRequest("/api/branches"),
       apiRequest("/api/branches/workers"),
+      apiRequest("/api/branch-applications"),
     ]);
     setUsers(loadedUsers);
     setBranches(loadedBranches);
     setWorkers(loadedWorkers);
+    setApplications(loadedApplications);
   }, []);
 
   useEffect(() => {
@@ -117,9 +121,9 @@ export default function ManagementPage() {
     });
   }, [workers, workerSearch, workerBranchFilter]);
 
-  const pendingCount = staffAccounts.filter(
-    (account) => account.status === "invited",
-  ).length;
+  const pendingCount = applications.filter(
+    (application) => application.status === "pending",
+  ).length + staffAccounts.filter((account) => account.status === "invited").length;
   const activeCount = staffAccounts.filter(
     (account) => account.status === "active",
   ).length;
@@ -212,15 +216,21 @@ export default function ManagementPage() {
     setError("");
     try {
       if (editingAccount.branchId?._id) {
-        await apiRequest(`/api/branches/${editingAccount.branchId._id}`, {
-          method: "PATCH",
-          body: JSON.stringify({
-            name: editBranchName,
-            address: editBranchAddress,
-            phone: editBranchPhone,
-            contactEmail: editingAccount.email,
+        await Promise.all([
+          apiRequest(`/api/users/${editingAccount._id}/contact`, {
+            method: "PATCH",
+            body: JSON.stringify({ name: editName, phone: editPhone }),
           }),
-        });
+          apiRequest(`/api/branches/${editingAccount.branchId._id}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              name: editBranchName,
+              address: editBranchAddress,
+              phone: editBranchPhone,
+              contactEmail: editingAccount.email,
+            }),
+          }),
+        ]);
       } else {
         await apiRequest(`/api/users/${editingAccount._id}/contact`, {
           method: "PATCH",
@@ -267,6 +277,31 @@ export default function ManagementPage() {
       setError(err.message);
     } finally {
       setBusyUserId("");
+    }
+  };
+
+  const reviewApplication = async (application, decision) => {
+    setBusyApplicationId(application._id);
+    setError("");
+    try {
+      const result = await apiRequest(`/api/branch-applications/${application._id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ decision }),
+      });
+      setApplications((current) => current.map((item) => (
+        item._id === application._id
+          ? { ...item, status: result.status, reviewedAt: result.reviewedAt }
+          : item
+      )));
+      if (result.branch && result.user) {
+        setBranches((current) => [...current, result.branch].sort((a, b) => a.name.localeCompare(b.name)));
+        setUsers((current) => [{ ...result.user, branchId: result.branch }, ...current]);
+      }
+      toast.success(decision === "approved" ? "Application approved and branch account created." : "Application rejected.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyApplicationId("");
     }
   };
 
@@ -371,6 +406,61 @@ export default function ManagementPage() {
           {error}
         </p>
       )}
+
+      <section className={`${cardClassName} overflow-hidden`}>
+        <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
+          <h3 className="font-semibold">Branch applications</h3>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            Review branch manager requests. Approved applications create the branch and manager account.
+          </p>
+        </div>
+        <div className="divide-y divide-gray-100 dark:divide-neutral-800">
+          {applications.map((application) => (
+            <article key={application._id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-semibold">{application.branchName}</h4>
+                  <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(application.status === "pending" ? "invited" : application.status === "approved" ? "active" : "disabled")}`}>
+                    {application.status}
+                  </span>
+                </div>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  Manager: {application.managerName} · {application.managerEmail}
+                </p>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {[application.branchAddress, application.branchPhone, application.managerPhone].filter(Boolean).join(" · ") || "No additional contact details"}
+                  {application.reviewedAt ? ` · Reviewed ${new Date(application.reviewedAt).toLocaleDateString()}` : ` · Submitted ${new Date(application.createdAt).toLocaleDateString()}`}
+                </p>
+              </div>
+              {application.status === "pending" && (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => reviewApplication(application, "rejected")}
+                    disabled={Boolean(busyApplicationId)}
+                    className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
+                  >
+                    {busyApplicationId === application._id ? "Saving..." : "Reject"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => reviewApplication(application, "approved")}
+                    disabled={Boolean(busyApplicationId)}
+                    className={buttonClassName}
+                  >
+                    {busyApplicationId === application._id ? "Saving..." : "Approve"}
+                  </button>
+                </div>
+              )}
+            </article>
+          ))}
+          {!applications.length && (
+            <p className="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
+              No branch applications have been submitted.
+            </p>
+          )}
+        </div>
+      </section>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
@@ -502,12 +592,12 @@ export default function ManagementPage() {
                     className="hover:bg-gray-50/70 dark:hover:bg-neutral-800/40"
                   >
                     <td className="px-5 py-4">
-                      <div className="font-medium">
-                        {account.email}
-                      </div>
+                      <div className="font-medium">{account.name || (account.branchId?._id ? "Branch manager" : account.email)}</div>
+                      {account.name && <div className="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{account.email}</div>}
                     </td>
                     <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-300">
-                      {branch?.phone || "None"}
+                      <div>{account.phone || (account.branchId?._id ? "No manager phone" : "None")}</div>
+                      {branch?.phone && <div className="mt-0.5 text-gray-500 dark:text-gray-400">Branch: {branch.phone}</div>}
                     </td>
                     <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-300">
                       {branch?.address || "No address"}
@@ -786,6 +876,27 @@ export default function ManagementPage() {
             <form onSubmit={saveAccountDetails} className="mt-5 space-y-4">
               {editingAccount.branchId?._id ? (
                 <>
+                  <p className="border-b border-gray-100 pb-2 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E] dark:border-neutral-800">Branch manager</p>
+                  <label className="block space-y-1.5 text-sm font-medium">
+                    Manager name
+                    <input
+                      className={inputClassName}
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <label className="block space-y-1.5 text-sm font-medium">
+                    Manager phone
+                    <input
+                      className={inputClassName}
+                      type="tel"
+                      value={editPhone}
+                      onChange={(event) => setEditPhone(event.target.value)}
+                      placeholder="Optional"
+                    />
+                  </label>
+                  <p className="border-b border-gray-100 pb-2 pt-2 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E] dark:border-neutral-800">Branch information</p>
                   <label className="block space-y-1.5 text-sm font-medium">
                     Branch name
                     <input

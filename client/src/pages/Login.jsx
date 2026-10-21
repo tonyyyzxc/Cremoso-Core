@@ -1,17 +1,65 @@
 import { useState, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
-import { LockKeyhole, Mail } from "lucide-react";
+import { LockKeyhole, Mail, UserRound } from "lucide-react";
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const signupInputClass = "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20";
 
 function Login() {
+  const [isSignup, setIsSignup] = useState(false);
   const [identifier, setIdentifier] = useState("");
+  const [managerEmail, setManagerEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [managerName, setManagerName] = useState("");
+  const [managerPhone, setManagerPhone] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [branchPhone, setBranchPhone] = useState("");
+  const [branchAddress, setBranchAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
   const hiddenGoogleBtn = useRef(null);
+
+  const handleSignup = async (event) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const result = await fetch(`${API_URL}/api/branch-applications`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          managerName,
+          managerPhone,
+          managerEmail,
+          password,
+          branchName,
+          branchPhone,
+          branchAddress,
+        }),
+      });
+      const data = await result.json().catch(() => ({}));
+      if (!result.ok) {
+        toast.error(data.error || "Unable to submit your application.");
+        return;
+      }
+      toast.success(data.message || "Branch application submitted.");
+      setIsSignup(false);
+      setManagerName("");
+      setManagerPhone("");
+      setBranchName("");
+      setBranchPhone("");
+      setBranchAddress("");
+      setIdentifier("");
+      setManagerEmail("");
+      setPassword("");
+    } catch (err) {
+      console.error("Branch signup error:", err);
+      toast.error("Unable to reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Password login returns { token, user }.
   const handleSubmit = async (event) => {
@@ -200,102 +248,83 @@ function Login() {
         {/* Right panel — form side */}
         <div className="flex flex-col justify-center px-8 py-12 md:px-12">
           <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
-            Welcome!
+            {isSignup ? "Branch signup" : "Welcome!"}
           </h2>
           <p className="text-gray-500 text-sm mb-7">
-            Login to your Cremoso account
+            {isSignup ? "Apply to register your branch and branch manager account." : "Login to your Cremoso account"}
           </p>
 
-          <form onSubmit={handleSubmit} className="space-y-4 mb-5">
+          <form onSubmit={isSignup ? handleSignup : handleSubmit} className="space-y-3.5">
+            {isSignup && (
+              <>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">Branch details</p>
+                <input value={branchName} onChange={(event) => setBranchName(event.target.value)} placeholder="Branch name" autoComplete="organization" className={signupInputClass} required />
+                <input value={branchAddress} onChange={(event) => setBranchAddress(event.target.value)} placeholder="Branch address" autoComplete="street-address" className={signupInputClass} />
+                <input type="tel" value={branchPhone} onChange={(event) => setBranchPhone(event.target.value)} placeholder="Branch phone (optional)" autoComplete="tel" className={signupInputClass} />
+                <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">Branch manager account</p>
+                <div className="relative">
+                  <UserRound size={18} aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                  <input value={managerName} onChange={(event) => setManagerName(event.target.value)} placeholder="Manager name" autoComplete="name" className={`${signupInputClass} pl-11`} required />
+                </div>
+                <input type="tel" value={managerPhone} onChange={(event) => setManagerPhone(event.target.value)} placeholder="Manager phone (optional)" autoComplete="tel" className={signupInputClass} />
+              </>
+            )}
             <div className="relative">
-              <Mail
-                size={18}
-                aria-hidden="true"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+              <Mail size={18} aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
-                type="text"
-                placeholder="Username or email"
-                autoComplete="username"
-                value={identifier}
-                onChange={(event) => setIdentifier(event.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 pl-11 pr-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
+                type={isSignup ? "email" : "text"}
+                placeholder={isSignup ? "Manager login email" : "Username or email"}
+                autoComplete={isSignup ? "email" : "username"}
+                value={isSignup ? managerEmail : identifier}
+                onChange={(event) => (isSignup ? setManagerEmail(event.target.value) : setIdentifier(event.target.value))}
+                className={`${signupInputClass} pl-11`}
                 required
               />
             </div>
-
             <div className="relative">
-              <LockKeyhole
-                size={18}
-                aria-hidden="true"
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+              <LockKeyhole size={18} aria-hidden="true" className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                autoComplete="current-password"
+                placeholder={isSignup ? "Create password (at least 8 characters)" : "Password"}
+                autoComplete={isSignup ? "new-password" : "current-password"}
+                minLength={isSignup ? 8 : undefined}
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 pl-11 pr-12 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20"
+                className={`${signupInputClass} pl-11 pr-12`}
                 required
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((visible) => !visible)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0A8B8E] transition"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
+              <button type="button" onClick={() => setShowPassword((visible) => !visible)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0A8B8E] transition" aria-label={showPassword ? "Hide password" : "Show password"}>
                 <EyeIcon open={showPassword} />
               </button>
             </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? "Please wait..." : "Login"}
+            <button type="submit" disabled={isSubmitting} className="w-full bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed">
+              {isSubmitting ? "Please wait..." : isSignup ? "Submit branch application" : "Login"}
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-5">
-            <div className="h-px flex-1 bg-gray-200" />
-            <span className="text-xs text-gray-400">Or continue with</span>
-            <div className="h-px flex-1 bg-gray-200" />
-          </div>
-
-          <button
-            type="button"
-            onClick={triggerGoogleLogin}
-            className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
-          >
-            <GoogleIcon />
-            Google
-          </button>
-
-          <div
-            ref={hiddenGoogleBtn}
-            style={{
-              position: "absolute",
-              opacity: 0,
-              pointerEvents: "none",
-              height: 0,
-              overflow: "hidden",
-            }}
-          >
-            <GoogleLogin
-              locale="en"
-              text="continue_with"
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-            />
-          </div>
-
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Having trouble logging in? Contact{" "}
-            <span className="text-[#0A8B8E] font-medium cursor-pointer hover:underline">
-              Admin
-            </span>
+          {!isSignup && (
+            <>
+              <div className="flex items-center gap-3 my-5">
+                <div className="h-px flex-1 bg-gray-200" />
+                <span className="text-xs text-gray-400">Or continue with</span>
+                <div className="h-px flex-1 bg-gray-200" />
+              </div>
+              <button type="button" onClick={triggerGoogleLogin} className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50">
+                <GoogleIcon /> Google
+              </button>
+              <div ref={hiddenGoogleBtn} style={{ position: "absolute", opacity: 0, pointerEvents: "none", height: 0, overflow: "hidden" }}>
+                <GoogleLogin locale="en" text="continue_with" onSuccess={handleGoogleSuccess} onError={handleGoogleError} />
+              </div>
+              <p className="text-center text-sm text-gray-500 mt-6">
+                Having trouble logging in? Contact <span className="text-[#0A8B8E] font-medium">Admin</span>
+              </p>
+            </>
+          )}
+          <p className="text-center text-sm text-gray-500 mt-5">
+            {isSignup ? "Already have an account?" : "Managing a branch?"}{" "}
+            <button type="button" onClick={() => { setIsSignup((value) => !value); setPassword(""); }} className="font-semibold text-[#0A8B8E] hover:underline">
+              {isSignup ? "Back to login" : "Apply here"}
+            </button>
           </p>
         </div>
       </div>
