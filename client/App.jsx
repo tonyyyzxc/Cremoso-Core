@@ -8,6 +8,10 @@ import ManagementPage from "./src/pages/Management.jsx";
 import StaffPage from "./src/pages/Staff.jsx";
 import OrdersPage from "./src/pages/Orders.jsx";
 import NewOrderPage from "./src/pages/NewOrder.jsx";
+import OrderQueuePage from "./src/pages/OrderQueue.jsx";
+import TransactionsPage from "./src/pages/Transactions.jsx";
+import ReconciliationPage from "./src/pages/Reconciliation.jsx";
+import ReportsPage from "./src/pages/Reports.jsx";
 
 function getStoredUser() {
   try {
@@ -49,13 +53,13 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/orders" element={<RequireAdmin><OrdersPage /></RequireAdmin>} />
         <Route path="/new-order" element={<RequireStaff><NewOrderPage /></RequireStaff>} />
+        <Route path="/order-queue" element={<RequireStaff><OrderQueuePage /></RequireStaff>} />
+        <Route path="/transactions" element={<RequireStaff><TransactionsPage /></RequireStaff>} />
+        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reconciliation" element={<RequireStaff><ReconciliationPage /></RequireStaff>} />
         <Route path="/menu" element={<MenuPage />} />
         <Route path="/management" element={<RequireAdmin><ManagementPage /></RequireAdmin>} />
         <Route path="/staff" element={<RequireStaff><StaffPage /></RequireStaff>} />
-        <Route
-          path="/inventory"
-          element={<p>Inventory page is not implemented yet.</p>}
-        />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       <Route path="*" element={<p>404 - Page not found</p>} />
