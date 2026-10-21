@@ -3,17 +3,40 @@ import User from "../models/user.js";
 import Worker from "../models/Worker.js";
 
 export async function getStaffBranch(req, res) {
-  if (!req.user.branchId) return res.json({ branch: null, coworkers: [] });
+  if (!req.user.branchId) return res.json({ branch: null, manager: null, coworkers: [] });
   try {
     const [branch, coworkers] = await Promise.all([
       Branch.findById(req.user.branchId).select("name address phone contactEmail"),
       User.find({ branchId: req.user.branchId, role: "staff" })
         .select("name email phone status").sort({ name: 1, email: 1 }),
     ]);
-    return res.json({ branch, coworkers });
+    return res.json({
+      branch,
+      manager: { _id: req.user._id, name: req.user.name, email: req.user.email, phone: req.user.phone },
+      coworkers,
+    });
   } catch (error) {
     console.error("Branch staff lookup error:", error);
     return res.status(500).json({ error: "Unable to load your branch information." });
+  }
+}
+
+export async function updateStaffProfile(req, res) {
+  const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+  const phone = typeof req.body.phone === "string" ? req.body.phone.trim() : "";
+  if (!name) return res.status(400).json({ error: "Enter your name." });
+  try {
+    const manager = await User.findById(req.user._id);
+    if (!manager) return res.status(404).json({ error: "Account not found." });
+    manager.name = name;
+    manager.phone = phone;
+    await manager.save();
+    return res.json({
+      manager: { _id: manager._id, name: manager.name, email: manager.email, phone: manager.phone },
+    });
+  } catch (error) {
+    console.error("Manager profile update error:", error);
+    return res.status(400).json({ error: "Unable to save your manager information." });
   }
 }
 
