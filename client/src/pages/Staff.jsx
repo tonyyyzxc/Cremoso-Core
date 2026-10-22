@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Trash2, Users } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const inputClassName =
   "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/20 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -74,8 +77,10 @@ export default function StaffPage() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-6xl space-y-7 text-[#0A3B3D] dark:text-white">
-      <header>
+      {isLoading && <p role="status" className="sr-only">Loading staff...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition}>
         <p className="text-sm font-medium text-[#0A8B8E]">
           {branch?.name || "Branch team"}
         </p>
@@ -84,7 +89,7 @@ export default function StaffPage() {
           Add and manage the workers at your branch. These worker records do not
           create system accounts and cannot be used to sign in.
         </p>
-      </header>
+      </motion.header>
 
       {error && (
         <p
@@ -95,6 +100,7 @@ export default function StaffPage() {
         </p>
       )}
 
+      {isLoading ? <div className="space-y-4"><div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-40" /><Skeleton className="mt-2 h-4 w-72 max-w-full" /><div className="mt-5 grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-11 w-full" />)}</div><Skeleton className="mt-4 h-10 w-32" /></div><div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><div className="border-b border-gray-100 p-5 dark:border-neutral-800"><Skeleton className="h-5 w-24" /><Skeleton className="mt-2 h-4 w-56" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4].map((index) => <div key={index} className="grid grid-cols-4 gap-4"><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="mb-5 flex items-start gap-3">
           <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
@@ -167,13 +173,9 @@ export default function StaffPage() {
             {branch?.name ? ` at ${branch.name}` : ""}.
           </p>
         </div>
-        {isLoading ? (
-          <p className="p-6 text-sm text-gray-500 dark:text-gray-400">
-            Loading workers...
-          </p>
-        ) : workers.length ? (
+        {workers.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-190 text-left text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-3.5 font-semibold">Name</th>
@@ -217,6 +219,9 @@ export default function StaffPage() {
           </p>
         )}
       </section>
+      </div></FadeIn>}
+      <AnimatePresence>{isLoading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

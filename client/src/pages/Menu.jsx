@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Archive, ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const blankItem = (displayOrder = 0) => ({
   name: "",
@@ -55,6 +58,8 @@ export default function MenuPage() {
     try { return JSON.parse(sessionStorage.getItem("user") || "null")?.role === "admin"; }
     catch { return false; }
   }, []);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [stockLoaded, setStockLoaded] = useState(!isAdmin);
 
   const refresh = useCallback(async () => {
     try {
@@ -77,6 +82,7 @@ export default function MenuPage() {
       setItems(menuItems);
     } finally {
       setBranchesLoading(false);
+      setCatalogLoaded(true);
     }
   }, [isAdmin, selectedBranchId]);
 
@@ -110,11 +116,12 @@ export default function MenuPage() {
       setError(err.message);
     } finally {
       setStockLoading(false);
+      setStockLoaded(true);
     }
   }, [isAdmin, selectedBranchId]);
 
   useEffect(() => {
-    loadBranchStock();
+    Promise.resolve().then(() => loadBranchStock());
   }, [loadBranchStock]);
 
   useEffect(() => {
@@ -132,6 +139,7 @@ export default function MenuPage() {
   }, [itemMenu]);
 
   const visibleItems = items.filter((item) => showArchived || !item.archived);
+  const loading = !catalogLoaded || (isAdmin && Boolean(selectedBranchId) && !stockLoaded);
 
   const saveItem = async (event) => {
     event.preventDefault();
@@ -401,8 +409,10 @@ export default function MenuPage() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="space-y-6 text-[#0A3B3D] dark:text-white">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      {loading && <p role="status" className="sr-only">Loading menu...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm text-gray-500 dark:text-gray-400">Catalog and availability controls</p>
           <h2 className="mt-1 text-2xl font-semibold">Menu management</h2>
@@ -433,7 +443,7 @@ export default function MenuPage() {
             </button>}
           </div>
         )}
-      </div>
+      </motion.header>
 
       <div className="flex gap-2 border-b border-gray-200 dark:border-neutral-800">
         {[
@@ -447,6 +457,102 @@ export default function MenuPage() {
         ))}
       </div>
 
+      {loading ? (
+        <div className="space-y-5">
+          {tab === "items" ? (
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                <input type="checkbox" checked={showArchived} onChange={(event) => setShowArchived(event.target.checked)} />
+                Show archived items
+              </label>
+              {[0, 1, 2].map((index) => (
+                <article key={index} className={`${cardClass} flex flex-wrap items-center justify-between gap-4`}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-6 w-20 rounded-full" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                      <Skeleton className="h-6 w-24 rounded-full" />
+                    </div>
+                    <Skeleton className="mt-2 h-4 w-3/4 max-w-80" />
+                    <Skeleton className="mt-2 h-4 w-28" />
+                  </div>
+                  {isAdmin && (
+                    <div className="flex flex-wrap items-center gap-1">
+                      <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-2 py-1 dark:bg-neutral-950">
+                        <Skeleton className="h-8 w-20 rounded-lg" />
+                        <Skeleton className="h-3 w-10" />
+                        <Skeleton className="h-8 w-12 rounded-lg" />
+                      </div>
+                      {[0, 1].map((button) => <Skeleton key={button} className="h-9 w-9 rounded-lg" />)}
+                      {[0, 1, 2].map((button) => <Skeleton key={button} className="h-9 w-16 rounded-lg" />)}
+                    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          ) : tab === "inventory" && isAdmin ? (
+            <div className="space-y-5">
+              <div className="flex justify-end">
+                <Skeleton className="h-10 w-32 rounded-xl" />
+              </div>
+              <section className={`${cardClass} overflow-hidden`}>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                  <div>
+                    <h3 className="font-semibold">Supply stock</h3>
+                    <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-190 text-left text-sm">
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                      <tr>
+                        <th className="px-5 py-3">Supply</th>
+                        <th className="px-5 py-3">Stock</th>
+                        <th className="px-5 py-3">Low threshold</th>
+                        <th className="px-5 py-3">Status</th>
+                        <th className="px-5 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                      {[0, 1, 2].map((index) => (
+                        <tr key={index}>
+                          <td className="px-5 py-4">
+                            <Skeleton className="h-9 w-44 rounded-lg" />
+                            <div className="mt-2 flex items-center gap-2">
+                              <Skeleton className="h-3 w-8" />
+                              <Skeleton className="h-7 w-28 rounded-lg" />
+                            </div>
+                          </td>
+                          <td className="px-5 py-4"><div className="flex items-center gap-2"><Skeleton className="h-9 w-28 rounded-lg" /><Skeleton className="h-3 w-10" /></div></td>
+                          <td className="px-5 py-4"><Skeleton className="h-9 w-28 rounded-lg" /></td>
+                          <td className="px-5 py-4"><Skeleton className="h-6 w-20 rounded-full" /></td>
+                          <td className="px-5 py-4"><div className="flex justify-end gap-2">{[0, 1, 2, 3].map((action) => <Skeleton key={action} className="h-8 w-16 rounded-lg" />)}</div></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          ) : (
+            <div className="grid gap-5 lg:grid-cols-2">
+              {[["channels", "Sales channels", "Choose where orders may be accepted."], ["paymentMethods", "Payment methods", "Choose which payment methods are available."]].map(([key, title, description]) => (
+                <section key={key} className={`${cardClass} space-y-4`}>
+                  <div><h3 className="text-lg font-semibold">{title}</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p></div>
+                  {[0, 1, 2].map((row) => (
+                    <div key={row} className="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-neutral-800">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-5 rounded" />
+                    </div>
+                  ))}
+                  {!isAdmin && <p className="text-xs text-gray-500">Only administrators can change availability.</p>}
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : <FadeIn key={tab} from="bottom" delay={0.15}><>
       {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
       {message && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">{message}</p>}
 
@@ -583,7 +689,7 @@ export default function MenuPage() {
               <section className={`${cardClass} overflow-hidden`}>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><div><h3 className="font-semibold">Supply stock</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p></div></div>
                 {stockLoading ? <p className="p-5 text-sm text-gray-500">Loading supply stock...</p> : !supplies.length ? <p className="p-5 text-sm text-gray-500">No supplies yet. Add cups, cones, or other items above.</p> : (
-                  <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm">
+                  <div className="overflow-x-auto"><table className="w-full min-w-190 text-left text-sm">
                     <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Supply</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{supplies.map((supply) => {
                       const isLow = supply.quantity <= supply.lowStockThreshold;
@@ -627,6 +733,9 @@ export default function MenuPage() {
           ))}
         </div>
       )}
+      </></FadeIn>}
+      <AnimatePresence>{loading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

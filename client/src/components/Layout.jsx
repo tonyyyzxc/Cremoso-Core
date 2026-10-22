@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation, Outlet } from "react-router-dom";
+import { AnimatePresence } from "motion/react";
 import SidebarNav from "./Sidebar";
 import TopBar from "./Topbar";
 import { apiRequest } from "../utils/api.js";
+import { StreakBar } from "./loading.jsx";
 
 const titleMap = {
   dashboard: "Dashboard",
@@ -26,6 +28,7 @@ export default function Layout() {
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("theme") === "dark",
   );
+  const contentRef = useRef(null);
 
   const [user] = useState(() => {
     try {
@@ -36,6 +39,7 @@ export default function Layout() {
   });
 
   const [branchName, setBranchName] = useState("");
+  const [loggingOut, setLoggingOut] = useState(false);
 
   useEffect(() => {
     if (user?.role !== "staff") return;
@@ -51,6 +55,10 @@ export default function Layout() {
   }, [activeId]);
 
   useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [activeId]);
+
+  useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
@@ -58,6 +66,7 @@ export default function Layout() {
   const handleSelect = (id) => navigate(`/${id}`);
 
   const handleLogout = async () => {
+    setLoggingOut(true);
     try {
       await apiRequest("/api/auth/logout", { method: "POST" });
     } catch {
@@ -93,10 +102,11 @@ export default function Layout() {
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((v) => !v)}
         />
-        <div className="flex-1 overflow-y-auto bg-black/2 dark:bg-black p-6">
+        <div ref={contentRef} className="flex-1 overflow-y-auto scroll-smooth bg-black/2 dark:bg-black p-6">
           <Outlet />
         </div>
       </div>
+      <AnimatePresence>{loggingOut && <StreakBar />}</AnimatePresence>
     </div>
   );
 }
