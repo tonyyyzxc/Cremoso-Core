@@ -14,16 +14,17 @@ import {
 const STAFF_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, available: true },
   { id: "new-order", label: "New Order", icon: ShoppingCart, available: true },
-  { id: "order-queue", label: "Order Queue", icon: ClipboardList },
-  { id: "transactions", label: "Transactions", icon: ShoppingBag },
-  { id: "reconciliation", label: "Shift Reconciliation", icon: ClipboardCheck },
+  { id: "order-queue", label: "Order Queue", icon: ClipboardList, available: true },
+  { id: "transactions", label: "Transactions", icon: ShoppingBag, available: true },
+  { id: "reports", label: "Reports", icon: BarChart3, available: true },
+  { id: "reconciliation", label: "Shift Reconciliation", icon: ClipboardCheck, available: true },
   { id: "staff", label: "Staff", icon: Users, available: true },
 ];
 
 const ADMIN_NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, available: true },
   { id: "orders", label: "Orders", icon: ShoppingBag, available: true },
-  { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "reports", label: "Reports", icon: BarChart3, available: true },
   { id: "menu", label: "Menu", icon: UtensilsCrossed, available: true },
   { id: "management", label: "Management", icon: Users, available: true },
 ];

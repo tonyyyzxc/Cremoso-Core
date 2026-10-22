@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Building2,
+  CircleUserRound,
   Eye,
   EyeOff,
   KeyRound,
@@ -17,17 +18,29 @@ const inputClassName =
 const buttonClassName =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#097578] disabled:cursor-not-allowed disabled:opacity-60";
 
+const feedbackClassName = (message) =>
+  message.toLowerCase().includes("saved")
+    ? "text-sm text-emerald-700 dark:text-emerald-300"
+    : "text-sm text-red-700 dark:text-red-300";
+
 export default function SettingsPage() {
   const toast = useToast();
   const [user, setUser] = useState(null);
+  const [managerName, setManagerName] = useState("");
+  const [managerPhone, setManagerPhone] = useState("");
+  const [managerEmail, setManagerEmail] = useState("");
+  const [isSavingManager, setIsSavingManager] = useState(false);
+  const [managerFeedback, setManagerFeedback] = useState("");
   const [branch, setBranch] = useState(null);
   const [branchAddress, setBranchAddress] = useState("");
   const [branchPhone, setBranchPhone] = useState("");
   const [branchEmail, setBranchEmail] = useState("");
   const [isSavingBranch, setIsSavingBranch] = useState(false);
+  const [branchFeedback, setBranchFeedback] = useState("");
   const [staffGoogleAuthEnabled, setStaffGoogleAuthEnabled] = useState(true);
   const [staffAccountsWithoutPassword, setStaffAccountsWithoutPassword] = useState(0);
   const [isSavingGoogleSetting, setIsSavingGoogleSetting] = useState(false);
+  const [googleFeedback, setGoogleFeedback] = useState("");
   const [hasPassword, setHasPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -36,6 +49,7 @@ export default function SettingsPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSavingPassword, setIsSavingPassword] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -68,6 +82,9 @@ export default function SettingsPage() {
     apiRequest("/api/staff/branch")
       .then((data) => {
         setBranch(data.branch);
+        setManagerName(data.manager?.name || "");
+        setManagerPhone(data.manager?.phone || "");
+        setManagerEmail(data.manager?.email || "");
         setBranchAddress(data.branch?.address || "");
         setBranchPhone(data.branch?.phone || "");
         setBranchEmail(data.branch?.contactEmail || "");
@@ -75,23 +92,47 @@ export default function SettingsPage() {
       .catch((err) => setError(err.message));
   }, [user?.role]);
 
+  const saveManagerInfo = async (event) => {
+    event.preventDefault();
+    setIsSavingManager(true);
+    setManagerFeedback("");
+    try {
+      const data = await apiRequest("/api/staff/profile", {
+        method: "PATCH",
+        body: JSON.stringify({ name: managerName, phone: managerPhone }),
+      });
+      setManagerName(data.manager.name);
+      setManagerPhone(data.manager.phone || "");
+      setManagerEmail(data.manager.email || managerEmail);
+      const updatedUser = { ...user, name: data.manager.name, phone: data.manager.phone || "" };
+      sessionStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setManagerFeedback("Manager information saved.");
+      toast.success("Manager information saved.");
+    } catch (err) {
+      setManagerFeedback(err.message);
+    } finally {
+      setIsSavingManager(false);
+    }
+  };
+
   const savePassword = async (event) => {
     event.preventDefault();
+    setPasswordFeedback("");
     if (hasPassword && !currentPassword) {
-      setError("Enter your current password to continue.");
+      setPasswordFeedback("Enter your current password to continue.");
       return;
     }
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
+      setPasswordFeedback("Password must be at least 8 characters long.");
       return;
     }
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      setPasswordFeedback("Passwords do not match.");
       return;
     }
 
     setIsSavingPassword(true);
-    setError("");
     try {
       await apiRequest("/api/auth/password", {
         method: "PUT",
@@ -104,11 +145,12 @@ export default function SettingsPage() {
       setShowCurrentPassword(false);
       setShowPassword(false);
       setShowConfirmPassword(false);
+      setPasswordFeedback("Password saved successfully.");
       toast.success(
         "Password saved. You can now sign in with your email and password.",
       );
     } catch (err) {
-      setError(err.message);
+      setPasswordFeedback(err.message);
     } finally {
       setIsSavingPassword(false);
     }
@@ -117,7 +159,7 @@ export default function SettingsPage() {
   const saveBranchInfo = async (event) => {
     event.preventDefault();
     setIsSavingBranch(true);
-    setError("");
+    setBranchFeedback("");
     try {
       const data = await apiRequest("/api/staff/branch", {
         method: "PATCH",
@@ -128,9 +170,10 @@ export default function SettingsPage() {
         }),
       });
       setBranch(data.branch);
+      setBranchFeedback("Branch details saved.");
       toast.success("Branch details saved.");
     } catch (err) {
-      setError(err.message);
+      setBranchFeedback(err.message);
     } finally {
       setIsSavingBranch(false);
     }
@@ -139,7 +182,7 @@ export default function SettingsPage() {
   const toggleGoogleAuth = async () => {
     const nextValue = !staffGoogleAuthEnabled;
     setIsSavingGoogleSetting(true);
-    setError("");
+    setGoogleFeedback("");
     try {
       const config = await apiRequest("/api/auth-settings", {
         method: "PATCH",
@@ -147,13 +190,14 @@ export default function SettingsPage() {
       });
       setStaffGoogleAuthEnabled(config.staffGoogleAuthEnabled);
       setStaffAccountsWithoutPassword(config.staffAccountsWithoutPassword || 0);
+      setGoogleFeedback("Sign-in preference saved.");
       toast.success(
         config.staffGoogleAuthEnabled
           ? "Staff Google sign-in enabled."
           : "Staff Google sign-in disabled.",
       );
     } catch (err) {
-      setError(err.message);
+      setGoogleFeedback(err.message);
     } finally {
       setIsSavingGoogleSetting(false);
     }
@@ -167,7 +211,7 @@ export default function SettingsPage() {
         </p>
         <h2 className="mt-1 text-3xl font-semibold tracking-tight">Settings</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-          Manage your password and sign-in preferences for Cremoso.
+          Manage your profile, password, and branch preferences for Cremoso.
         </p>
       </header>
 
@@ -180,7 +224,14 @@ export default function SettingsPage() {
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="space-y-6">
+        <section className="rounded-3xl border border-[#0A8B8E]/20 bg-gradient-to-br from-white via-white to-[#0A8B8E]/5 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-[#0A8B8E]/10 sm:p-6">
+          <header className="mb-5 border-b border-[#0A8B8E]/10 pb-4 dark:border-neutral-800">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0A8B8E]">Account and security</p>
+            <h3 className="mt-1 text-lg font-semibold">Your profile and sign-in</h3>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Keep your contact information current and protect account access.</p>
+          </header>
+          <div className="grid gap-5 lg:grid-cols-2">
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
           <div className="mb-5 flex items-start gap-3">
             <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
@@ -197,7 +248,7 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-          <form onSubmit={savePassword} className="space-y-4">
+            <form onSubmit={savePassword} className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
             <label className="block space-y-1.5 text-sm font-medium">
               Current password {!hasPassword && <span className="font-normal text-gray-500">(optional if none is set)</span>}
               <span className="relative block">
@@ -266,6 +317,14 @@ export default function SettingsPage() {
                 </button>
               </span>
             </label>
+            {passwordFeedback && (
+              <p
+                role={passwordFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                className={feedbackClassName(passwordFeedback)}
+              >
+                {passwordFeedback}
+              </p>
+            )}
             <button
               type="submit"
               disabled={isSavingPassword}
@@ -276,6 +335,74 @@ export default function SettingsPage() {
           </form>
         </section>
 
+        {user?.role === "staff" && (
+          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
+                <CircleUserRound size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold">Manager information</h3>
+                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                  Update your contact details. Your login email is read-only.
+                </p>
+              </div>
+            </div>
+            <form onSubmit={saveManagerInfo} className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+              <label className="block space-y-1.5 text-sm font-medium">
+                Manager name
+                <input
+                  className={inputClassName}
+                  value={managerName}
+                  onChange={(event) => setManagerName(event.target.value)}
+                  autoComplete="name"
+                  required
+                />
+              </label>
+              <label className="block space-y-1.5 text-sm font-medium">
+                Login email
+                <input
+                  className={`${inputClassName} opacity-70`}
+                  value={managerEmail}
+                  readOnly
+                />
+              </label>
+              <label className="block space-y-1.5 text-sm font-medium">
+                Manager phone
+                <input
+                  className={inputClassName}
+                  type="tel"
+                  autoComplete="tel"
+                  value={managerPhone}
+                  onChange={(event) => setManagerPhone(event.target.value)}
+                  placeholder="Optional"
+                />
+              </label>
+              {managerFeedback && (
+                <p
+                  role={managerFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                  className={feedbackClassName(managerFeedback)}
+                >
+                  {managerFeedback}
+                </p>
+              )}
+              <button type="submit" disabled={isSavingManager} className={buttonClassName}>
+                {isSavingManager ? "Saving..." : "Save manager information"}
+              </button>
+            </form>
+          </section>
+        )}
+
+          </div>
+        </section>
+
+        <section className="rounded-3xl border border-[#F2C879]/50 bg-gradient-to-br from-white via-white to-[#F2C879]/10 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/20 sm:p-6">
+          <header className="mb-5 border-b border-[#F2C879]/30 pb-4 dark:border-neutral-800">
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8A641B] dark:text-amber-300">Branch and access settings</p>
+            <h3 className="mt-1 text-lg font-semibold">Operations preferences</h3>
+            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage your branch contact details and staff sign-in options.</p>
+          </header>
+          <div className="grid gap-5 lg:grid-cols-2">
         {user?.role === "staff" && (
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <div className="mb-5 flex items-start gap-3">
@@ -332,6 +459,14 @@ export default function SettingsPage() {
                     placeholder="Optional"
                   />
                 </label>
+                {branchFeedback && (
+                  <p
+                    role={branchFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                    className={feedbackClassName(branchFeedback)}
+                  >
+                    {branchFeedback}
+                  </p>
+                )}
                 <button
                   type="submit"
                   disabled={isSavingBranch}
@@ -389,8 +524,18 @@ export default function SettingsPage() {
                 />
               </button>
             </div>
+            {googleFeedback && (
+              <p
+                role={googleFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                className={`mt-3 ${feedbackClassName(googleFeedback)}`}
+              >
+                {googleFeedback}
+              </p>
+            )}
           </section>
         )}
+          </div>
+        </section>
       </div>
     </section>
   );

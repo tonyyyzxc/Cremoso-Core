@@ -8,10 +8,13 @@ const titleMap = {
   dashboard: "Dashboard",
   staff: "Staff",
   "new-order": "New Order",
+  "order-queue": "Order Queue",
+  transactions: "Transactions",
+  reports: "Reports",
+  reconciliation: "Shift Reconciliation",
   orders: "Orders",
   menu: "Menu",
   management: "Management",
-  inventory: "Inventory",
   settings: "Settings",
 };
 
