@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import {
   ArrowRight,
   CheckCircle2,
@@ -14,6 +15,8 @@ import {
   X,
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -103,6 +106,8 @@ export default function NewOrderPage() {
   const [customQuantity, setCustomQuantity] = useState(1);
   const [placedOrder, setPlacedOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [catalogLoaded, setCatalogLoaded] = useState(false);
+  const [branchLoaded, setBranchLoaded] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [error, setError] = useState("");
 
@@ -124,6 +129,7 @@ export default function NewOrderPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setCatalogLoaded(true);
     }
   }, []);
 
@@ -134,7 +140,8 @@ export default function NewOrderPage() {
   useEffect(() => {
     apiRequest("/api/staff/branch")
       .then((data) => setBranchName(data.branch?.name || ""))
-      .catch(() => setBranchName(""));
+      .catch(() => setBranchName(""))
+      .finally(() => setBranchLoaded(true));
   }, []);
 
   const categories = useMemo(() => [
@@ -153,6 +160,7 @@ export default function NewOrderPage() {
 
   const subtotal = cart.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
   const cartQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const initialLoading = !catalogLoaded || !branchLoaded;
   const availableVariants = customizingItem?.variants?.filter((variant) => variant.active) || [];
   const availableAddons = customizingItem?.addons?.filter((addon) => addon.active) || [];
   const availablePortionItems = menuItems.filter((item) => item.itemType === "addon" && item.active && !item.archived);
@@ -277,8 +285,10 @@ export default function NewOrderPage() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-[1600px] space-y-6 text-[#0A3B3D] dark:text-white">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      {initialLoading && <p role="status" className="sr-only">Loading new order...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0A8B8E]">Branch point of sale</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">New order</h2>
@@ -287,11 +297,14 @@ export default function NewOrderPage() {
         <div className="inline-flex items-center gap-2 rounded-xl border border-[#0A8B8E]/15 bg-[#0A8B8E]/5 px-3.5 py-2.5 text-sm font-medium text-[#0A6B6E] dark:text-teal-300">
           <Store size={17} /> {branchName || "Your branch"}
         </div>
-      </header>
+      </motion.header>
 
+      {initialLoading && <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(370px,0.8fr)]"><div className="space-y-4"><div className={`${cardClass} space-y-4 p-5`}><Skeleton className="h-6 w-28" /><Skeleton className="h-11 w-full" /><div className="flex gap-2">{[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-9 w-24 rounded-full" />)}</div></div><div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">{[0, 1, 2, 3, 4, 5].map((index) => <div key={index} className={`${cardClass} min-h-52 space-y-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><Skeleton className="h-4 w-24" /><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-full" /></div>)}</div></div><aside className={`${cardClass} space-y-4 p-5`}><Skeleton className="h-8 w-40" /><Skeleton className="h-4 w-full" /><Skeleton className="h-4 w-3/4" /><Skeleton className="mt-8 h-11 w-full" /></aside></div>}
+
+      {catalogLoaded && branchLoaded && <>
       {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"><CircleAlert size={17} className="mt-0.5 shrink-0" />{error}</div>}
 
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(370px,0.8fr)]">
+      <FadeIn from="bottom" delay={0.3}><div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(370px,0.8fr)]">
         <section className="min-w-0 space-y-4">
           <div className={`${cardClass} p-4 sm:p-5`}>
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -307,7 +320,7 @@ export default function NewOrderPage() {
             </div>
           </div>
 
-          {loading ? (
+          {!catalogLoaded ? (
             <div className={`${cardClass} flex min-h-52 items-center justify-center gap-3 p-8 text-sm text-gray-500`}><RefreshCw size={18} className="animate-spin text-[#0A8B8E]" /> Loading menu…</div>
           ) : !menuItems.length ? (
             <div className={`${cardClass} px-6 py-14 text-center`}><UtensilsCrossed className="mx-auto text-gray-400" size={26} /><h3 className="mt-3 font-semibold">Menu is empty</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Menu items added by an administrator will appear here.</p></div>
@@ -359,7 +372,7 @@ export default function NewOrderPage() {
             </div>
           )}
         </aside>
-      </div>
+      </div></FadeIn>
 
       {customizingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setCustomizingItem(null); }}>
@@ -398,6 +411,9 @@ export default function NewOrderPage() {
           </section>
         </div>
       )}
+      </>}
+      <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import {
   Building2,
   Check,
@@ -15,6 +16,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
 
 const inputClassName =
   "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -68,6 +71,7 @@ export default function ManagementPage() {
   const [busyUserId, setBusyUserId] = useState("");
   const [busyApplicationId, setBusyApplicationId] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   const loadData = useCallback(async () => {
     const [loadedUsers, loadedBranches, loadedWorkers, loadedApplications] = await Promise.all([
@@ -83,7 +87,7 @@ export default function ManagementPage() {
   }, []);
 
   useEffect(() => {
-    loadData().catch((err) => setError(err.message));
+    loadData().catch((err) => setError(err.message)).finally(() => setLoading(false));
   }, [loadData]);
 
   const staffAccounts = useMemo(
@@ -367,8 +371,10 @@ export default function ManagementPage() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-7xl space-y-7 text-[#0A3B3D] dark:text-white">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      {loading && <p role="status" className="sr-only">Loading management...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0A8B8E]">
             People & access
@@ -396,7 +402,7 @@ export default function ManagementPage() {
             <ShieldCheck size={17} /> Admin workspace
           </div>
         </div>
-      </header>
+      </motion.header>
 
       {error && (
         <p
@@ -407,7 +413,8 @@ export default function ManagementPage() {
         </p>
       )}
 
-      <section className={`${cardClassName} overflow-hidden`}>
+      {loading && <div className="space-y-6"><div className={`${cardClassName} overflow-hidden p-5`}><Skeleton className="h-6 w-48" /><Skeleton className="mt-2 h-4 w-80 max-w-full" /><div className="mt-5 space-y-4">{[0, 1, 2].map((index) => <Skeleton key={index} className="h-16 w-full" />)}</div></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((index) => <div key={index} className={`${cardClassName} flex gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><div className="space-y-2"><Skeleton className="h-4 w-28" /><Skeleton className="h-7 w-16" /></div></div>)}</div><div className={`${cardClassName} space-y-4 p-5`}><Skeleton className="h-6 w-40" /><Skeleton className="h-11 w-full" />{[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-12 w-full" />)}</div><div className={`${cardClassName} space-y-4 p-5`}><Skeleton className="h-6 w-32" />{[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-8 w-full" />)}</div></div>}
+      <section className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}>
         <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
           <h3 className="font-semibold">Branch applications</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -462,7 +469,7 @@ export default function ManagementPage() {
         </div>
       </section>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <motion.div variants={staggerContainer} initial="hidden" animate="show" className={`grid gap-4 sm:grid-cols-2 xl:grid-cols-4 ${loading ? "hidden" : ""}`}>
         {[
           {
             label: "Branches",
@@ -489,7 +496,7 @@ export default function ManagementPage() {
             tint: "bg-[#0A8B8E]/10 text-[#0A8B8E]",
           },
         ].map(({ label, value, icon: Icon, tint }) => (
-          <article
+          <motion.article variants={riseIn}
             key={label}
             className={`${cardClassName} flex items-center gap-4 p-5`}
           >
@@ -504,11 +511,11 @@ export default function ManagementPage() {
                 {value}
               </p>
             </div>
-          </article>
+          </motion.article>
         ))}
-      </div>
+      </motion.div>
 
-      <section className={`${cardClassName} overflow-hidden`}>
+      <section className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}>
         <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -983,7 +990,7 @@ export default function ManagementPage() {
         </div>
       )}
 
-      <section className={`${cardClassName} overflow-hidden`}>
+      <FadeIn from="bottom" delay={0.3}><section className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}>
         <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
@@ -1073,7 +1080,9 @@ export default function ManagementPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </section></FadeIn>
+      <AnimatePresence>{loading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

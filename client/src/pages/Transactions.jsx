@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { CalendarDays, RefreshCw } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -30,6 +33,7 @@ export default function TransactionsPage() {
   const [date, setDate] = useState(getManilaDate);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [error, setError] = useState("");
 
   const loadTransactions = useCallback(async () => {
@@ -41,6 +45,7 @@ export default function TransactionsPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
   }, [date]);
 
@@ -51,8 +56,10 @@ export default function TransactionsPage() {
   const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-7xl space-y-6 text-[#0A3B3D] dark:text-white">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      {!initialLoaded && <p role="status" className="sr-only">Loading transactions...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0A8B8E]">Branch sales</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Transactions</h2>
@@ -61,11 +68,15 @@ export default function TransactionsPage() {
         <button type="button" onClick={loadTransactions} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a] disabled:opacity-50">
           <RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh
         </button>
-      </header>
+      </motion.header>
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      {!initialLoaded ? <div className="space-y-6">
+        <div className="grid gap-4 sm:grid-cols-2"><div className={`${cardClass} flex items-center gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><Skeleton className="h-10 w-56" /></div><div className={`${cardClass} space-y-2 p-5`}><Skeleton className="h-4 w-32" /><Skeleton className="h-8 w-20" /><Skeleton className="h-4 w-36" /></div></div>
+        <div className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><Skeleton className="h-5 w-48" /><Skeleton className="mt-2 h-4 w-72" /></div><div className="space-y-5 p-5">{[0, 1, 2, 3, 4].map((row) => <div key={row} className="flex gap-4"><Skeleton className="h-5 flex-1" /><Skeleton className="h-5 flex-1" /><Skeleton className="h-5 flex-1" /></div>)}</div></div>
+      </div> : <>
+      <FadeIn from="left" delay={0.15}><div className="grid gap-4 sm:grid-cols-2">
         <section className={`${cardClass} flex items-center gap-4 p-5`}>
           <span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]"><CalendarDays size={20} /></span>
           <label className="flex flex-wrap items-center gap-3 text-sm font-medium">Transaction date
@@ -74,17 +85,17 @@ export default function TransactionsPage() {
         </section>
         <article className={`${cardClass} p-5`}>
           <p className="text-sm text-gray-500 dark:text-gray-400">Completed sales</p>
-          <p className="mt-1 text-2xl font-semibold">{loading ? "…" : orders.length}</p>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total {loading ? "" : money(total)}</p>
+          <p className="mt-1 text-2xl font-semibold">{orders.length}</p>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Total {money(total)}</p>
         </article>
-      </div>
+      </div></FadeIn>
 
-      <section className={`${cardClass} overflow-hidden`}>
+      <FadeIn from="bottom" delay={0.3}><section className={`${cardClass} overflow-hidden`}>
         <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
           <h3 className="font-semibold">Completed transactions</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Payment method and completion time are recorded for each order.</p>
         </div>
-        {loading ? <p className="p-6 text-sm text-gray-500">Loading transactions...</p> : !orders.length ? (
+        {!orders.length ? (
           <p className="p-10 text-center text-sm text-gray-500 dark:text-gray-400">No completed transactions for this date.</p>
         ) : (
           <div className="overflow-x-auto">
@@ -103,7 +114,10 @@ export default function TransactionsPage() {
             </table>
           </div>
         )}
-      </section>
+      </section></FadeIn>
+      </>}
+      <AnimatePresence>{!initialLoaded && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

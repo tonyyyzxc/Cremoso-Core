@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import {
   Archive,
   Ban,
@@ -12,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -42,6 +45,8 @@ export default function OrdersPage() {
   const [action, setAction] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ordersLoaded, setOrdersLoaded] = useState(false);
+  const [branchesLoaded, setBranchesLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [busyOrderId, setBusyOrderId] = useState("");
   const [error, setError] = useState("");
@@ -61,6 +66,7 @@ export default function OrdersPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setOrdersLoaded(true);
     }
   }, [filters, showArchived]);
 
@@ -71,7 +77,8 @@ export default function OrdersPage() {
   useEffect(() => {
     apiRequest("/api/branches")
       .then(setBranches)
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setBranchesLoaded(true));
   }, []);
 
   const counts = useMemo(() => ({
@@ -140,10 +147,13 @@ export default function OrdersPage() {
   };
 
   const updateFilter = (key, value) => setFilters((current) => ({ ...current, [key]: value }));
+  const initialLoading = !ordersLoaded || !branchesLoaded;
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-7xl space-y-6 text-[#0A3B3D] dark:text-white">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      {initialLoading && <p role="status" className="sr-only">Loading orders...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0A8B8E]">Admin workspace</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Orders</h2>
@@ -152,25 +162,26 @@ export default function OrdersPage() {
         <div className="inline-flex items-center gap-2 rounded-xl border border-[#0A8B8E]/15 bg-[#0A8B8E]/5 px-3.5 py-2.5 text-sm font-medium text-[#0A6B6E] dark:text-teal-300">
           <CalendarDays size={17} /> {counts.total} matching orders
         </div>
-      </header>
+      </motion.header>
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {initialLoading ? <div className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((index) => <div key={index} className={`${cardClass} flex gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><div className="space-y-2"><Skeleton className="h-4 w-28" /><Skeleton className="h-7 w-20" /></div></div>)}</div><div className={`${cardClass} grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5`}>{[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-10 w-full" />)}</div><div className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><Skeleton className="h-5 w-40" /><Skeleton className="mt-2 h-4 w-72" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4, 5].map((index) => <div key={index} className="grid grid-cols-7 gap-4"><Skeleton className="col-span-2 h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <>
+      <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Orders in view", counts.total, <CircleDollarSign size={19} />],
           ["Completed", counts.completed, <CheckCircle2 size={19} />],
           ["Pending", counts.pending, <CalendarDays size={19} />],
           ["Voided / refunded", counts.exceptions, <RotateCcw size={19} />],
         ].map(([label, value, icon]) => (
-          <article key={label} className={`${cardClass} flex items-center gap-4 p-5`}>
+          <motion.article key={label} variants={riseIn} className={`${cardClass} flex items-center gap-4 p-5`}>
             <span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]">{icon}</span>
             <div><p className="text-sm text-gray-500 dark:text-gray-400">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p></div>
-          </article>
+          </motion.article>
         ))}
-      </div>
+      </motion.div>
 
-      <section className={`${cardClass} p-4`} aria-label="Order filters">
+      <FadeIn from="left" delay={0.15}><section className={`${cardClass} p-4`} aria-label="Order filters">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="relative sm:col-span-2 lg:col-span-1">
             <Search size={16} className="absolute left-3 top-3 text-gray-400" />
@@ -185,9 +196,9 @@ export default function OrdersPage() {
           <label className="text-xs text-gray-500">From<input className={`${inputClass} mt-1 block w-full`} type="date" value={filters.from} onChange={(event) => updateFilter("from", event.target.value)} /></label>
           <label className="text-xs text-gray-500">To<input className={`${inputClass} mt-1 block w-full`} type="date" value={filters.to} onChange={(event) => updateFilter("to", event.target.value)} /></label>
         </div>
-      </section>
+      </section></FadeIn>
 
-      <section className={`${cardClass} overflow-hidden`}>
+      <FadeIn from="bottom" delay={0.3}><section className={`${cardClass} overflow-hidden`}>
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
           <div>
             <h3 className="font-semibold">{showArchived ? "Archived orders" : "Order history"}</h3>
@@ -237,7 +248,8 @@ export default function OrdersPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </section></FadeIn>
+      </>}
 
       {selectedOrder && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedOrder(null); }}>
@@ -268,6 +280,8 @@ export default function OrdersPage() {
           </form>
         </div>
       )}
+      <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

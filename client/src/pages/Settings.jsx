@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import {
   Building2,
   CircleUserRound,
@@ -12,6 +13,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const inputClassName =
   "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] px-4 py-3 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/20 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -51,6 +54,9 @@ export default function SettingsPage() {
   const [isSavingPassword, setIsSavingPassword] = useState(false);
   const [passwordFeedback, setPasswordFeedback] = useState("");
   const [error, setError] = useState("");
+  const [authSettingsLoaded, setAuthSettingsLoaded] = useState(false);
+  const [passwordStatusLoaded, setPasswordStatusLoaded] = useState(false);
+  const [branchLoaded, setBranchLoaded] = useState(false);
 
   useEffect(() => {
     try {
@@ -68,17 +74,23 @@ export default function SettingsPage() {
         setStaffGoogleAuthEnabled(config.staffGoogleAuthEnabled);
         setStaffAccountsWithoutPassword(config.staffAccountsWithoutPassword || 0);
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setAuthSettingsLoaded(true));
   }, []);
 
   useEffect(() => {
     apiRequest("/api/auth/password-status")
       .then((data) => setHasPassword(data.hasPassword))
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setPasswordStatusLoaded(true));
   }, []);
 
   useEffect(() => {
-    if (user?.role !== "staff") return;
+    if (!user) return;
+    if (user.role !== "staff") {
+      Promise.resolve().then(() => setBranchLoaded(true));
+      return;
+    }
     apiRequest("/api/staff/branch")
       .then((data) => {
         setBranch(data.branch);
@@ -89,8 +101,11 @@ export default function SettingsPage() {
         setBranchPhone(data.branch?.phone || "");
         setBranchEmail(data.branch?.contactEmail || "");
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setBranchLoaded(true));
   }, [user?.role]);
+
+  const initialLoading = !authSettingsLoaded || !passwordStatusLoaded || !branchLoaded;
 
   const saveManagerInfo = async (event) => {
     event.preventDefault();
@@ -204,8 +219,10 @@ export default function SettingsPage() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-5xl space-y-7 text-[#0A3B3D] dark:text-white">
-      <header>
+      {initialLoading && <p role="status" className="sr-only">Loading settings...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition}>
         <p className="text-sm font-medium text-[#0A8B8E]">
           Account preferences
         </p>
@@ -213,7 +230,7 @@ export default function SettingsPage() {
         <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
           Manage your profile, password, and branch preferences for Cremoso.
         </p>
-      </header>
+      </motion.header>
 
       {error && (
         <p
@@ -224,7 +241,7 @@ export default function SettingsPage() {
         </p>
       )}
 
-      <div className="space-y-6">
+      {initialLoading ? <div className="space-y-6"><section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-48" /><Skeleton className="mt-2 h-4 w-72 max-w-full" /><div className="mt-5 grid gap-5 lg:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-56" /><Skeleton className="h-11 w-full" /><Skeleton className="h-11 w-full" /><Skeleton className="h-10 w-32" /></div>)}</div></section><section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-44" /><div className="mt-5 grid gap-5 lg:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"><Skeleton className="h-6 w-40" /><Skeleton className="h-11 w-full" /><Skeleton className="h-11 w-full" /></div>)}</div></section></div> : <FadeIn from="bottom" delay={0.3}><div className="space-y-6">
         <section className="rounded-3xl border border-[#0A8B8E]/20 bg-gradient-to-br from-white via-white to-[#0A8B8E]/5 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-[#0A8B8E]/10 sm:p-6">
           <header className="mb-5 border-b border-[#0A8B8E]/10 pb-4 dark:border-neutral-800">
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0A8B8E]">Account and security</p>
@@ -536,7 +553,9 @@ export default function SettingsPage() {
         )}
           </div>
         </section>
-      </div>
+      </div></FadeIn>}
+      <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }
