@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { BarChart3, CircleAlert, Download, Plus, RefreshCw, Save, ShoppingBag, Trash2, TrendingUp } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -102,7 +105,7 @@ function csvCell(value) {
 }
 
 function Metric({ label, value, icon: Icon, detail }) {
-  return <article className={`${cardClass} flex items-center gap-4 p-5`}><span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]"><Icon size={20} /></span><div><p className="text-sm text-gray-500 dark:text-gray-400">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p>{detail && <p className="mt-1 text-xs text-gray-500">{detail}</p>}</div></article>;
+  return <motion.article variants={riseIn} className={`${cardClass} flex items-center gap-4 p-5`}><span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]"><Icon size={20} /></span><div><p className="text-sm text-gray-500 dark:text-gray-400">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p>{detail && <p className="mt-1 text-xs text-gray-500">{detail}</p>}</div></motion.article>;
 }
 
 function makeChartBuckets(data, from, to, leftKey, rightKey) {
@@ -173,6 +176,8 @@ export default function ReportsPage() {
   const [quantity, setQuantity] = useState(1);
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [reportLoaded, setReportLoaded] = useState(false);
+  const [catalogLoaded, setCatalogLoaded] = useState(isAdmin);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -200,11 +205,15 @@ export default function ReportsPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setReportLoaded(true);
     }
   }, [from, to, isAdmin, branchId]);
 
   const loadCatalog = useCallback(async () => {
-    if (isAdmin) return;
+    if (isAdmin) {
+      setCatalogLoaded(true);
+      return;
+    }
     try {
       const [items, inventory, config] = await Promise.all([
         apiRequest("/api/menu"),
@@ -220,6 +229,8 @@ export default function ReportsPage() {
         : activePaymentMethods[0]?.key || "");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setCatalogLoaded(true);
     }
   }, [isAdmin]);
 
@@ -329,11 +340,14 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
-  return <section className="mx-auto max-w-[1500px] space-y-6 text-[#0A3B3D] dark:text-white">
-    <header className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">{isAdmin ? "Company performance" : "Branch sales"}</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Reports</h2><p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track revenue and sales from staff entries and completed online orders.</p></div><div className="flex gap-2">{isAdmin && <button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><Download size={16} /> Export CSV</button>}<button type="button" onClick={loadReports} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button></div></header>
+  const initialLoading = !reportLoaded || !catalogLoaded;
+  return <MotionConfig reducedMotion="user"><section className="mx-auto max-w-375 space-y-6 text-[#0A3B3D] dark:text-white">
+    {initialLoading && <p role="status" className="sr-only">Loading reports...</p>}
+    <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">{isAdmin ? "Company performance" : "Branch sales"}</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Reports</h2><p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track revenue and sales from staff entries and completed online orders.</p></div><div className="flex gap-2">{isAdmin && <button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><Download size={16} /> Export CSV</button>}<button type="button" onClick={loadReports} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button></div></motion.header>
     {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"><CircleAlert size={17} className="mt-0.5 shrink-0" />{error}</div>}
     {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>}
 
+    {initialLoading ? <div className="space-y-5"><div className={`${cardClass} grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4`}>{[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-11 w-full" />)}</div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((index) => <div key={index} className={`${cardClass} flex gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><div className="space-y-2"><Skeleton className="h-4 w-28" /><Skeleton className="h-7 w-32" /><Skeleton className="h-3 w-36" /></div></div>)}</div><div className="grid gap-5 xl:grid-cols-2">{[0, 1].map((index) => <div key={index} className={`${cardClass} p-5`}><Skeleton className="h-5 w-40" /><Skeleton className="mt-2 h-4 w-64" /><Skeleton className="mt-5 h-56 w-full" /></div>)}</div><div className="grid gap-5 xl:grid-cols-2">{[0, 1].map((index) => <div key={index} className={`${cardClass} space-y-4 p-5`}><Skeleton className="h-6 w-40" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-full" /><Skeleton className="h-10 w-32" /></div>)}</div></div> : <>
     <section className={`${cardClass} p-4`} aria-label="Report filters"><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {isAdmin && <label className="text-xs font-medium text-gray-500">Branch<select className={`${inputClass} mt-1`} value={branchId} onChange={(event) => setBranchId(event.target.value)}><option value="">All branches</option>{branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}</select></label>}
       <label className="text-xs font-medium text-gray-500">From date<input className={`${inputClass} mt-1`} type="date" value={from} max={to} onChange={(event) => setFrom(event.target.value)} /></label>
@@ -341,21 +355,21 @@ export default function ReportsPage() {
       {!isAdmin && <p className="self-end pb-2 text-xs text-gray-500 dark:text-gray-400">Sales can be entered at closing using their actual date.</p>}
     </div></section>
 
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
       <Metric label="Revenue" value={money(totalRevenue)} icon={TrendingUp} detail="Staff sales + completed online orders" />
       <Metric label="Total sales" value={recordCount.toLocaleString()} icon={ShoppingBag} detail={`${sales.length} staff · ${onlineOrders.length} online`} />
       <Metric label="Average sale" value={money(averageSale)} icon={BarChart3} detail="Revenue divided by completed sales" />
       <Metric label="Items sold" value={totalItemsSold.toLocaleString()} icon={Plus} detail="Across both sales sources" />
-    </div>
+    </motion.div>
 
     <div className="grid gap-5 xl:grid-cols-2">
-      <TrendChart title="Revenue by day" data={activeDays} leftKey="staffRevenue" rightKey="onlineRevenue" from={from} to={to} currency />
-      <TrendChart title="Sales count by day" data={activeDays} leftKey="staffCount" rightKey="onlineCount" from={from} to={to} />
+      <FadeIn from="left" delay={0.15}><TrendChart title="Revenue by day" data={activeDays} leftKey="staffRevenue" rightKey="onlineRevenue" from={from} to={to} currency /></FadeIn>
+      <FadeIn from="right" delay={0.15}><TrendChart title="Sales count by day" data={activeDays} leftKey="staffCount" rightKey="onlineCount" from={from} to={to} /></FadeIn>
     </div>
 
     <div className="grid gap-5 xl:grid-cols-2">
       <section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Best-selling items</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">By recorded quantity in the selected period</p></div><div className="divide-y divide-gray-100 dark:divide-neutral-800">{analytics.items.length ? analytics.items.map((item) => <div key={item.name} className="flex items-center justify-between gap-4 px-5 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium">{item.name}</p><p className="mt-0.5 text-xs text-gray-500">{item.quantity} sold</p></div><span className="shrink-0 text-sm font-semibold">{money(item.revenue)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No item sales in this date range.</p>}</div></section>
-      {isAdmin ? <section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Branch performance</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Revenue and sales in the selected period</p></div><div className="divide-y divide-gray-100 dark:divide-neutral-800">{analytics.branches.length ? analytics.branches.map((branch) => <div key={branch.name} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="font-medium">{branch.name}</p><p className="mt-0.5 text-xs text-gray-500">{branch.sales} sales</p></div><span className="font-semibold">{money(branch.revenue)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No branch sales in this date range.</p>}</div></section> : <section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Recent recorded sales</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Staff entries use the selected business date.</p></div><div className="max-h-[360px] divide-y divide-gray-100 overflow-y-auto dark:divide-neutral-800">{sales.length ? sales.slice(0, 40).map((sale) => <div key={sale._id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="text-sm font-medium">{sale.saleNumber}</p><p className="mt-0.5 text-xs text-gray-500">{sale.businessDate} · {sale.items.reduce((sum, item) => sum + item.quantity, 0)} item(s)</p></div><span className="font-semibold">{money(sale.total)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No staff-entered sales in this date range.</p>}</div></section>}
+      {isAdmin ? <section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Branch performance</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Revenue and sales in the selected period</p></div><div className="divide-y divide-gray-100 dark:divide-neutral-800">{analytics.branches.length ? analytics.branches.map((branch) => <div key={branch.name} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="font-medium">{branch.name}</p><p className="mt-0.5 text-xs text-gray-500">{branch.sales} sales</p></div><span className="font-semibold">{money(branch.revenue)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No branch sales in this date range.</p>}</div></section> : <section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Recent recorded sales</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Staff entries use the selected business date.</p></div><div className="max-h-90 divide-y divide-gray-100 overflow-y-auto dark:divide-neutral-800">{sales.length ? sales.slice(0, 40).map((sale) => <div key={sale._id} className="flex items-center justify-between gap-4 px-5 py-3"><div><p className="text-sm font-medium">{sale.saleNumber}</p><p className="mt-0.5 text-xs text-gray-500">{sale.businessDate} · {sale.items.reduce((sum, item) => sum + item.quantity, 0)} item(s)</p></div><span className="font-semibold">{money(sale.total)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No staff-entered sales in this date range.</p>}</div></section>}
     </div>
 
     {isAdmin && <div className="grid gap-5 xl:grid-cols-2"><section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Online sales channels</h3><p className="mt-1 text-xs text-gray-500">Channel totals for completed online orders</p></div><div className="divide-y divide-gray-100 dark:divide-neutral-800">{analytics.channels.length ? analytics.channels.map((entry) => <div key={entry.name} className="flex items-center justify-between px-5 py-3"><div><p className="font-medium">{entry.name}</p><p className="text-xs text-gray-500">{entry.sales} orders</p></div><span className="font-semibold">{money(entry.revenue)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No completed online orders in this date range.</p>}</div></section><section className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><h3 className="font-semibold">Payment methods</h3><p className="mt-1 text-xs text-gray-500">Staff-entered sales and completed online orders</p></div><div className="divide-y divide-gray-100 dark:divide-neutral-800">{analytics.payments.length ? analytics.payments.map((entry) => <div key={entry.name} className="flex items-center justify-between px-5 py-3"><div><p className="font-medium">{entry.name}</p><p className="text-xs text-gray-500">{entry.sales} transactions</p></div><span className="font-semibold">{money(entry.revenue)}</span></div>) : <p className="p-8 text-center text-sm text-gray-500">No payments in this date range.</p>}</div></section></div>}
@@ -375,5 +389,7 @@ export default function ReportsPage() {
       {cart.length > 0 && <div className="mt-5 overflow-hidden rounded-xl border border-gray-200 dark:border-neutral-700"><div className="border-b border-gray-100 px-4 py-3 text-sm font-semibold dark:border-neutral-800">Sale items</div><div className="divide-y divide-gray-100 dark:divide-neutral-800">{cart.map((entry) => <div key={entry.key} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3"><div className="min-w-0"><p className="font-medium">{entry.quantity} × {entry.name}{entry.variantName ? ` · ${entry.variantName}` : ""}</p><p className="mt-0.5 truncate text-xs text-gray-500">{[...entry.addonNames, ...entry.portionNames.map((addon) => `${addon.count} × ${addon.name}`)].join(", ") || "No add-ons"}</p></div><div className="flex items-center gap-3"><span className="font-semibold">{money(entry.unitPrice * entry.quantity)}</span><button type="button" aria-label={`Remove ${entry.name}`} onClick={() => setCart((current) => current.filter((item) => item.key !== entry.key))} className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600"><Trash2 size={16} /></button></div></div>)}</div><div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 px-4 py-4 dark:border-neutral-800"><div><p className="text-xs text-gray-500">Sale total</p><p className="text-xl font-semibold">{money(cart.reduce((sum, entry) => sum + entry.unitPrice * entry.quantity, 0))}</p></div><button type="button" onClick={submitSale} disabled={saving} className={buttonClass}><Save size={16} />{saving ? "Saving sale..." : "Save sale"}</button></div></div>}
     </section>}
     {loading && <p className="text-center text-xs text-gray-500">Updating report…</p>}
-  </section>;
+    </>}
+    <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
+  </section></MotionConfig>;
 }

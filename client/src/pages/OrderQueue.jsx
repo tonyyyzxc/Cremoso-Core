@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Ban, Check, Clock3, RefreshCw } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const cardClass =
   "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
@@ -27,6 +30,7 @@ export default function OrderQueuePage() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(true);
+  const [paymentMethodsLoaded, setPaymentMethodsLoaded] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -43,7 +47,7 @@ export default function OrderQueuePage() {
   }, []);
 
   useEffect(() => {
-    loadQueue();
+    Promise.resolve().then(() => loadQueue());
     const refreshTimer = window.setInterval(loadQueue, 15000);
     return () => window.clearInterval(refreshTimer);
   }, [loadQueue]);
@@ -55,7 +59,8 @@ export default function OrderQueuePage() {
         setPaymentMethods(activeMethods);
         setPaymentMethod(activeMethods[0]?.key || "");
       })
-      .catch((err) => setError(err.message));
+      .catch((err) => setError(err.message))
+      .finally(() => setPaymentMethodsLoaded(true));
   }, []);
 
   const openPaymentConfirmation = (order) => {
@@ -75,6 +80,7 @@ export default function OrderQueuePage() {
     setAction(null);
     setReason("");
   };
+  const initialLoading = loading || !paymentMethodsLoaded;
 
   const submitAction = async (event) => {
     event.preventDefault();
@@ -105,8 +111,10 @@ export default function OrderQueuePage() {
   };
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-6xl space-y-6 text-[#0A3B3D] dark:text-white">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      {initialLoading && <p role="status" className="sr-only">Loading pending orders...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0A8B8E]">Branch point of sale</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Order queue</h2>
@@ -117,21 +125,25 @@ export default function OrderQueuePage() {
         <button type="button" onClick={loadQueue} className={primaryButtonClass}>
           <RefreshCw size={16} /> Refresh
         </button>
-      </header>
+      </motion.header>
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
       {message && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">{message}</p>}
 
-      {loading ? (
-        <div className={`${cardClass} p-8 text-center text-sm text-gray-500`}>Loading pending orders…</div>
+      {initialLoading ? (
+        <div className="space-y-4">{[0, 1, 2].map((index) => <div key={index} className={`${cardClass} overflow-hidden`}>
+          <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><div className="space-y-2"><Skeleton className="h-3 w-28" /><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-52" /></div><Skeleton className="h-6 w-28 rounded-full" /></div>
+          <div className="space-y-3 px-5 py-4">{[0, 1].map((row) => <div key={row} className="flex justify-between"><Skeleton className="h-4 w-48" /><Skeleton className="h-4 w-20" /></div>)}</div>
+          <div className="flex justify-between border-t border-gray-100 px-5 py-4 dark:border-neutral-800"><Skeleton className="h-6 w-36" /><div className="flex gap-2"><Skeleton className="h-10 w-28" /><Skeleton className="h-10 w-32" /></div></div>
+        </div>)}</div>
       ) : !orders.length ? (
-        <div className={`${cardClass} px-6 py-14 text-center`}>
+        <FadeIn from="bottom" delay={0.3}><div className={`${cardClass} px-6 py-14 text-center`}>
           <Clock3 className="mx-auto text-gray-400" size={28} />
           <h3 className="mt-3 font-semibold">Queue is clear</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">New orders awaiting payment will appear here.</p>
-        </div>
+        </div></FadeIn>
       ) : (
-        <div className="space-y-4">
+        <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
           {orders.map((order) => (
             <article key={order._id} className={`${cardClass} overflow-hidden`}>
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
@@ -174,7 +186,7 @@ export default function OrderQueuePage() {
               </div>
             </article>
           ))}
-        </div>
+        </div></FadeIn>
       )}
 
       {action && (
@@ -210,6 +222,8 @@ export default function OrderQueuePage() {
           </section>
         </div>
       )}
+      <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }

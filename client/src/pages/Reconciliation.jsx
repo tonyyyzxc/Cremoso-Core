@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { CheckCircle2, ClipboardCheck, RefreshCw } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
+import { fadeTransition } from "../components/loadingVariants.js";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -25,6 +28,7 @@ export default function ReconciliationPage() {
   const [openingFloat, setOpeningFloat] = useState("0");
   const [countedCash, setCountedCash] = useState("");
   const [loading, setLoading] = useState(true);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,11 +48,12 @@ export default function ReconciliationPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+      setInitialLoaded(true);
     }
   }, []);
 
   useEffect(() => {
-    loadReconciliation();
+    Promise.resolve().then(() => loadReconciliation());
   }, [loadReconciliation]);
 
   const calculatedExpected = useMemo(() => {
@@ -91,20 +96,25 @@ export default function ReconciliationPage() {
   const variance = isSubmitted ? reconciliation.variance : calculatedVariance;
 
   return (
+    <MotionConfig reducedMotion="user">
     <section className="mx-auto max-w-5xl space-y-6 text-[#0A3B3D] dark:text-white">
-      <header className="flex flex-wrap items-end justify-between gap-4">
+      {!initialLoaded && <p role="status" className="sr-only">Loading shift reconciliation...</p>}
+      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-[#0A8B8E]">Branch closeout</p>
           <h2 className="mt-1 text-3xl font-semibold tracking-tight">Shift Reconciliation</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Compare expected cash for today with the amount counted in the register.</p>
         </div>
         <button type="button" onClick={loadReconciliation} disabled={loading} className={buttonClass}><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button>
-      </header>
+      </motion.header>
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
 
-      {loading ? <div className={`${cardClass} p-8 text-center text-sm text-gray-500`}>Loading today’s reconciliation...</div> : (
-        <>
+      {!initialLoaded ? <div className="space-y-4">
+        <div className={`${cardClass} p-5`}><Skeleton className="h-6 w-36" /><Skeleton className="mt-2 h-4 w-48" /><Skeleton className="mt-3 h-4 w-full" /></div>
+        <div className={`${cardClass} space-y-5 p-5 sm:p-6`}><div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-11 w-full" /></div>)}</div><div className="grid gap-3 rounded-xl bg-gray-50 p-4 dark:bg-neutral-950 sm:grid-cols-3">{[0, 1, 2].map((index) => <div key={index} className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-6 w-32" /></div>)}</div><Skeleton className="h-10 w-40" /></div>
+      </div> : (
+        <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
           <section className={`${cardClass} p-5`}>
             <div className="flex items-start gap-3"><span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]"><ClipboardCheck size={20} /></span><div><h3 className="font-semibold">Business date</h3><p className="mt-1 text-sm text-gray-600 dark:text-gray-300">{businessDate}</p><p className="mt-2 text-xs text-gray-500 dark:text-gray-400">Expected cash is opening float plus cash from staff-entered sales and completed online orders. Other payment methods are excluded.</p></div></div>
           </section>
@@ -137,8 +147,10 @@ export default function ReconciliationPage() {
               </div>
             )}
           </form>
-        </>
+        </div></FadeIn>
       )}
+      <AnimatePresence>{!initialLoaded && <StreakBar />}</AnimatePresence>
     </section>
+    </MotionConfig>
   );
 }
