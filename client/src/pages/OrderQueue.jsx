@@ -47,7 +47,7 @@ export default function OrderQueuePage() {
   }, []);
 
   useEffect(() => {
-    loadQueue();
+    Promise.resolve().then(() => loadQueue());
     const refreshTimer = window.setInterval(loadQueue, 15000);
     return () => window.clearInterval(refreshTimer);
   }, [loadQueue]);

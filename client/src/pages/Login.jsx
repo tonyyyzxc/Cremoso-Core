@@ -170,28 +170,28 @@ function Login() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="relative min-h-screen bg-[#FBF6EF] flex items-center justify-center px-4 py-10 overflow-hidden">
-      {/* Animated background layer */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="blob blob-1" />
-        <div className="blob blob-2" />
-        <div className="blob blob-3" />
-        {Array.from({ length: 12 }).map((_, i) => (
-          <span
-            key={i}
-            className="bubble"
-            style={{
-              left: `${(i * 8.3) % 100}%`,
-              animationDelay: `${i * 1.1}s`,
-              animationDuration: `${9 + (i % 5)}s`,
-              width: `${6 + (i % 4) * 3}px`,
-              height: `${6 + (i % 4) * 3}px`,
-            }}
-          />
-        ))}
-      </div>
+      <div className="relative min-h-screen bg-[#FBF6EF] flex items-center justify-center px-4 py-10 overflow-hidden">
+        {/* Animated background layer */}
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="blob blob-1" />
+          <div className="blob blob-2" />
+          <div className="blob blob-3" />
+          {Array.from({ length: 12 }).map((_, i) => (
+            <span
+              key={i}
+              className="bubble"
+              style={{
+                left: `${(i * 8.3) % 100}%`,
+                animationDelay: `${i * 1.1}s`,
+                animationDuration: `${9 + (i % 5)}s`,
+                width: `${6 + (i % 4) * 3}px`,
+                height: `${6 + (i % 4) * 3}px`,
+              }}
+            />
+          ))}
+        </div>
 
-      <style>{`
+        <style>{`
         @keyframes drift1 {
           0%, 100% { transform: translate(0, 0) scale(1); }
           33% { transform: translate(30px, -40px) scale(1.08); }
@@ -249,294 +249,307 @@ function Login() {
         }
       `}</style>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ ...fadeTransition, delay: 0.15 }}
-        className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2"
-      >
-        {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
-        <div className="relative bg-[#0A8B8E] flex flex-col items-center justify-center px-8 py-14 md:py-0 overflow-hidden">
-          {/* Soft-serve swirl icon */}
-          <img
-            src="/android-chrome-512x512.png"
-            alt="Cremoso icon"
-            className="relative z-10 w-28 md:w-32 h-auto mb-4 brightness-0 invert"
-          />
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...fadeTransition, delay: 0.15 }}
+          className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2"
+        >
+          {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
+          <div className="relative bg-[#0A8B8E] flex flex-col items-center justify-center px-8 py-14 md:py-0 overflow-hidden">
+            {/* Soft-serve swirl icon */}
+            <img
+              src="/android-chrome-512x512.png"
+              alt="Cremoso icon"
+              className="relative z-10 w-28 md:w-32 h-auto mb-4 brightness-0 invert"
+            />
 
-          {/* Wordmark */}
-          <h1 className="relative z-10 text-white text-4xl md:text-5xl font-serif font-bold tracking-wide text-center">
-            CREMOSO
-          </h1>
+            {/* Wordmark */}
+            <h1 className="relative z-10 text-white text-4xl md:text-5xl font-serif font-bold tracking-wide text-center">
+              CREMOSO
+            </h1>
 
-          {/* Tagline */}
-          <p className="relative z-10 text-white text-xs md:text-sm font-semibold tracking-wide mt-3 text-center">
-            SOFT-SERVE&nbsp;|&nbsp;FROZEN YOGURT&nbsp;|&nbsp;ICED COFFEE
-          </p>
+            {/* Tagline */}
+            <p className="relative z-10 text-white text-xs md:text-sm font-semibold tracking-wide mt-3 text-center">
+              SOFT-SERVE&nbsp;|&nbsp;FROZEN YOGURT&nbsp;|&nbsp;ICED COFFEE
+            </p>
 
-          {/* Sub-tagline */}
-          <p className="relative z-10 text-[#FBF6EF]/70 text-xs tracking-wide mt-1 text-center">
-            By Ahavah &amp; The Backyard
-          </p>
-        </div>
+            {/* Sub-tagline */}
+            <p className="relative z-10 text-[#FBF6EF]/70 text-xs tracking-wide mt-1 text-center">
+              By Ahavah &amp; The Backyard
+            </p>
+          </div>
 
-        {/* Right panel — form side */}
-        <div className="flex flex-col justify-center px-8 py-12 md:px-12">
-          <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
-            {isSignup ? "Branch signup" : "Welcome!"}
-          </h2>
-          <p className="text-gray-500 text-sm mb-7">
-            {isSignup
-              ? "Apply to register your branch and branch manager account."
-              : "Login to your Cremoso account"}
-          </p>
+          {/* Right panel — form side */}
+          <div className="flex flex-col justify-center px-8 py-12 md:px-12">
+            <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
+              {isSignup ? "Branch signup" : "Welcome!"}
+            </h2>
+            <p className="text-gray-500 text-sm mb-7">
+              {isSignup
+                ? "Apply to register your branch and branch manager account."
+                : "Login to your Cremoso account"}
+            </p>
 
-          <form
-            onSubmit={isSignup ? handleSignup : handleSubmit}
-            className="space-y-3.5"
-          >
-            <div
-              className={`relative -mx-1 overflow-x-clip px-1 ${isSignup ? "min-h-[13.25rem]" : ""}`}
+            <form
+              onSubmit={isSignup ? handleSignup : handleSubmit}
+              className="space-y-3.5"
             >
-              <AnimatePresence
-                mode="popLayout"
-                initial={false}
-                custom={direction}
+              <div
+                className={`relative -mx-1 overflow-x-clip px-1 ${isSignup ? "min-h-53" : ""}`}
               >
-                <motion.div
-                  key={isSignup ? step : "login"}
+                <AnimatePresence
+                  mode="popLayout"
+                  initial={false}
                   custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
-                  className="space-y-3.5"
                 >
-                  {isSignup && step === 0 && (
-                    <>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">
-                        Branch details
-                      </p>
-                      <input
-                        value={branchName}
-                        onChange={(event) => setBranchName(event.target.value)}
-                        placeholder="Branch name"
-                        autoComplete="organization"
-                        className={signupInputClass}
-                        required
-                      />
-                      <input
-                        value={branchAddress}
-                        onChange={(event) =>
-                          setBranchAddress(event.target.value)
-                        }
-                        placeholder="Branch address"
-                        autoComplete="street-address"
-                        className={signupInputClass}
-                      />
-                      <input
-                        type="tel"
-                        value={branchPhone}
-                        onChange={(event) => setBranchPhone(event.target.value)}
-                        placeholder="Branch phone (optional)"
-                        autoComplete="tel"
-                        className={signupInputClass}
-                      />
-                    </>
-                  )}
-                  {isSignup && step === 1 && (
-                    <>
-                      <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">
-                        Branch manager account
-                      </p>
-                      <div className="relative">
-                        <UserRound
-                          size={18}
-                          aria-hidden="true"
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                        />
+                  <motion.div
+                    key={isSignup ? step : "login"}
+                    custom={direction}
+                    variants={slideVariants}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                    transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+                    className="space-y-3.5"
+                  >
+                    {isSignup && step === 0 && (
+                      <>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">
+                          Branch details
+                        </p>
                         <input
-                          value={managerName}
+                          value={branchName}
                           onChange={(event) =>
-                            setManagerName(event.target.value)
+                            setBranchName(event.target.value)
                           }
-                          placeholder="Manager name"
-                          autoComplete="name"
-                          className={`${signupInputClass} pl-11`}
+                          placeholder="Branch name"
+                          autoComplete="organization"
+                          className={signupInputClass}
                           required
                         />
-                      </div>
-                    </>
-                  )}
-                  {(!isSignup || step === 1) && (
-                    <>
-                      <div className="relative">
-                        <Mail
-                          size={18}
-                          aria-hidden="true"
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                        />
                         <input
-                          type={isSignup ? "email" : "text"}
-                          placeholder={
-                            isSignup
-                              ? "Manager login email"
-                              : "Username or email"
-                          }
-                          autoComplete={isSignup ? "email" : "username"}
-                          value={isSignup ? managerEmail : identifier}
+                          value={branchAddress}
                           onChange={(event) =>
-                            isSignup
-                              ? setManagerEmail(event.target.value)
-                              : setIdentifier(event.target.value)
+                            setBranchAddress(event.target.value)
                           }
-                          className={`${signupInputClass} pl-11`}
-                          required
-                        />
-                      </div>
-                      <div className="relative">
-                        <LockKeyhole
-                          size={18}
-                          aria-hidden="true"
-                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                          placeholder="Branch address"
+                          autoComplete="street-address"
+                          className={signupInputClass}
                         />
                         <input
-                          type={showPassword ? "text" : "password"}
-                          placeholder={
-                            isSignup
-                              ? "Create password (at least 8 characters)"
-                              : "Password"
+                          type="tel"
+                          value={branchPhone}
+                          onChange={(event) =>
+                            setBranchPhone(event.target.value)
                           }
-                          autoComplete={
-                            isSignup ? "new-password" : "current-password"
-                          }
-                          minLength={isSignup ? 8 : undefined}
-                          value={password}
-                          onChange={(event) => setPassword(event.target.value)}
-                          className={`${signupInputClass} pl-11 pr-12`}
-                          required
+                          placeholder="Branch phone (optional)"
+                          autoComplete="tel"
+                          className={signupInputClass}
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword((visible) => !visible)}
-                          className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0A8B8E] transition"
-                          aria-label={
-                            showPassword ? "Hide password" : "Show password"
-                          }
-                        >
-                          <EyeIcon open={showPassword} />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                  {isSignup && step === 2 && (
-                    <dl className="flex min-h-[13.25rem] flex-col justify-center space-y-2 rounded-xl bg-[#FAF6F0] p-4 text-sm">
-                      {[
-                        ["Branch name", branchName],
-                        ["Branch address", branchAddress],
-                        ["Branch phone", branchPhone],
-                        ["Manager name", managerName],
-                        ["Login email", managerEmail],
-                        ["Password", "•".repeat(password.length)],
-                      ].map(([label, value]) => (
-                        <div key={label} className="flex justify-between gap-4">
-                          <dt className="text-gray-500">{label}</dt>
-                          <dd className="break-words text-right font-medium text-[#0A3B3D]">
-                            {value || "-"}
-                          </dd>
+                      </>
+                    )}
+                    {isSignup && step === 1 && (
+                      <>
+                        <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">
+                          Branch manager account
+                        </p>
+                        <div className="relative">
+                          <UserRound
+                            size={18}
+                            aria-hidden="true"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                          />
+                          <input
+                            value={managerName}
+                            onChange={(event) =>
+                              setManagerName(event.target.value)
+                            }
+                            placeholder="Manager name"
+                            autoComplete="name"
+                            className={`${signupInputClass} pl-11`}
+                            required
+                          />
                         </div>
-                      ))}
-                    </dl>
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-            {isSignup && <SignupStepper step={step} />}
-            <div className="flex gap-3">
-              {isSignup && step > 0 && (
+                      </>
+                    )}
+                    {(!isSignup || step === 1) && (
+                      <>
+                        <div className="relative">
+                          <Mail
+                            size={18}
+                            aria-hidden="true"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                          />
+                          <input
+                            type={isSignup ? "email" : "text"}
+                            placeholder={
+                              isSignup
+                                ? "Manager login email"
+                                : "Username or email"
+                            }
+                            autoComplete={isSignup ? "email" : "username"}
+                            value={isSignup ? managerEmail : identifier}
+                            onChange={(event) =>
+                              isSignup
+                                ? setManagerEmail(event.target.value)
+                                : setIdentifier(event.target.value)
+                            }
+                            className={`${signupInputClass} pl-11`}
+                            required
+                          />
+                        </div>
+                        <div className="relative">
+                          <LockKeyhole
+                            size={18}
+                            aria-hidden="true"
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                          />
+                          <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder={
+                              isSignup
+                                ? "Create password (at least 8 characters)"
+                                : "Password"
+                            }
+                            autoComplete={
+                              isSignup ? "new-password" : "current-password"
+                            }
+                            minLength={isSignup ? 8 : undefined}
+                            value={password}
+                            onChange={(event) =>
+                              setPassword(event.target.value)
+                            }
+                            className={`${signupInputClass} pl-11 pr-12`}
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowPassword((visible) => !visible)
+                            }
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#0A8B8E] transition"
+                            aria-label={
+                              showPassword ? "Hide password" : "Show password"
+                            }
+                          >
+                            <EyeIcon open={showPassword} />
+                          </button>
+                        </div>
+                      </>
+                    )}
+                    {isSignup && step === 2 && (
+                      <dl className="flex min-h-53 flex-col justify-center space-y-2 rounded-xl bg-[#FAF6F0] p-4 text-sm">
+                        {[
+                          ["Branch name", branchName],
+                          ["Branch address", branchAddress],
+                          ["Branch phone", branchPhone],
+                          ["Manager name", managerName],
+                          ["Login email", managerEmail],
+                          ["Password", "•".repeat(password.length)],
+                        ].map(([label, value]) => (
+                          <div
+                            key={label}
+                            className="flex justify-between gap-4"
+                          >
+                            <dt className="text-gray-500">{label}</dt>
+                            <dd className="wrap-break-word text-right font-medium text-[#0A3B3D]">
+                              {value || "-"}
+                            </dd>
+                          </div>
+                        ))}
+                      </dl>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              {isSignup && <SignupStepper step={step} />}
+              <div className="flex gap-3">
+                {isSignup && step > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDirection(-1);
+                      setStep(step - 1);
+                    }}
+                    className="rounded-xl border border-gray-200 px-5 py-3 font-medium text-[#0A3B3D] transition hover:bg-[#FAF6F0]"
+                  >
+                    Back
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting
+                    ? "Please wait..."
+                    : isSignup
+                      ? step < signupSteps.length - 1
+                        ? "Next"
+                        : "Submit branch application"
+                      : "Login"}
+                </button>
+              </div>
+            </form>
+
+            {!isSignup && (
+              <>
+                <div className="flex items-center gap-3 my-5">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-xs text-gray-400">
+                    Or continue with
+                  </span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
                 <button
                   type="button"
-                  onClick={() => {
-                    setDirection(-1);
-                    setStep(step - 1);
-                  }}
-                  className="rounded-xl border border-gray-200 px-5 py-3 font-medium text-[#0A3B3D] transition hover:bg-[#FAF6F0]"
+                  onClick={triggerGoogleLogin}
+                  className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
                 >
-                  Back
+                  <GoogleIcon /> Google
                 </button>
-              )}
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="flex-1 bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {isSubmitting
-                  ? "Please wait..."
-                  : isSignup
-                    ? step < signupSteps.length - 1
-                      ? "Next"
-                      : "Submit branch application"
-                    : "Login"}
-              </button>
-            </div>
-          </form>
-
-          {!isSignup && (
-            <>
-              <div className="flex items-center gap-3 my-5">
-                <div className="h-px flex-1 bg-gray-200" />
-                <span className="text-xs text-gray-400">Or continue with</span>
-                <div className="h-px flex-1 bg-gray-200" />
-              </div>
+                <div
+                  ref={hiddenGoogleBtn}
+                  style={{
+                    position: "absolute",
+                    opacity: 0,
+                    pointerEvents: "none",
+                    height: 0,
+                    overflow: "hidden",
+                  }}
+                >
+                  <GoogleLogin
+                    locale="en"
+                    text="continue_with"
+                    onSuccess={handleGoogleSuccess}
+                    onError={handleGoogleError}
+                  />
+                </div>
+                <p className="text-center text-sm text-gray-500 mt-6">
+                  Having trouble logging in? Contact{" "}
+                  <span className="text-[#0A8B8E] font-medium">Admin</span>
+                </p>
+              </>
+            )}
+            <p className="text-center text-sm text-gray-500 mt-5">
+              {isSignup ? "Already have an account?" : "Managing a branch?"}{" "}
               <button
                 type="button"
-                onClick={triggerGoogleLogin}
-                className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
-              >
-                <GoogleIcon /> Google
-              </button>
-              <div
-                ref={hiddenGoogleBtn}
-                style={{
-                  position: "absolute",
-                  opacity: 0,
-                  pointerEvents: "none",
-                  height: 0,
-                  overflow: "hidden",
+                onClick={() => {
+                  setIsSignup((value) => !value);
+                  setPassword("");
+                  setStep(0);
+                  setDirection(1);
                 }}
+                className="font-semibold text-[#0A8B8E] hover:underline"
               >
-                <GoogleLogin
-                  locale="en"
-                  text="continue_with"
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                />
-              </div>
-              <p className="text-center text-sm text-gray-500 mt-6">
-                Having trouble logging in? Contact{" "}
-                <span className="text-[#0A8B8E] font-medium">Admin</span>
-              </p>
-            </>
-          )}
-          <p className="text-center text-sm text-gray-500 mt-5">
-            {isSignup ? "Already have an account?" : "Managing a branch?"}{" "}
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignup((value) => !value);
-                setPassword("");
-                setStep(0);
-                setDirection(1);
-              }}
-              className="font-semibold text-[#0A8B8E] hover:underline"
-            >
-              {isSignup ? "Back to login" : "Apply here"}
-            </button>
-          </p>
-        </div>
-      </motion.div>
-    </div>
+                {isSignup ? "Back to login" : "Apply here"}
+              </button>
+            </p>
+          </div>
+        </motion.div>
+      </div>
     </MotionConfig>
   );
 }

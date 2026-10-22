@@ -121,7 +121,7 @@ export default function MenuPage() {
   }, [isAdmin, selectedBranchId]);
 
   useEffect(() => {
-    loadBranchStock();
+    Promise.resolve().then(() => loadBranchStock());
   }, [loadBranchStock]);
 
   useEffect(() => {
@@ -504,7 +504,7 @@ export default function MenuPage() {
                   </div>
                 </div>
                 <div className="overflow-x-auto">
-                  <table className="w-full min-w-[760px] text-left text-sm">
+                  <table className="w-full min-w-190 text-left text-sm">
                     <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                       <tr>
                         <th className="px-5 py-3">Supply</th>
@@ -689,7 +689,7 @@ export default function MenuPage() {
               <section className={`${cardClass} overflow-hidden`}>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><div><h3 className="font-semibold">Supply stock</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p></div></div>
                 {stockLoading ? <p className="p-5 text-sm text-gray-500">Loading supply stock...</p> : !supplies.length ? <p className="p-5 text-sm text-gray-500">No supplies yet. Add cups, cones, or other items above.</p> : (
-                  <div className="overflow-x-auto"><table className="w-full min-w-[760px] text-left text-sm">
+                  <div className="overflow-x-auto"><table className="w-full min-w-190 text-left text-sm">
                     <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Supply</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{supplies.map((supply) => {
                       const isLow = supply.quantity <= supply.lowStockThreshold;

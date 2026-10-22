@@ -71,7 +71,7 @@ export default function OrdersPage() {
   }, [filters, showArchived]);
 
   useEffect(() => {
-    loadOrders();
+    Promise.resolve().then(() => loadOrders());
   }, [loadOrders]);
 
   useEffect(() => {
@@ -219,7 +219,7 @@ export default function OrdersPage() {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[780px] text-left text-sm">
+          <table className="w-full min-w-195 text-left text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
               <tr><th className="px-5 py-3 font-semibold">Order</th><th className="px-5 py-3 font-semibold">Branch</th><th className="px-5 py-3 font-semibold">Date</th><th className="px-5 py-3 font-semibold">Channel / payment</th><th className="px-5 py-3 font-semibold">Total</th><th className="px-5 py-3 font-semibold">Status</th><th className="px-5 py-3 text-right font-semibold">Actions</th></tr>
             </thead>
@@ -262,7 +262,7 @@ export default function OrdersPage() {
               <div><p className="text-xs text-gray-500">Status</p><div className="mt-1"><OrderStatus status={selectedOrder.status} /></div></div>
             </div>
             <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 dark:border-neutral-800">
-              <table className="w-full min-w-[520px] text-left text-sm"><thead className="bg-gray-50 text-xs text-gray-500 dark:bg-neutral-950"><tr><th className="px-4 py-3">Item snapshot</th><th className="px-4 py-3">Qty</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3 text-right">Line total</th></tr></thead><tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{selectedOrder.items.map((item, index) => <tr key={`${item.name}-${index}`}><td className="px-4 py-3"><p className="font-medium">{item.name}{item.variant?.name ? ` · ${item.variant.name}` : ""}</p>{item.addons?.length > 0 && <div className="mt-1 space-y-0.5 text-xs text-gray-500">{item.addons.map((addon, addonIndex) => <p key={`${addon.name}-${addonIndex}`}>{addon.menuItemId ? `${addon.quantity} × ${addon.name} (${formatCurrency(addon.price)} each${addon.chargedQuantity < addon.quantity ? `, ${addon.quantity - addon.chargedQuantity} included` : ""})` : addon.name}</p>)}</div>}</td><td className="px-4 py-3">{item.quantity}</td><td className="px-4 py-3">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-3 text-right font-medium">{formatCurrency(item.lineTotal)}</td></tr>)}</tbody></table>
+              <table className="w-full min-w-130 text-left text-sm"><thead className="bg-gray-50 text-xs text-gray-500 dark:bg-neutral-950"><tr><th className="px-4 py-3">Item snapshot</th><th className="px-4 py-3">Qty</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3 text-right">Line total</th></tr></thead><tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{selectedOrder.items.map((item, index) => <tr key={`${item.name}-${index}`}><td className="px-4 py-3"><p className="font-medium">{item.name}{item.variant?.name ? ` · ${item.variant.name}` : ""}</p>{item.addons?.length > 0 && <div className="mt-1 space-y-0.5 text-xs text-gray-500">{item.addons.map((addon, addonIndex) => <p key={`${addon.name}-${addonIndex}`}>{addon.menuItemId ? `${addon.quantity} × ${addon.name} (${formatCurrency(addon.price)} each${addon.chargedQuantity < addon.quantity ? `, ${addon.quantity - addon.chargedQuantity} included` : ""})` : addon.name}</p>)}</div>}</td><td className="px-4 py-3">{item.quantity}</td><td className="px-4 py-3">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-3 text-right font-medium">{formatCurrency(item.lineTotal)}</td></tr>)}</tbody></table>
             </div>
             <div className="ml-auto mt-4 max-w-xs space-y-2 text-sm"><div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatCurrency(selectedOrder.subtotal)}</span></div><div className="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold dark:border-neutral-800"><span>Total</span><span>{formatCurrency(selectedOrder.total)}</span></div><p className="text-right text-xs text-gray-500">Payment: {selectedOrder.paymentMethod || "Not recorded"}</p></div>
             {selectedOrder.auditTrail?.length > 0 && <div className="mt-6"><h4 className="font-semibold">Void and refund audit</h4><div className="mt-3 space-y-3">{selectedOrder.auditTrail.map((entry, index) => <div key={`${entry.action}-${index}`} className="rounded-xl bg-gray-50 p-4 text-sm dark:bg-neutral-950"><p className="font-medium capitalize">{entry.action} · {formatDate(entry.performedAt)}</p><p className="mt-1 text-gray-600 dark:text-gray-300">{entry.reason}</p><p className="mt-2 text-xs text-gray-500">By {entry.performedBy?.name || entry.performedBy?.email || "Administrator"}</p></div>)}</div></div>}

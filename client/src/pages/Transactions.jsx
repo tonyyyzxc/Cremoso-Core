@@ -50,7 +50,7 @@ export default function TransactionsPage() {
   }, [date]);
 
   useEffect(() => {
-    loadTransactions();
+    Promise.resolve().then(() => loadTransactions());
   }, [loadTransactions]);
 
   const total = orders.reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -99,7 +99,7 @@ export default function TransactionsPage() {
           <p className="p-10 text-center text-sm text-gray-500 dark:text-gray-400">No completed transactions for this date.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="w-full min-w-205 text-left text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Order</th><th className="px-5 py-3">Completed at</th><th className="px-5 py-3">Channel</th><th className="px-5 py-3">Items</th><th className="px-5 py-3">Payment</th><th className="px-5 py-3 text-right">Total</th></tr></thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {orders.map((order) => <tr key={order._id}>

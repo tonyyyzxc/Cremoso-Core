@@ -175,7 +175,7 @@ export default function StaffPage() {
         </div>
         {workers.length ? (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
+            <table className="w-full min-w-190 text-left text-sm">
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-3.5 font-semibold">Name</th>

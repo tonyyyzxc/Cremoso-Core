@@ -53,7 +53,7 @@ export default function ReconciliationPage() {
   }, []);
 
   useEffect(() => {
-    loadReconciliation();
+    Promise.resolve().then(() => loadReconciliation());
   }, [loadReconciliation]);
 
   const calculatedExpected = useMemo(() => {

@@ -28,7 +28,13 @@ const feedbackClassName = (message) =>
 
 export default function SettingsPage() {
   const toast = useToast();
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      return JSON.parse(sessionStorage.getItem("user") || "null");
+    } catch {
+      return null;
+    }
+  });
   const [managerName, setManagerName] = useState("");
   const [managerPhone, setManagerPhone] = useState("");
   const [managerEmail, setManagerEmail] = useState("");
@@ -57,14 +63,6 @@ export default function SettingsPage() {
   const [authSettingsLoaded, setAuthSettingsLoaded] = useState(false);
   const [passwordStatusLoaded, setPasswordStatusLoaded] = useState(false);
   const [branchLoaded, setBranchLoaded] = useState(false);
-
-  useEffect(() => {
-    try {
-      setUser(JSON.parse(sessionStorage.getItem("user") || "null"));
-    } catch {
-      setUser(null);
-    }
-  }, []);
 
   const isAdmin = user?.role === "admin";
 

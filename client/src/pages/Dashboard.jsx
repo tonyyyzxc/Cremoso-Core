@@ -382,7 +382,7 @@ function Dashboard() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <section className="mx-auto max-w-[1500px] space-y-6 text-[#0A3B3D] dark:text-white">
+      <section className="mx-auto max-w-375 space-y-6 text-[#0A3B3D] dark:text-white">
         <motion.header
           initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
