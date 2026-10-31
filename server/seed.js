@@ -11,7 +11,7 @@ import { hashPassword } from "./utils/password.js";
 
 // Edit these before running. Do not commit real passwords.
 const admin = {
-  name: "Recovery Admin",
+  name: env("ADMIN_NAME"),
   email: "admin@gmail.com",
   password: "password",
 };

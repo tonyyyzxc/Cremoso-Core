@@ -35,9 +35,37 @@ export async function login(req, res) {
       ? req.body.identifier.trim().toLowerCase()
       : typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
     const password = typeof req.body.password === "string" ? req.body.password : "";
+    const recaptchaToken = typeof req.body.recaptchaToken === "string"
+      ? req.body.recaptchaToken
+      : "";
 
     if (!identifier || !password) {
       return res.status(400).json({ error: "Username/email and password are required." });
+    }
+    if (!process.env.RECAPTCHA_SECRET_KEY) {
+      return res.status(503).json({ error: "reCAPTCHA is not configured on the server." });
+    }
+    if (!recaptchaToken) {
+      return res.status(400).json({ error: "Please complete the reCAPTCHA check." });
+    }
+
+    const recaptchaResponse = await fetch(
+      "https://www.google.com/recaptcha/api/siteverify",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          secret: process.env.RECAPTCHA_SECRET_KEY,
+          response: recaptchaToken,
+        }),
+      },
+    );
+    if (!recaptchaResponse.ok) {
+      throw new Error(`reCAPTCHA verification failed with status ${recaptchaResponse.status}.`);
+    }
+    const recaptchaResult = await recaptchaResponse.json();
+    if (recaptchaResult.success !== true) {
+      return res.status(401).json({ error: "reCAPTCHA verification failed. Please try again." });
     }
 
     const user = await User.findOne({ $or: [{ email: identifier }, { username: identifier }] });

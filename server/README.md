@@ -30,7 +30,7 @@ This installs the dependencies listed in `package.json`:
 
 ## Configure
 
-Create or update the backend environment file in this folder with the connection settings provided for your environment. Do not commit credentials or secrets.
+Create or update the backend environment file in this folder with the connection settings provided for your environment. Set `RECAPTCHA_SECRET_KEY` to the secret key that matches the Google reCAPTCHA v2 Checkbox site key configured in the client. Keep this secret on the server only; do not commit credentials or secrets.
 
 ## Run
 

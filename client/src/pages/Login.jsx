@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { GoogleLogin } from "@react-oauth/google";
+import ReCAPTCHA from "react-google-recaptcha";
 import { fadeTransition } from "../components/loadingVariants.js";
 import {
   Check,
@@ -13,6 +14,7 @@ import {
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 const signupInputClass =
   "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20";
 
@@ -40,10 +42,12 @@ function Login() {
   const [branchAddress, setBranchAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState("");
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const toast = useToast();
   const hiddenGoogleBtn = useRef(null);
+  const recaptchaRef = useRef(null);
 
   const handleSignup = async (event) => {
     event.preventDefault();
@@ -93,13 +97,21 @@ function Login() {
   // Password login returns { token, user }.
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!RECAPTCHA_SITE_KEY) {
+      toast.error("reCAPTCHA is not configured. Please contact an administrator.");
+      return;
+    }
+    if (!recaptchaToken) {
+      toast.error("Please complete the reCAPTCHA check.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       const result = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, recaptchaToken }),
       });
       const data = await result.json().catch(() => ({}));
 
@@ -125,6 +137,8 @@ function Login() {
       toast.error(message);
     } finally {
       setIsSubmitting(false);
+      setRecaptchaToken("");
+      recaptchaRef.current?.reset();
     }
   };
 
@@ -464,6 +478,23 @@ function Login() {
                 </AnimatePresence>
               </div>
               {isSignup && <SignupStepper step={step} />}
+              {!isSignup && (
+                <div className="space-y-1">
+                  {RECAPTCHA_SITE_KEY ? (
+                    <ReCAPTCHA
+                      ref={recaptchaRef}
+                      sitekey={RECAPTCHA_SITE_KEY}
+                      onChange={(token) => setRecaptchaToken(token || "")}
+                      onExpired={() => setRecaptchaToken("")}
+                    />
+                  ) : (
+                    <p className="text-sm text-red-700" role="alert">
+                      reCAPTCHA is not configured. Please contact an
+                      administrator.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex gap-3">
                 {isSignup && step > 0 && (
                   <button
@@ -479,7 +510,10 @@ function Login() {
                 )}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting
+                    || (!isSignup && (!RECAPTCHA_SITE_KEY || !recaptchaToken))
+                  }
                   className="flex-1 bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting
@@ -539,6 +573,8 @@ function Login() {
                 onClick={() => {
                   setIsSignup((value) => !value);
                   setPassword("");
+                  setRecaptchaToken("");
+                  recaptchaRef.current?.reset();
                   setStep(0);
                   setDirection(1);
                 }}
