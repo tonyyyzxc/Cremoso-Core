@@ -64,6 +64,14 @@ function Login() {
   const recaptchaContainerRef = useRef(null);
   const [recaptchaScale, setRecaptchaScale] = useState(1);
 
+  // Optional: prevents page scrolling while the login page is mounted.
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   useEffect(() => {
     const container = recaptchaContainerRef.current;
     if (!container) return undefined;
@@ -273,7 +281,7 @@ function Login() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative min-h-screen bg-[#FBF6EF] flex items-center justify-center px-4 py-10 overflow-hidden">
+      <div className="relative h-dvh bg-[#FBF6EF] flex items-center justify-center px-4 py-4 overflow-hidden">
         {/* Animated background layer */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="blob blob-1" />
@@ -352,41 +360,39 @@ function Login() {
         }
       `}</style>
 
-        {!isSignup && !isForgotPassword && (
-          <div className="fixed top-4 right-4 z-30 inline-flex max-w-[calc(100vw-2rem)] items-center rounded-full bg-white px-1.5 py-1 shadow-md shadow-black/15">
-            <AnimatePresence initial={false}>
-              {isLoginHelpOpen && (
-                <motion.span
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: "auto", opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.35, ease: "easeOut" }}
-                  className="max-w-[calc(100vw-5rem)] overflow-hidden whitespace-nowrap text-sm text-gray-500"
-                >
-                  <span className="block pl-2">
-                    Having trouble logging in? Contact{" "}
-                    <span className="font-medium text-[#0A8B8E]">Admin</span>
-                  </span>
-                </motion.span>
-              )}
-            </AnimatePresence>
-            <button
-              type="button"
-              aria-label="Login help"
-              aria-expanded={isLoginHelpOpen}
-              onClick={() => setIsLoginHelpOpen((open) => !open)}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-            >
-              <ShieldCheck size={20} className="text-[#0A8B8E]" />
-            </button>
-          </div>
-        )}
+        <div className="fixed top-4 right-4 z-30 inline-flex max-w-[calc(100vw-2rem)] items-center rounded-full bg-white px-1.5 py-1 shadow-md shadow-black/15">
+          <AnimatePresence initial={false}>
+            {isLoginHelpOpen && (
+              <motion.span
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "auto", opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.35, ease: "easeOut" }}
+                className="max-w-[calc(100vw-5rem)] overflow-hidden whitespace-nowrap text-sm text-gray-500"
+              >
+                <span className="block pl-2">
+                  Having trouble logging in? Contact{" "}
+                  <span className="font-medium text-[#0A8B8E]">Admin</span>
+                </span>
+              </motion.span>
+            )}
+          </AnimatePresence>
+          <button
+            type="button"
+            aria-label="Login help"
+            aria-expanded={isLoginHelpOpen}
+            onClick={() => setIsLoginHelpOpen((open) => !open)}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+          >
+            <ShieldCheck size={20} className="text-[#0A8B8E]" />
+          </button>
+        </div>
 
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...fadeTransition, delay: 0.15 }}
-          className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2"
+          className="relative z-10 w-full max-w-4xl max-h-full bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2"
         >
           {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
           <div
@@ -422,7 +428,7 @@ function Login() {
           {/* Right panel — form side */}
           <div
             className={`flex flex-col justify-center px-8 md:px-12 ${
-              !isSignup && !isForgotPassword ? "pt-20 pb-12" : "py-12"
+              !isSignup && !isForgotPassword ? "pt-16 pb-8" : "py-8"
             }`}
           >
             <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
