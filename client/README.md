@@ -25,9 +25,13 @@ React app built with Vite and Tailwind CSS.
 
    ```text
    VITE_API_URL=http://localhost:5000
+   VITE_RECAPTCHA_SITE_KEY=<Google reCAPTCHA v2 Checkbox site key>
    ```
 
-   Vite only exposes variables prefixed with `VITE_` to the frontend.
+   Vite only exposes variables prefixed with `VITE_` to the frontend. Set
+   `VITE_RECAPTCHA_SITE_KEY` to the Google reCAPTCHA v2 Checkbox site key
+   registered for this app's domains. Keep the matching secret key in the
+   server environment.
 
 ## Installed Packages
 
@@ -38,6 +42,7 @@ The packages are declared in `package.json`. Run `npm install` to install them.
 - `@react-oauth/google`
 - `@tailwindcss/vite`
 - `lucide-react`
+- `react-google-recaptcha`
 - `react`
 - `react-dom`
 - `react-router-dom`

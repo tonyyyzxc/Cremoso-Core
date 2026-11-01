@@ -24,7 +24,7 @@ cd ..
 These commands install packages declared in each folder's `package.json`:
 
 - Root: `concurrently`
-- Server: `bcrypt`, `cors`, `dotenv`, `express`, `google-auth-library`, `jsonwebtoken`, `mongoose`, `nodemon` (development dependency)
+- Server: `bcrypt`, `cors`, `dotenv`, `express`, `google-auth-library`, `googleapis`, `jsonwebtoken`, `mongoose`, `multer`, `nodemon` (development dependency)
 - Client application dependencies: `@react-oauth/google`, `@tailwindcss/vite`, `lucide-react`, `react`, `react-dom`, `react-router-dom`, `tailwindcss`
 - Client development dependencies: `@eslint/js`, `@types/react`, `@types/react-dom`, `@vitejs/plugin-react`, `eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh`, `globals`, `vite`
 

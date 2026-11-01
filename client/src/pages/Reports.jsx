@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { BarChart3, CircleAlert, Download, Plus, RefreshCw, Save, ShoppingBag, Trash2, TrendingUp } from "lucide-react";
+import { BarChart3, CircleAlert, Download, FileSpreadsheet, Plus, RefreshCw, Save, ShoppingBag, Trash2, TrendingUp } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
+import { useToast } from "../hooks/UseToast.jsx";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -104,6 +105,14 @@ function csvCell(value) {
   return `"${text.replaceAll('"', '""')}"`;
 }
 
+function makeExportRows(sales, onlineOrders) {
+  return [
+    ["Source", "Transaction", "Branch", "Business date", "Channel", "Payment method", "Items", "Quantity", "Revenue"],
+    ...sales.map((sale) => ["Staff sale", sale.saleNumber, sale.branchId?.name || "", sale.businessDate, "", sale.paymentMethod || "", sale.items.map((item) => `${item.name}${item.variant?.name ? ` (${item.variant.name})` : ""}${item.addons?.length ? ` [${item.addons.map((addon) => `${addon.quantity || 1}x ${addon.name}`).join(", ")}]` : ""}`).join("; "), sale.items.reduce((sum, item) => sum + item.quantity, 0), sale.total]),
+    ...onlineOrders.map((order) => ["Online order", order.orderNumber, order.branchId?.name || "", dateKeyForOrder(order.updatedAt), order.channel, order.paymentMethod, order.items.map((item) => `${item.name}${item.variant?.name ? ` (${item.variant.name})` : ""}${item.addons?.length ? ` [${item.addons.map((addon) => `${addon.quantity || 1}x ${addon.name}`).join(", ")}]` : ""}`).join("; "), order.items.reduce((sum, item) => sum + item.quantity, 0), order.total]),
+  ];
+}
+
 function Metric({ label, value, icon: Icon, detail }) {
   return <motion.article variants={riseIn} className={`${cardClass} flex items-center gap-4 p-5`}><span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]"><Icon size={20} /></span><div><p className="text-sm text-gray-500 dark:text-gray-400">{label}</p><p className="mt-1 text-2xl font-semibold">{value}</p>{detail && <p className="mt-1 text-xs text-gray-500">{detail}</p>}</div></motion.article>;
 }
@@ -155,6 +164,7 @@ function TrendChart({ title, data, leftKey, rightKey, from, to, currency = false
 }
 
 export default function ReportsPage() {
+  const toast = useToast();
   const user = useMemo(() => {
     try { return JSON.parse(sessionStorage.getItem("user") || "null"); } catch { return null; }
   }, []);
@@ -179,6 +189,7 @@ export default function ReportsPage() {
   const [reportLoaded, setReportLoaded] = useState(false);
   const [catalogLoaded, setCatalogLoaded] = useState(isAdmin);
   const [saving, setSaving] = useState(false);
+  const [exportingSheet, setExportingSheet] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -326,11 +337,7 @@ export default function ReportsPage() {
   const totalItemsSold = analytics.items.reduce((sum, item) => sum + item.quantity, 0);
 
   const exportCsv = () => {
-    const rows = [
-      ["Source", "Transaction", "Branch", "Business date", "Channel", "Payment method", "Items", "Quantity", "Revenue"],
-      ...sales.map((sale) => ["Staff sale", sale.saleNumber, sale.branchId?.name || "", sale.businessDate, "", sale.paymentMethod || "", sale.items.map((item) => `${item.name}${item.variant?.name ? ` (${item.variant.name})` : ""}${item.addons?.length ? ` [${item.addons.map((addon) => `${addon.quantity || 1}x ${addon.name}`).join(", ")}]` : ""}`).join("; "), sale.items.reduce((sum, item) => sum + item.quantity, 0), sale.total]),
-      ...onlineOrders.map((order) => ["Online order", order.orderNumber, order.branchId?.name || "", dateKeyForOrder(order.updatedAt), order.channel, order.paymentMethod, order.items.map((item) => `${item.name}${item.variant?.name ? ` (${item.variant.name})` : ""}${item.addons?.length ? ` [${item.addons.map((addon) => `${addon.quantity || 1}x ${addon.name}`).join(", ")}]` : ""}`).join("; "), order.items.reduce((sum, item) => sum + item.quantity, 0), order.total]),
-    ];
+    const rows = makeExportRows(sales, onlineOrders);
     const content = rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
     const url = URL.createObjectURL(new Blob([content], { type: "text/csv;charset=utf-8" }));
     const link = document.createElement("a");
@@ -340,10 +347,49 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportGoogleSheet = async () => {
+    setExportingSheet(true);
+    try {
+      const selectedBranch = branches.find((branch) => branch._id === branchId);
+      const reportName = `Cremoso Sales Report - ${selectedBranch?.name || "All branches"} - ${from} to ${to}`;
+      const result = await apiRequest("/api/drive/export-sheet", {
+        method: "POST",
+        body: JSON.stringify({
+          title: reportName,
+          rows: makeExportRows(sales, onlineOrders),
+        }),
+      });
+      toast.success(
+        <span>
+          Google Sheet created.{" "}
+          <a
+            href={result.spreadsheetUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-[#0A8B8E] underline"
+          >
+            Open sheet
+          </a>
+        </span>,
+        10000,
+      );
+    } catch (err) {
+      const message = err.message.toLowerCase().includes("drive")
+        && (err.message.toLowerCase().includes("not connected")
+          || err.message.toLowerCase().includes("reconnect"))
+        ? "Connect Google Drive from YourDrive before exporting."
+        : err.message;
+      toast.error(message);
+      setError(message);
+    } finally {
+      setExportingSheet(false);
+    }
+  };
+
   const initialLoading = !reportLoaded || !catalogLoaded;
   return <MotionConfig reducedMotion="user"><section className="mx-auto max-w-375 space-y-6 text-[#0A3B3D] dark:text-white">
     {initialLoading && <p role="status" className="sr-only">Loading reports...</p>}
-    <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">{isAdmin ? "Company performance" : "Branch sales"}</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Reports</h2><p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track revenue and sales from staff entries and completed online orders.</p></div><div className="flex gap-2">{isAdmin && <button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><Download size={16} /> Export CSV</button>}<button type="button" onClick={loadReports} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button></div></motion.header>
+    <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">{isAdmin ? "Company performance" : "Branch sales"}</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Reports</h2><p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track revenue and sales from staff entries and completed online orders.</p></div><div className="flex gap-2">{isAdmin && <><button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><Download size={16} /> Export CSV</button><button type="button" onClick={exportGoogleSheet} disabled={loading || exportingSheet} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><FileSpreadsheet size={16} /> {exportingSheet ? "Exporting..." : "Export to Google Sheets"}</button></> }<button type="button" onClick={loadReports} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button></div></motion.header>
     {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"><CircleAlert size={17} className="mt-0.5 shrink-0" />{error}</div>}
     {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>}
 

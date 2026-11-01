@@ -1,4 +1,4 @@
-import { Menu, Moon, Sun } from "lucide-react";
+import { ChevronLeft, Moon, Sun } from "lucide-react";
 
 export default function TopBar({
   pageTitle,
@@ -7,6 +7,7 @@ export default function TopBar({
   userRole,
   userPicture,
   onViewProfile,
+  sidebarOpen,
   onToggleSidebar,
   darkMode,
   onToggleDarkMode,
@@ -20,10 +21,16 @@ export default function TopBar({
         <button
           type="button"
           onClick={onToggleSidebar}
-          aria-label="Toggle sidebar"
+          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          aria-expanded={sidebarOpen}
           className="rounded-lg p-2 text-gray-500 transition hover:bg-[#FBF6EF] hover:text-[#0A8B8E] dark:hover:bg-neutral-800"
         >
-          <Menu size={20} />
+          <ChevronLeft
+            size={20}
+            className={`transition-transform duration-300 ease-in-out motion-reduce:transition-none ${
+              sidebarOpen ? "" : "rotate-180"
+            }`}
+          />
         </button>
         <h1 className="text-lg font-semibold text-[#0A3B3D] dark:text-white">
           {pageTitle}
