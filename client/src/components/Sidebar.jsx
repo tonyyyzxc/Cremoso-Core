@@ -13,18 +13,43 @@ import {
 } from "lucide-react";
 
 const STAFF_NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, available: true },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    available: true,
+  },
   { id: "new-order", label: "New Order", icon: ShoppingCart, available: true },
-  { id: "order-queue", label: "Order Queue", icon: ClipboardList, available: true },
-  { id: "transactions", label: "Transactions", icon: ShoppingBag, available: true },
+  {
+    id: "order-queue",
+    label: "Order Queue",
+    icon: ClipboardList,
+    available: true,
+  },
+  {
+    id: "transactions",
+    label: "Transactions",
+    icon: ShoppingBag,
+    available: true,
+  },
   { id: "reports", label: "Reports", icon: BarChart3, available: true },
-  { id: "reconciliation", label: "Shift Reconciliation", icon: ClipboardCheck, available: true },
+  {
+    id: "reconciliation",
+    label: "Shift Reconciliation",
+    icon: ClipboardCheck,
+    available: true,
+  },
   { id: "staff", label: "Staff", icon: Users, available: true },
   { id: "drive", label: "YourDrive", icon: HardDrive, available: true },
 ];
 
 const ADMIN_NAV_ITEMS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard, available: true },
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: LayoutDashboard,
+    available: true,
+  },
   { id: "orders", label: "Orders", icon: ShoppingBag, available: true },
   { id: "reports", label: "Reports", icon: BarChart3, available: true },
   { id: "menu", label: "Menu", icon: UtensilsCrossed, available: true },
@@ -53,7 +78,7 @@ export default function SidebarNav({
       className={`flex h-full shrink-0 flex-col overflow-hidden bg-white transition-[width] duration-300 ease-in-out motion-reduce:transition-none ${
         collapsed
           ? showIcons
-            ? "w-[72px] shadow-[inset_-1px_0_0_#e5e7eb] dark:shadow-[inset_-1px_0_0_#262626]"
+            ? "w-18 shadow-[inset_-1px_0_0_#e5e7eb] dark:shadow-[inset_-1px_0_0_#262626]"
             : "w-0 shadow-none"
           : "w-64 shadow-[inset_-1px_0_0_#e5e7eb] dark:shadow-[inset_-1px_0_0_#262626]"
       } dark:bg-neutral-900`}
@@ -78,10 +103,7 @@ export default function SidebarNav({
         </span>
       </div>
 
-      <nav
-        className="flex-1 space-y-1 px-3 py-2"
-        aria-label="Main navigation"
-      >
+      <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Main navigation">
         {navItems.map(({ id, label, icon: Icon, available = false }) => {
           const isActive = id === activeId;
           return (
@@ -123,9 +145,7 @@ export default function SidebarNav({
         })}
       </nav>
 
-      <div
-        className="shrink-0 space-y-1 px-3 py-3 shadow-[inset_0_1px_0_#e5e7eb] dark:shadow-[inset_0_1px_0_#262626]"
-      >
+      <div className="shrink-0 space-y-1 px-3 py-3 shadow-[inset_0_1px_0_#e5e7eb] dark:shadow-[inset_0_1px_0_#262626]">
         <button
           type="button"
           onClick={() => onSelect("settings")}
