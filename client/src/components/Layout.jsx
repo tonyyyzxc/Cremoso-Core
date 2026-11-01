@@ -18,6 +18,7 @@ const titleMap = {
   menu: "Menu",
   management: "Management",
   settings: "Settings",
+  drive: "YourDrive",
 };
 
 export default function Layout() {
@@ -25,6 +26,7 @@ export default function Layout() {
   const location = useLocation();
   const activeId = location.pathname.replace("/", "") || "dashboard";
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showSidebarIcons, setShowSidebarIcons] = useState(true);
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("theme") === "dark",
   );
@@ -40,6 +42,15 @@ export default function Layout() {
 
   const [branchName, setBranchName] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    apiRequest("/api/auth-settings")
+      .then((config) => setShowSidebarIcons(config.showSidebarIcons !== false))
+      .catch((error) => {
+        console.error("Sidebar settings load error:", error);
+      });
+  }, [user]);
 
   useEffect(() => {
     if (user?.role !== "staff") return;
@@ -78,16 +89,16 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen">
-      {sidebarOpen && (
-        <SidebarNav
-          activeId={activeId}
-          onSelect={handleSelect}
-          onLogout={handleLogout}
-          userRole={user?.role}
-        />
-      )}
-      <div className="flex-1 flex flex-col">
+    <div className="flex h-screen w-full overflow-hidden">
+      <SidebarNav
+        activeId={activeId}
+        onSelect={handleSelect}
+        onLogout={handleLogout}
+        userRole={user?.role}
+        collapsed={!sidebarOpen}
+        showIcons={showSidebarIcons}
+      />
+      <div className="flex min-w-0 flex-1 flex-col transition-[width] duration-300 ease-in-out motion-reduce:transition-none">
         <TopBar
           pageTitle={titleMap[activeId] || "Dashboard"}
           userName={branchName || user?.name || user?.email || ""}
@@ -102,8 +113,8 @@ export default function Layout() {
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((v) => !v)}
         />
-        <div ref={contentRef} className="flex-1 overflow-y-auto scroll-smooth bg-black/2 dark:bg-black p-6">
-          <Outlet />
+        <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-black/2 p-6 dark:bg-black">
+          <Outlet context={{ showSidebarIcons, setShowSidebarIcons }} />
         </div>
       </div>
       <AnimatePresence>{loggingOut && <StreakBar />}</AnimatePresence>

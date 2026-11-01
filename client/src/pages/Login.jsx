@@ -1,18 +1,21 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
 import { GoogleLogin } from "@react-oauth/google";
+import ReCAPTCHA from "react-google-recaptcha";
 import { fadeTransition } from "../components/loadingVariants.js";
 import {
   Check,
   ClipboardCheck,
   LockKeyhole,
   Mail,
+  ShieldCheck,
   Store,
   UserRound,
 } from "lucide-react";
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 const signupInputClass =
   "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20";
 
@@ -20,6 +23,11 @@ const signupSteps = [
   { label: "Branch", Icon: Store },
   { label: "Manager", Icon: UserRound },
   { label: "Review", Icon: ClipboardCheck },
+];
+const passwordResetSteps = [
+  { label: "Email", Icon: Mail },
+  { label: "Code", Icon: ClipboardCheck },
+  { label: "Password", Icon: LockKeyhole },
 ];
 
 const slideVariants = {
@@ -30,9 +38,15 @@ const slideVariants = {
 
 function Login() {
   const [isSignup, setIsSignup] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [isLoginHelpOpen, setIsLoginHelpOpen] = useState(false);
   const [identifier, setIdentifier] = useState("");
   const [managerEmail, setManagerEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [resetCode, setResetCode] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [managerName, setManagerName] = useState("");
   const [managerPhone, setManagerPhone] = useState("");
   const [branchName, setBranchName] = useState("");
@@ -40,10 +54,30 @@ function Login() {
   const [branchAddress, setBranchAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState("");
   const [step, setStep] = useState(0);
+  const [resetStep, setResetStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const toast = useToast();
   const hiddenGoogleBtn = useRef(null);
+  const recaptchaRef = useRef(null);
+  const recaptchaContainerRef = useRef(null);
+  const [recaptchaScale, setRecaptchaScale] = useState(1);
+
+  useEffect(() => {
+    const container = recaptchaContainerRef.current;
+    if (!container) return undefined;
+
+    const updateScale = () => {
+      if (!container.clientWidth) return;
+      setRecaptchaScale(Math.min(container.clientWidth / 304, 1.25));
+    };
+    const observer = new ResizeObserver(updateScale);
+    observer.observe(container);
+    updateScale();
+
+    return () => observer.disconnect();
+  }, [isSignup, isForgotPassword]);
 
   const handleSignup = async (event) => {
     event.preventDefault();
@@ -90,16 +124,83 @@ function Login() {
     }
   };
 
+  const handlePasswordReset = async (event) => {
+    event.preventDefault();
+    if (resetStep === 2 && newPassword !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const endpoint = [
+        "forgot-password",
+        "verify-reset-code",
+        "reset-password",
+      ][resetStep];
+      const body = [
+        { email: forgotEmail },
+        { email: forgotEmail, code: resetCode },
+        { email: forgotEmail, code: resetCode, newPassword },
+      ][resetStep];
+      const result = await fetch(`${API_URL}/api/auth/${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await result.json().catch(() => ({}));
+
+      if (!result.ok) {
+        toast.error(data.error || "Unable to reset your password.");
+        return;
+      }
+
+      if (resetStep < passwordResetSteps.length - 1) {
+        toast.success(
+          resetStep === 0
+            ? "If an active account exists, a reset code has been sent."
+            : "Code verified. Set your new password.",
+        );
+        setDirection(1);
+        setResetStep((currentStep) => currentStep + 1);
+        return;
+      }
+
+      toast.success(data.message || "Password reset successfully.");
+      setIdentifier(forgotEmail);
+      setIsForgotPassword(false);
+      setResetStep(0);
+      setResetCode("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (err) {
+      console.error("Password reset error:", err);
+      toast.error("Unable to reach the server. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   // Password login returns { token, user }.
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (!RECAPTCHA_SITE_KEY) {
+      toast.error(
+        "reCAPTCHA is not configured. Please contact an administrator.",
+      );
+      return;
+    }
+    if (!recaptchaToken) {
+      toast.error("Please complete the reCAPTCHA check.");
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       const result = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, recaptchaToken }),
       });
       const data = await result.json().catch(() => ({}));
 
@@ -125,6 +226,8 @@ function Login() {
       toast.error(message);
     } finally {
       setIsSubmitting(false);
+      setRecaptchaToken("");
+      recaptchaRef.current?.reset();
     }
   };
 
@@ -249,6 +352,36 @@ function Login() {
         }
       `}</style>
 
+        {!isSignup && !isForgotPassword && (
+          <div className="fixed top-4 right-4 z-30 inline-flex max-w-[calc(100vw-2rem)] items-center rounded-full bg-white px-1.5 py-1 shadow-md shadow-black/15">
+            <AnimatePresence initial={false}>
+              {isLoginHelpOpen && (
+                <motion.span
+                  initial={{ width: 0, opacity: 0 }}
+                  animate={{ width: "auto", opacity: 1 }}
+                  exit={{ width: 0, opacity: 0 }}
+                  transition={{ duration: 0.35, ease: "easeOut" }}
+                  className="max-w-[calc(100vw-5rem)] overflow-hidden whitespace-nowrap text-sm text-gray-500"
+                >
+                  <span className="block pl-2">
+                    Having trouble logging in? Contact{" "}
+                    <span className="font-medium text-[#0A8B8E]">Admin</span>
+                  </span>
+                </motion.span>
+              )}
+            </AnimatePresence>
+            <button
+              type="button"
+              aria-label="Login help"
+              aria-expanded={isLoginHelpOpen}
+              onClick={() => setIsLoginHelpOpen((open) => !open)}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+            >
+              <ShieldCheck size={20} className="text-[#0A8B8E]" />
+            </button>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -256,7 +389,13 @@ function Login() {
           className="relative z-10 w-full max-w-4xl bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2"
         >
           {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
-          <div className="relative bg-[#0A8B8E] flex flex-col items-center justify-center px-8 py-14 md:py-0 overflow-hidden">
+          <div
+            className={`relative bg-[#0A8B8E] flex flex-col items-center justify-center px-8 overflow-hidden ${
+              !isSignup && !isForgotPassword
+                ? "pt-20 pb-14 md:pt-0 md:pb-0"
+                : "py-14 md:py-0"
+            }`}
+          >
             {/* Soft-serve swirl icon */}
             <img
               src="/android-chrome-512x512.png"
@@ -281,22 +420,42 @@ function Login() {
           </div>
 
           {/* Right panel — form side */}
-          <div className="flex flex-col justify-center px-8 py-12 md:px-12">
+          <div
+            className={`flex flex-col justify-center px-8 md:px-12 ${
+              !isSignup && !isForgotPassword ? "pt-20 pb-12" : "py-12"
+            }`}
+          >
             <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
-              {isSignup ? "Branch signup" : "Welcome!"}
+              {isSignup
+                ? "Branch signup"
+                : isForgotPassword
+                  ? "Reset your password"
+                  : "Welcome!"}
             </h2>
             <p className="text-gray-500 text-sm mb-7">
               {isSignup
                 ? "Apply to register your branch and branch manager account."
-                : "Login to your Cremoso account"}
+                : isForgotPassword
+                  ? [
+                      "Enter the email address linked to your account.",
+                      "Enter the 6-digit code sent to your email.",
+                      "Choose and confirm your new password.",
+                    ][resetStep]
+                  : "Login to your Cremoso account"}
             </p>
 
             <form
-              onSubmit={isSignup ? handleSignup : handleSubmit}
+              onSubmit={
+                isSignup
+                  ? handleSignup
+                  : isForgotPassword
+                    ? handlePasswordReset
+                    : handleSubmit
+              }
               className="space-y-3.5"
             >
               <div
-                className={`relative -mx-1 overflow-x-clip px-1 ${isSignup ? "min-h-53" : ""}`}
+                className={`relative -mx-1 overflow-x-clip px-1 ${isSignup || isForgotPassword ? "min-h-53" : ""}`}
               >
                 <AnimatePresence
                   mode="popLayout"
@@ -304,7 +463,13 @@ function Login() {
                   custom={direction}
                 >
                   <motion.div
-                    key={isSignup ? step : "login"}
+                    key={
+                      isSignup
+                        ? `signup-${step}`
+                        : isForgotPassword
+                          ? `reset-${resetStep}`
+                          : "login"
+                    }
                     custom={direction}
                     variants={slideVariants}
                     initial="enter"
@@ -373,7 +538,7 @@ function Login() {
                         </div>
                       </>
                     )}
-                    {(!isSignup || step === 1) && (
+                    {!isForgotPassword && (!isSignup || step === 1) && (
                       <>
                         <div className="relative">
                           <Mail
@@ -436,6 +601,96 @@ function Login() {
                             <EyeIcon open={showPassword} />
                           </button>
                         </div>
+                        {!isSignup && (
+                          <div className="text-right">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForgotEmail(
+                                  identifier.includes("@") ? identifier : "",
+                                );
+                                setIsForgotPassword(true);
+                                setResetStep(0);
+                                setResetCode("");
+                                setNewPassword("");
+                                setConfirmPassword("");
+                                setDirection(1);
+                              }}
+                              className="text-sm font-medium text-[#0A8B8E] hover:underline"
+                            >
+                              Forgot password?
+                            </button>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {isForgotPassword && resetStep === 0 && (
+                      <div className="relative">
+                        <Mail
+                          size={18}
+                          aria-hidden="true"
+                          className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                        <input
+                          type="email"
+                          placeholder="Email address"
+                          autoComplete="email"
+                          value={forgotEmail}
+                          onChange={(event) =>
+                            setForgotEmail(event.target.value)
+                          }
+                          className={`${signupInputClass} pl-11`}
+                          required
+                        />
+                      </div>
+                    )}
+                    {isForgotPassword && resetStep === 1 && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-500">
+                          Check your inbox for the reset code.
+                        </p>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          pattern="[0-9]{6}"
+                          maxLength={6}
+                          placeholder="6-digit code"
+                          value={resetCode}
+                          onChange={(event) =>
+                            setResetCode(event.target.value.replace(/\D/g, ""))
+                          }
+                          className={`${signupInputClass} text-center tracking-[0.3em]`}
+                          required
+                        />
+                      </div>
+                    )}
+                    {isForgotPassword && resetStep === 2 && (
+                      <>
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          minLength={8}
+                          placeholder="New password (at least 8 characters)"
+                          value={newPassword}
+                          onChange={(event) =>
+                            setNewPassword(event.target.value)
+                          }
+                          className={signupInputClass}
+                          required
+                        />
+                        <input
+                          type="password"
+                          autoComplete="new-password"
+                          minLength={8}
+                          placeholder="Confirm new password"
+                          value={confirmPassword}
+                          onChange={(event) =>
+                            setConfirmPassword(event.target.value)
+                          }
+                          className={signupInputClass}
+                          required
+                        />
                       </>
                     )}
                     {isSignup && step === 2 && (
@@ -463,14 +718,54 @@ function Login() {
                   </motion.div>
                 </AnimatePresence>
               </div>
-              {isSignup && <SignupStepper step={step} />}
+              {isSignup && <FlowStepper step={step} steps={signupSteps} />}
+              {isForgotPassword && (
+                <FlowStepper step={resetStep} steps={passwordResetSteps} />
+              )}
+              {!isSignup && !isForgotPassword && (
+                <div className="space-y-1">
+                  {RECAPTCHA_SITE_KEY ? (
+                    <div
+                      ref={recaptchaContainerRef}
+                      className="w-full overflow-hidden"
+                      style={{ height: `${78 * recaptchaScale}px` }}
+                    >
+                      <div
+                        style={{
+                          width: 304,
+                          height: 78,
+                          transform: `scale(${recaptchaScale})`,
+                          transformOrigin: "top left",
+                        }}
+                      >
+                        <ReCAPTCHA
+                          ref={recaptchaRef}
+                          sitekey={RECAPTCHA_SITE_KEY}
+                          onChange={(token) => setRecaptchaToken(token || "")}
+                          onExpired={() => setRecaptchaToken("")}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-red-700" role="alert">
+                      reCAPTCHA is not configured. Please contact an
+                      administrator.
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex gap-3">
-                {isSignup && step > 0 && (
+                {((isSignup && step > 0) ||
+                  (isForgotPassword && resetStep > 0)) && (
                   <button
                     type="button"
                     onClick={() => {
                       setDirection(-1);
-                      setStep(step - 1);
+                      if (isSignup) {
+                        setStep((currentStep) => currentStep - 1);
+                      } else {
+                        setResetStep((currentStep) => currentStep - 1);
+                      }
                     }}
                     className="rounded-xl border border-gray-200 px-5 py-3 font-medium text-[#0A3B3D] transition hover:bg-[#FAF6F0]"
                   >
@@ -479,7 +774,12 @@ function Login() {
                 )}
                 <button
                   type="submit"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting ||
+                    (!isSignup &&
+                      !isForgotPassword &&
+                      (!RECAPTCHA_SITE_KEY || !recaptchaToken))
+                  }
                   className="flex-1 bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting
@@ -488,12 +788,16 @@ function Login() {
                       ? step < signupSteps.length - 1
                         ? "Next"
                         : "Submit branch application"
-                      : "Login"}
+                      : isForgotPassword
+                        ? ["Send code", "Verify code", "Reset password"][
+                            resetStep
+                          ]
+                        : "Login"}
                 </button>
               </div>
             </form>
 
-            {!isSignup && (
+            {!isSignup && !isForgotPassword && (
               <>
                 <div className="flex items-center gap-3 my-5">
                   <div className="h-px flex-1 bg-gray-200" />
@@ -526,25 +830,36 @@ function Login() {
                     onError={handleGoogleError}
                   />
                 </div>
-                <p className="text-center text-sm text-gray-500 mt-6">
-                  Having trouble logging in? Contact{" "}
-                  <span className="text-[#0A8B8E] font-medium">Admin</span>
-                </p>
               </>
             )}
             <p className="text-center text-sm text-gray-500 mt-5">
-              {isSignup ? "Already have an account?" : "Managing a branch?"}{" "}
+              {isSignup
+                ? "Already have an account?"
+                : isForgotPassword
+                  ? "Remembered your password?"
+                  : "Managing a branch?"}{" "}
               <button
                 type="button"
                 onClick={() => {
-                  setIsSignup((value) => !value);
+                  if (isForgotPassword) {
+                    setIsForgotPassword(false);
+                    setResetStep(0);
+                    setResetCode("");
+                    setNewPassword("");
+                    setConfirmPassword("");
+                    setIdentifier(forgotEmail);
+                  } else {
+                    setIsSignup((value) => !value);
+                  }
                   setPassword("");
+                  setRecaptchaToken("");
+                  recaptchaRef.current?.reset();
                   setStep(0);
                   setDirection(1);
                 }}
                 className="font-semibold text-[#0A8B8E] hover:underline"
               >
-                {isSignup ? "Back to login" : "Apply here"}
+                {isSignup || isForgotPassword ? "Back to login" : "Apply here"}
               </button>
             </p>
           </div>
@@ -554,13 +869,13 @@ function Login() {
   );
 }
 
-function SignupStepper({ step }) {
+function FlowStepper({ step, steps }) {
   return (
     <ol className="flex pt-3">
-      {signupSteps.map(({ label, Icon }, index) => {
+      {steps.map(({ label, Icon }, index) => {
         const done = index < step;
         const active = index === step;
-        const isLast = index === signupSteps.length - 1;
+        const isLast = index === steps.length - 1;
         const lineFill = done ? 100 : active ? 50 : 0;
         return (
           <li
