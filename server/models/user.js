@@ -17,6 +17,10 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    showSidebarIcons: {
+      type: Boolean,
+      default: true,
+    },
     branchId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",
@@ -42,6 +46,27 @@ const userSchema = new mongoose.Schema(
     },
     passwordHash: {
       type: String,
+      default: null,
+    },
+    driveRefreshToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    passwordResetCodeHash: {
+      type: String,
+      default: null,
+    },
+    passwordResetCodeExpiresAt: {
+      type: Date,
+      default: null,
+    },
+    passwordResetCodeAttempts: {
+      type: Number,
+      default: 0,
+    },
+    passwordResetCodeSentAt: {
+      type: Date,
       default: null,
     },
     role: {

@@ -9,21 +9,35 @@ async function getConfig() {
   );
 }
 
-export async function getAuthConfig(_req, res) {
+export async function getAuthConfig(req, res) {
   try {
     const config = await getConfig();
-    const staffAccountsWithoutPassword = await User.countDocuments({
-      role: "staff",
+    const accountsWithoutPassword = await User.countDocuments({
       $or: [{ passwordHash: null }, { passwordHash: "" }],
     });
     return res.json({
       staffGoogleAuthEnabled:
-        config.staffGoogleAuthEnabled || staffAccountsWithoutPassword > 0,
-      staffAccountsWithoutPassword,
+        config.staffGoogleAuthEnabled || accountsWithoutPassword > 0,
+      showSidebarIcons: req.user.showSidebarIcons !== false,
+      accountsWithoutPassword,
     });
   } catch (error) {
     console.error("Auth settings load error:", error);
     return res.status(500).json({ error: "Unable to load authentication settings." });
+  }
+}
+
+export async function updateSidebarPreference(req, res) {
+  if (typeof req.body.showSidebarIcons !== "boolean") {
+    return res.status(400).json({ error: "A valid sidebar setting is required." });
+  }
+  try {
+    req.user.showSidebarIcons = req.body.showSidebarIcons;
+    await req.user.save();
+    return res.json({ showSidebarIcons: req.user.showSidebarIcons });
+  } catch (error) {
+    console.error("Sidebar preference update error:", error);
+    return res.status(400).json({ error: "Unable to save the sidebar preference." });
   }
 }
 
@@ -33,26 +47,24 @@ export async function updateAuthConfig(req, res) {
   }
   try {
     if (req.body.staffGoogleAuthEnabled === false) {
-      const staffAccountsWithoutPassword = await User.countDocuments({
-        role: "staff",
+      const accountsWithoutPassword = await User.countDocuments({
         $or: [{ passwordHash: null }, { passwordHash: "" }],
       });
-      if (staffAccountsWithoutPassword > 0) {
+      if (accountsWithoutPassword > 0) {
         return res.status(400).json({
-          error: "Set a password for every staff account before disabling Google sign-in.",
+          error: "Set a password for every account before disabling Google sign-in.",
         });
       }
     }
     const config = await getConfig();
     config.staffGoogleAuthEnabled = req.body.staffGoogleAuthEnabled;
     await config.save();
-    const staffAccountsWithoutPassword = await User.countDocuments({
-      role: "staff",
+    const accountsWithoutPassword = await User.countDocuments({
       $or: [{ passwordHash: null }, { passwordHash: "" }],
     });
     return res.json({
       staffGoogleAuthEnabled: config.staffGoogleAuthEnabled,
-      staffAccountsWithoutPassword,
+      accountsWithoutPassword,
     });
   } catch (error) {
     console.error("Auth settings update error:", error);

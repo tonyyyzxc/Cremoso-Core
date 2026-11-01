@@ -12,6 +12,7 @@ import OrderQueuePage from "./src/pages/OrderQueue.jsx";
 import TransactionsPage from "./src/pages/Transactions.jsx";
 import ReconciliationPage from "./src/pages/Reconciliation.jsx";
 import ReportsPage from "./src/pages/Reports.jsx";
+import DrivePage from "./src/pages/Drive.jsx";
 
 function getStoredUser() {
   try {
@@ -61,6 +62,7 @@ function App() {
         <Route path="/management" element={<RequireAdmin><ManagementPage /></RequireAdmin>} />
         <Route path="/staff" element={<RequireStaff><StaffPage /></RequireStaff>} />
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/drive" element={<DrivePage />} />
       </Route>
       <Route path="*" element={<p>404 - Page not found</p>} />
     </Routes>

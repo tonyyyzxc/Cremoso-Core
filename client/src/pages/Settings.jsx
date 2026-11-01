@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import {
   Building2,
@@ -8,6 +9,7 @@ import {
   KeyRound,
   Mail,
   MapPin,
+  PanelLeft,
   Phone,
   ShieldCheck,
 } from "lucide-react";
@@ -28,6 +30,7 @@ const feedbackClassName = (message) =>
 
 export default function SettingsPage() {
   const toast = useToast();
+  const { setShowSidebarIcons } = useOutletContext();
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -35,6 +38,10 @@ export default function SettingsPage() {
       return null;
     }
   });
+  const [adminName, setAdminName] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
+  const [isSavingAdminProfile, setIsSavingAdminProfile] = useState(false);
+  const [adminProfileFeedback, setAdminProfileFeedback] = useState("");
   const [managerName, setManagerName] = useState("");
   const [managerPhone, setManagerPhone] = useState("");
   const [managerEmail, setManagerEmail] = useState("");
@@ -46,10 +53,13 @@ export default function SettingsPage() {
   const [branchEmail, setBranchEmail] = useState("");
   const [isSavingBranch, setIsSavingBranch] = useState(false);
   const [branchFeedback, setBranchFeedback] = useState("");
-  const [staffGoogleAuthEnabled, setStaffGoogleAuthEnabled] = useState(true);
-  const [staffAccountsWithoutPassword, setStaffAccountsWithoutPassword] = useState(0);
+  const [googleAuthEnabled, setGoogleAuthEnabled] = useState(true);
+  const [accountsWithoutPassword, setAccountsWithoutPassword] = useState(0);
   const [isSavingGoogleSetting, setIsSavingGoogleSetting] = useState(false);
   const [googleFeedback, setGoogleFeedback] = useState("");
+  const [showSidebarIcons, setShowSidebarIconsState] = useState(true);
+  const [isSavingSidebarSetting, setIsSavingSidebarSetting] = useState(false);
+  const [sidebarFeedback, setSidebarFeedback] = useState("");
   const [hasPassword, setHasPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -63,14 +73,16 @@ export default function SettingsPage() {
   const [authSettingsLoaded, setAuthSettingsLoaded] = useState(false);
   const [passwordStatusLoaded, setPasswordStatusLoaded] = useState(false);
   const [branchLoaded, setBranchLoaded] = useState(false);
+  const [adminProfileLoaded, setAdminProfileLoaded] = useState(user?.role !== "admin");
 
   const isAdmin = user?.role === "admin";
 
   useEffect(() => {
     apiRequest("/api/auth-settings")
       .then((config) => {
-        setStaffGoogleAuthEnabled(config.staffGoogleAuthEnabled);
-        setStaffAccountsWithoutPassword(config.staffAccountsWithoutPassword || 0);
+        setGoogleAuthEnabled(config.staffGoogleAuthEnabled);
+        setShowSidebarIconsState(config.showSidebarIcons !== false);
+        setAccountsWithoutPassword(config.accountsWithoutPassword || 0);
       })
       .catch((err) => setError(err.message))
       .finally(() => setAuthSettingsLoaded(true));
@@ -82,6 +94,17 @@ export default function SettingsPage() {
       .catch((err) => setError(err.message))
       .finally(() => setPasswordStatusLoaded(true));
   }, []);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    apiRequest("/api/auth/profile")
+      .then(({ profile }) => {
+        setAdminName(profile.name || "");
+        setAdminPhone(profile.phone || "");
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setAdminProfileLoaded(true));
+  }, [isAdmin]);
 
   useEffect(() => {
     if (!user) return;
@@ -103,7 +126,7 @@ export default function SettingsPage() {
       .finally(() => setBranchLoaded(true));
   }, [user?.role]);
 
-  const initialLoading = !authSettingsLoaded || !passwordStatusLoaded || !branchLoaded;
+  const initialLoading = !authSettingsLoaded || !passwordStatusLoaded || !branchLoaded || !adminProfileLoaded;
 
   const saveManagerInfo = async (event) => {
     event.preventDefault();
@@ -126,6 +149,33 @@ export default function SettingsPage() {
       setManagerFeedback(err.message);
     } finally {
       setIsSavingManager(false);
+    }
+  };
+
+  const saveAdminProfile = async (event) => {
+    event.preventDefault();
+    setIsSavingAdminProfile(true);
+    setAdminProfileFeedback("");
+    try {
+      const { profile } = await apiRequest("/api/auth/profile", {
+        method: "PATCH",
+        body: JSON.stringify({ name: adminName, phone: adminPhone }),
+      });
+      setAdminName(profile.name);
+      setAdminPhone(profile.phone || "");
+      const updatedUser = {
+        ...user,
+        name: profile.name,
+        phone: profile.phone || "",
+      };
+      sessionStorage.setItem("user", JSON.stringify(updatedUser));
+      setUser(updatedUser);
+      setAdminProfileFeedback("Profile saved successfully.");
+      toast.success("Profile saved successfully.");
+    } catch (err) {
+      setAdminProfileFeedback(err.message);
+    } finally {
+      setIsSavingAdminProfile(false);
     }
   };
 
@@ -193,7 +243,7 @@ export default function SettingsPage() {
   };
 
   const toggleGoogleAuth = async () => {
-    const nextValue = !staffGoogleAuthEnabled;
+    const nextValue = !googleAuthEnabled;
     setIsSavingGoogleSetting(true);
     setGoogleFeedback("");
     try {
@@ -201,18 +251,43 @@ export default function SettingsPage() {
         method: "PATCH",
         body: JSON.stringify({ staffGoogleAuthEnabled: nextValue }),
       });
-      setStaffGoogleAuthEnabled(config.staffGoogleAuthEnabled);
-      setStaffAccountsWithoutPassword(config.staffAccountsWithoutPassword || 0);
+      setGoogleAuthEnabled(config.staffGoogleAuthEnabled);
+      setAccountsWithoutPassword(config.accountsWithoutPassword || 0);
       setGoogleFeedback("Sign-in preference saved.");
       toast.success(
         config.staffGoogleAuthEnabled
-          ? "Staff Google sign-in enabled."
-          : "Staff Google sign-in disabled.",
+          ? "Google sign-in enabled for all accounts."
+          : "Google sign-in disabled for all accounts.",
       );
     } catch (err) {
       setGoogleFeedback(err.message);
     } finally {
       setIsSavingGoogleSetting(false);
+    }
+  };
+
+  const toggleSidebarIcons = async () => {
+    const nextValue = !showSidebarIcons;
+    setIsSavingSidebarSetting(true);
+    setSidebarFeedback("");
+    try {
+      const config = await apiRequest("/api/auth-settings/sidebar", {
+        method: "PATCH",
+        body: JSON.stringify({ showSidebarIcons: nextValue }),
+      });
+      const enabled = config.showSidebarIcons !== false;
+      setShowSidebarIconsState(enabled);
+      setShowSidebarIcons(enabled);
+      setSidebarFeedback("Sidebar preference saved.");
+      toast.success(
+        enabled
+          ? "Sidebar icons enabled for your account."
+          : "Sidebar icons hidden for your account.",
+      );
+    } catch (err) {
+      setSidebarFeedback(err.message);
+    } finally {
+      setIsSavingSidebarSetting(false);
     }
   };
 
@@ -349,6 +424,71 @@ export default function SettingsPage() {
             </button>
           </form>
         </section>
+
+        {isAdmin && (
+          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
+                <CircleUserRound size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold">Admin information</h3>
+                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                  Update your contact details. Your login email is read-only.
+                </p>
+              </div>
+            </div>
+            <form
+              onSubmit={saveAdminProfile}
+              className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
+            >
+              <label className="block space-y-1.5 text-sm font-medium">
+                Admin name
+                <input
+                  className={inputClassName}
+                  value={adminName}
+                  onChange={(event) => setAdminName(event.target.value)}
+                  autoComplete="name"
+                  required
+                />
+              </label>
+              <label className="block space-y-1.5 text-sm font-medium">
+                Login email
+                <input
+                  className={`${inputClassName} opacity-70`}
+                  value={user?.email || ""}
+                  readOnly
+                />
+              </label>
+              <label className="block space-y-1.5 text-sm font-medium">
+                Admin phone
+                <input
+                  className={inputClassName}
+                  type="tel"
+                  autoComplete="tel"
+                  value={adminPhone}
+                  onChange={(event) => setAdminPhone(event.target.value)}
+                  placeholder="Optional"
+                />
+              </label>
+              {adminProfileFeedback && (
+                <p
+                  role={adminProfileFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                  className={feedbackClassName(adminProfileFeedback)}
+                >
+                  {adminProfileFeedback}
+                </p>
+              )}
+              <button
+                type="submit"
+                disabled={isSavingAdminProfile}
+                className={buttonClassName}
+              >
+                {isSavingAdminProfile ? "Saving..." : "Save admin information"}
+              </button>
+            </form>
+          </section>
+        )}
 
         {user?.role === "staff" && (
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
@@ -505,9 +645,9 @@ export default function SettingsPage() {
                 <ShieldCheck size={20} />
               </div>
               <div>
-                <h3 className="font-semibold">Staff sign-in</h3>
+                <h3 className="font-semibold">Account sign-in</h3>
                 <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                  Choose how staff members can access their accounts.
+                  Choose how admins and staff can access their accounts.
                 </p>
               </div>
             </div>
@@ -515,27 +655,27 @@ export default function SettingsPage() {
               <div>
                 <p className="text-sm font-medium">Google sign-in</p>
                 <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  {staffAccountsWithoutPassword > 0 && staffGoogleAuthEnabled
-                    ? `Set passwords for all ${staffAccountsWithoutPassword} staff account${staffAccountsWithoutPassword === 1 ? "" : "s"} before turning off Google sign-in.`
-                    : staffGoogleAuthEnabled
-                    ? "Staff can use their approved Google account."
-                    : "Staff must sign in with email and password."}
+                  {accountsWithoutPassword > 0 && googleAuthEnabled
+                    ? `Set passwords for all ${accountsWithoutPassword} account${accountsWithoutPassword === 1 ? "" : "s"} without a password before turning off Google sign-in.`
+                    : googleAuthEnabled
+                    ? "Admins and staff can use their approved Google account."
+                    : "All accounts must sign in with email and password."}
                 </p>
               </div>
               <button
                 type="button"
                 role="switch"
-                aria-checked={staffGoogleAuthEnabled}
-                aria-label="Enable Google sign-in for staff"
+                aria-checked={googleAuthEnabled}
+                aria-label="Enable Google sign-in for all accounts"
                 onClick={toggleGoogleAuth}
                 disabled={
                   isSavingGoogleSetting ||
-                  (staffGoogleAuthEnabled && staffAccountsWithoutPassword > 0)
+                  (googleAuthEnabled && accountsWithoutPassword > 0)
                 }
-                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${staffGoogleAuthEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${googleAuthEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
               >
                 <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${staffGoogleAuthEnabled ? "left-6" : "left-1"}`}
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${googleAuthEnabled ? "left-6" : "left-1"}`}
                 />
               </button>
             </div>
@@ -549,6 +689,49 @@ export default function SettingsPage() {
             )}
           </section>
         )}
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <div className="mb-5 flex items-start gap-3">
+              <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
+                <PanelLeft size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold">Sidebar</h3>
+                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                  Choose how the sidebar looks when it is closed.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+              <div>
+                <p className="text-sm font-medium">Show icons when collapsed</p>
+                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  Off hides the sidebar completely. On keeps a narrow icon rail.
+                  Applies only to your account.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showSidebarIcons}
+                aria-label="Show icons when sidebar is collapsed"
+                onClick={toggleSidebarIcons}
+                disabled={isSavingSidebarSetting}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${showSidebarIcons ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${showSidebarIcons ? "left-6" : "left-1"}`}
+                />
+              </button>
+            </div>
+            {sidebarFeedback && (
+              <p
+                role={sidebarFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                className={`mt-3 ${feedbackClassName(sidebarFeedback)}`}
+              >
+                {sidebarFeedback}
+              </p>
+            )}
+          </section>
           </div>
         </section>
       </div></FadeIn>}
