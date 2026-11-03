@@ -13,6 +13,7 @@ import TransactionsPage from "./src/pages/Transactions.jsx";
 import ReconciliationPage from "./src/pages/Reconciliation.jsx";
 import ReportsPage from "./src/pages/Reports.jsx";
 import DrivePage from "./src/pages/Drive.jsx";
+import ActivityLogsPage from "./src/pages/ActivityLogs.jsx";
 
 function getStoredUser() {
   try {
@@ -32,8 +33,20 @@ function RequireAdmin({ children }) {
     : <Navigate to="/dashboard" replace />;
 }
 
+function RequireBranch({ children }) {
+  return getStoredUser()?.role === "branch"
+    ? children
+    : <Navigate to="/dashboard" replace />;
+}
+
+function RequireBranchOrAdmin({ children }) {
+  return ["branch", "admin"].includes(getStoredUser()?.role)
+    ? children
+    : <Navigate to="/dashboard" replace />;
+}
+
 function RequireStaff({ children }) {
-  return getStoredUser()?.role === "staff"
+  return ["branch", "staff"].includes(getStoredUser()?.role)
     ? children
     : <Navigate to="/dashboard" replace />;
 }
@@ -56,13 +69,14 @@ function App() {
         <Route path="/new-order" element={<RequireStaff><NewOrderPage /></RequireStaff>} />
         <Route path="/order-queue" element={<RequireStaff><OrderQueuePage /></RequireStaff>} />
         <Route path="/transactions" element={<RequireStaff><TransactionsPage /></RequireStaff>} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/reconciliation" element={<RequireStaff><ReconciliationPage /></RequireStaff>} />
-        <Route path="/menu" element={<MenuPage />} />
+        <Route path="/reports" element={<RequireBranchOrAdmin><ReportsPage /></RequireBranchOrAdmin>} />
+        <Route path="/reconciliation" element={<RequireBranch><ReconciliationPage /></RequireBranch>} />
+        <Route path="/menu" element={<RequireBranchOrAdmin><MenuPage /></RequireBranchOrAdmin>} />
         <Route path="/management" element={<RequireAdmin><ManagementPage /></RequireAdmin>} />
-        <Route path="/staff" element={<RequireStaff><StaffPage /></RequireStaff>} />
+        <Route path="/staff" element={<RequireBranch><StaffPage /></RequireBranch>} />
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/drive" element={<DrivePage />} />
+        <Route path="/drive" element={<RequireBranchOrAdmin><DrivePage /></RequireBranchOrAdmin>} />
+        <Route path="/activity-logs" element={<ActivityLogsPage />} />
       </Route>
       <Route path="*" element={<p>404 - Page not found</p>} />
     </Routes>

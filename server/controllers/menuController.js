@@ -3,7 +3,7 @@ import Branch from "../models/branch.js";
 import MenuItem from "../models/menuItem.js";
 
 function getBranchId(req) {
-  return req.user.role === "staff" ? req.user.branchId?.toString() || "" : req.query.branchId || req.body.branchId || "";
+  return req.user.role !== "admin" ? req.user.branchId?.toString() || "" : req.query.branchId || req.body.branchId || "";
 }
 
 async function validateBranchId(branchId, res) {

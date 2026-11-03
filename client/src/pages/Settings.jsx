@@ -57,6 +57,9 @@ export default function SettingsPage() {
   const [accountsWithoutPassword, setAccountsWithoutPassword] = useState(0);
   const [isSavingGoogleSetting, setIsSavingGoogleSetting] = useState(false);
   const [googleFeedback, setGoogleFeedback] = useState("");
+  const [activityLoggingEnabled, setActivityLoggingEnabled] = useState(true);
+  const [isSavingActivityLogging, setIsSavingActivityLogging] = useState(false);
+  const [activityLoggingFeedback, setActivityLoggingFeedback] = useState("");
   const [showSidebarIcons, setShowSidebarIconsState] = useState(true);
   const [isSavingSidebarSetting, setIsSavingSidebarSetting] = useState(false);
   const [sidebarFeedback, setSidebarFeedback] = useState("");
@@ -81,6 +84,7 @@ export default function SettingsPage() {
     apiRequest("/api/auth-settings")
       .then((config) => {
         setGoogleAuthEnabled(config.staffGoogleAuthEnabled);
+        setActivityLoggingEnabled(config.activityLoggingEnabled !== false);
         setShowSidebarIconsState(config.showSidebarIcons !== false);
         setAccountsWithoutPassword(config.accountsWithoutPassword || 0);
       })
@@ -107,8 +111,7 @@ export default function SettingsPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!user) return;
-    if (user.role !== "staff") {
+    if (user?.role !== "branch") {
       Promise.resolve().then(() => setBranchLoaded(true));
       return;
     }
@@ -263,6 +266,29 @@ export default function SettingsPage() {
       setGoogleFeedback(err.message);
     } finally {
       setIsSavingGoogleSetting(false);
+    }
+  };
+
+  const toggleActivityLogging = async () => {
+    const nextValue = !activityLoggingEnabled;
+    setIsSavingActivityLogging(true);
+    setActivityLoggingFeedback("");
+    try {
+      const config = await apiRequest("/api/auth-settings", {
+        method: "PATCH",
+        body: JSON.stringify({ activityLoggingEnabled: nextValue }),
+      });
+      setActivityLoggingEnabled(config.activityLoggingEnabled !== false);
+      setActivityLoggingFeedback("Activity logging preference saved.");
+      toast.success(
+        config.activityLoggingEnabled
+          ? "Activity logging enabled."
+          : "Activity logging paused.",
+      );
+    } catch (err) {
+      setActivityLoggingFeedback(err.message);
+    } finally {
+      setIsSavingActivityLogging(false);
     }
   };
 
@@ -490,7 +516,7 @@ export default function SettingsPage() {
           </section>
         )}
 
-        {user?.role === "staff" && (
+        {user?.role === "branch" && (
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <div className="mb-5 flex items-start gap-3">
               <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
@@ -558,7 +584,7 @@ export default function SettingsPage() {
             <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage your branch contact details and staff sign-in options.</p>
           </header>
           <div className="grid gap-5 lg:grid-cols-2">
-        {user?.role === "staff" && (
+        {user?.role === "branch" && (
           <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
             <div className="mb-5 flex items-start gap-3">
               <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
@@ -685,6 +711,38 @@ export default function SettingsPage() {
                 className={`mt-3 ${feedbackClassName(googleFeedback)}`}
               >
                 {googleFeedback}
+              </p>
+            )}
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+              <div>
+                <p className="text-sm font-medium">Activity logging</p>
+                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                  {activityLoggingEnabled
+                    ? "Records system activity for audit review. Turning this off pauses all activity records except the setting-change record."
+                    : "Paused. The setting-change record is still retained; other activity will not be recorded."}
+                  {" "}Changes can take up to 30 seconds to reach other server instances.
+                </p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={activityLoggingEnabled}
+                aria-label="Enable activity logging"
+                onClick={toggleActivityLogging}
+                disabled={isSavingActivityLogging || !authSettingsLoaded}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${activityLoggingEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+              >
+                <span
+                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${activityLoggingEnabled ? "left-6" : "left-1"}`}
+                />
+              </button>
+            </div>
+            {activityLoggingFeedback && (
+              <p
+                role={activityLoggingFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
+                className={`mt-3 ${feedbackClassName(activityLoggingFeedback)}`}
+              >
+                {activityLoggingFeedback}
               </p>
             )}
           </section>

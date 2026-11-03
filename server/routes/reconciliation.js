@@ -6,7 +6,7 @@ import {
 } from "../controllers/reconciliationController.js";
 
 const router = express.Router();
-router.use(requireAuth, requireRole("staff"));
+router.use(requireAuth, requireRole("branch"));
 
 router.get("/", getShiftReconciliation);
 router.post("/", submitShiftReconciliation);

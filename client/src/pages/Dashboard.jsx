@@ -306,10 +306,12 @@ function Dashboard() {
     onlineOrders: [],
     branches: [],
   });
+  const [staffTransactions, setStaffTransactions] = useState([]);
   const [branchName, setBranchName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const isAdmin = user?.role === "admin";
+  const isStaff = user?.role === "staff";
   const businessDate = useMemo(() => getManilaDateKey(), []);
   const weekStart = useMemo(
     () => getSevenDayStart(businessDate),
@@ -319,6 +321,14 @@ function Dashboard() {
   const loadDashboard = useCallback(async () => {
     setError("");
     try {
+      if (isStaff) {
+        const transactions = await apiRequest(
+          `/api/orders/transactions?date=${encodeURIComponent(businessDate)}`,
+        );
+        setStaffTransactions(transactions);
+        setReport({ sales: [], onlineOrders: [], branches: [] });
+        return;
+      }
       const params = new URLSearchParams({ from: weekStart, to: businessDate });
       const [reportData, branchData] = await Promise.all([
         apiRequest(`/api/reports?${params.toString()}`),
@@ -335,7 +345,7 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  }, [businessDate, weekStart, isAdmin]);
+  }, [businessDate, weekStart, isAdmin, isStaff]);
 
   useEffect(() => {
     let active = true;
@@ -379,6 +389,10 @@ function Dashboard() {
     [report.branches, todaySales, todayOnlineOrders],
   );
   const totalTransactions = totals.saleCount + totals.onlineOrderCount;
+  const staffRevenue = staffTransactions.reduce(
+    (total, order) => total + Number(order.total || 0),
+    0,
+  );
 
   return (
     <MotionConfig reducedMotion="user">
@@ -391,7 +405,11 @@ function Dashboard() {
         >
           <div>
             <p className="text-sm font-semibold text-[#0A8B8E]">
-              {isAdmin ? "Company overview" : "Staff workspace"}
+              {isAdmin
+                ? "Company overview"
+                : isStaff
+                  ? "Staff workspace"
+                  : "Branch workspace"}
             </p>
             <h2 className="mt-1 text-3xl font-semibold tracking-tight">
               Dashboard
@@ -399,6 +417,8 @@ function Dashboard() {
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               {isAdmin
                 ? "Today’s sales and branch performance."
+                : isStaff
+                  ? "Your completed orders and revenue for today."
                 : `${branchName || "Your branch"} · Today’s shift activity.`}
             </p>
           </div>
@@ -530,6 +550,74 @@ function Dashboard() {
                 ) : (
                   <p className="p-8 text-center text-sm text-gray-500">
                     No branches found.
+                  </p>
+                )}
+              </section>
+            </FadeIn>
+          </>
+        ) : isStaff ? (
+          <>
+            <motion.div
+              variants={staggerContainer}
+              initial="hidden"
+              animate="show"
+              className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+            >
+              <MetricCard
+                label="Your completed orders"
+                value={staffTransactions.length.toLocaleString()}
+                detail="Orders you completed today"
+                icon={ShoppingBag}
+              />
+              <MetricCard
+                label="Your sales today"
+                value={money(staffRevenue)}
+                detail="From your completed orders"
+                icon={TrendingUp}
+              />
+              <MetricCard
+                label="Average order"
+                value={money(
+                  staffTransactions.length
+                    ? staffRevenue / staffTransactions.length
+                    : 0,
+                )}
+                detail="Your average completed order"
+                icon={ClipboardCheck}
+              />
+            </motion.div>
+            <FadeIn from="bottom" delay={0.3}>
+              <section className={`${cardClass} overflow-hidden`}>
+                <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                  <h3 className="font-semibold">Your completed transactions</h3>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Only orders created by your account are shown.
+                  </p>
+                </div>
+                {staffTransactions.length ? (
+                  <div className="divide-y divide-gray-100 dark:divide-neutral-800">
+                    {staffTransactions.slice(0, 8).map((order) => (
+                      <article
+                        key={order._id}
+                        className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
+                      >
+                        <div>
+                          <p className="font-medium">{order.orderNumber}</p>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {new Intl.DateTimeFormat("en-PH", {
+                              timeZone: "Asia/Manila",
+                              dateStyle: "medium",
+                              timeStyle: "short",
+                            }).format(new Date(order.updatedAt))}
+                          </p>
+                        </div>
+                        <span className="font-semibold">{money(order.total)}</span>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                    No completed orders for you today.
                   </p>
                 )}
               </section>

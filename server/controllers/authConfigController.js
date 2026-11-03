@@ -1,5 +1,6 @@
 import AuthConfig from "../models/authConfig.js";
 import User from "../models/user.js";
+import { logActivity, updateActivityLoggingCache } from "../utils/activityLog.js";
 
 async function getConfig() {
   return AuthConfig.findOneAndUpdate(
@@ -18,6 +19,7 @@ export async function getAuthConfig(req, res) {
     return res.json({
       staffGoogleAuthEnabled:
         config.staffGoogleAuthEnabled || accountsWithoutPassword > 0,
+      activityLoggingEnabled: config.activityLoggingEnabled !== false,
       showSidebarIcons: req.user.showSidebarIcons !== false,
       accountsWithoutPassword,
     });
@@ -42,11 +44,17 @@ export async function updateSidebarPreference(req, res) {
 }
 
 export async function updateAuthConfig(req, res) {
-  if (typeof req.body.staffGoogleAuthEnabled !== "boolean") {
-    return res.status(400).json({ error: "A valid Google sign-in setting is required." });
+  const updatesGoogleAuth = Object.hasOwn(req.body, "staffGoogleAuthEnabled");
+  const updatesActivityLogging = Object.hasOwn(req.body, "activityLoggingEnabled");
+  if (
+    (!updatesGoogleAuth && !updatesActivityLogging) ||
+    (updatesGoogleAuth && typeof req.body.staffGoogleAuthEnabled !== "boolean") ||
+    (updatesActivityLogging && typeof req.body.activityLoggingEnabled !== "boolean")
+  ) {
+    return res.status(400).json({ error: "Provide a valid authentication or activity logging setting." });
   }
   try {
-    if (req.body.staffGoogleAuthEnabled === false) {
+    if (updatesGoogleAuth && req.body.staffGoogleAuthEnabled === false) {
       const accountsWithoutPassword = await User.countDocuments({
         $or: [{ passwordHash: null }, { passwordHash: "" }],
       });
@@ -57,13 +65,32 @@ export async function updateAuthConfig(req, res) {
       }
     }
     const config = await getConfig();
-    config.staffGoogleAuthEnabled = req.body.staffGoogleAuthEnabled;
+    if (updatesGoogleAuth) {
+      config.staffGoogleAuthEnabled = req.body.staffGoogleAuthEnabled;
+    }
+    if (updatesActivityLogging) {
+      config.activityLoggingEnabled = req.body.activityLoggingEnabled;
+    }
     await config.save();
+    if (updatesActivityLogging) {
+      updateActivityLoggingCache(config.activityLoggingEnabled);
+      await logActivity(req, {
+        action: "config.activity_logging.updated",
+        category: "config",
+        summary: config.activityLoggingEnabled
+          ? "Activity logging was enabled."
+          : "Activity logging was disabled.",
+        details: { activityLoggingEnabled: config.activityLoggingEnabled },
+        force: true,
+      });
+    }
     const accountsWithoutPassword = await User.countDocuments({
       $or: [{ passwordHash: null }, { passwordHash: "" }],
     });
     return res.json({
-      staffGoogleAuthEnabled: config.staffGoogleAuthEnabled,
+      staffGoogleAuthEnabled:
+        config.staffGoogleAuthEnabled || accountsWithoutPassword > 0,
+      activityLoggingEnabled: config.activityLoggingEnabled !== false,
       accountsWithoutPassword,
     });
   } catch (error) {

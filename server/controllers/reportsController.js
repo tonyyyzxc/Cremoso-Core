@@ -66,14 +66,14 @@ async function restoreStock(branchId, reserved) {
 
 function buildSalesFilter(req, range) {
   const filter = { businessDate: { $gte: range.from, $lte: range.to } };
-  if (req.user.role === "staff") filter.branchId = req.user.branchId;
+  if (req.user.role !== "admin") filter.branchId = req.user.branchId;
   else if (req.query.branchId && mongoose.Types.ObjectId.isValid(req.query.branchId)) filter.branchId = req.query.branchId;
   return filter;
 }
 
 function buildOrderFilter(req, range) {
   const filter = { status: "completed", updatedAt: { $gte: range.start, $lte: range.end } };
-  if (req.user.role === "staff") filter.branchId = req.user.branchId;
+  if (req.user.role !== "admin") filter.branchId = req.user.branchId;
   else if (req.query.branchId && mongoose.Types.ObjectId.isValid(req.query.branchId)) filter.branchId = req.query.branchId;
   return filter;
 }
@@ -81,7 +81,7 @@ function buildOrderFilter(req, range) {
 export async function createStaffSale(req, res) {
   const branchId = req.user.branchId;
   if (!branchId || !mongoose.Types.ObjectId.isValid(branchId.toString())) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   const businessDate = typeof req.body?.businessDate === "string" ? req.body.businessDate : "";
   const paymentKey = typeof req.body?.paymentMethod === "string" ? req.body.paymentMethod : "";
@@ -226,8 +226,8 @@ export async function createStaffSale(req, res) {
 }
 
 export async function getSalesReport(req, res) {
-  if (req.user.role === "staff" && !req.user.branchId) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+  if (req.user.role !== "admin" && !req.user.branchId) {
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   const range = readReportDates(req.query);
   if (!range) return res.status(400).json({ error: "Choose a valid date range." });

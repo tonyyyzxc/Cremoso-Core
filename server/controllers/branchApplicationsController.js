@@ -93,7 +93,7 @@ export async function reviewBranchApplication(req, res) {
         phone: application.managerPhone,
         email: application.managerEmail,
         passwordHash: application.managerPasswordHash,
-        role: "staff",
+        role: "branch",
         status: "active",
         branchId: branch._id,
       });

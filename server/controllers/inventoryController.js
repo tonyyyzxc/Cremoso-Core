@@ -4,12 +4,12 @@ import Inventory from "../models/inventory.js";
 import MenuItem from "../models/menuItem.js";
 
 export async function listInventory(req, res) {
-  const branchId = req.user.role === "staff"
+  const branchId = req.user.role !== "admin"
     ? req.user.branchId?.toString()
     : typeof req.query.branchId === "string" ? req.query.branchId : "";
 
-  if (req.user.role === "staff" && !branchId) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+  if (req.user.role !== "admin" && !branchId) {
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   if (branchId && !mongoose.Types.ObjectId.isValid(branchId)) {
     return res.status(400).json({ error: "Select a valid branch." });

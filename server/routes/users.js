@@ -1,11 +1,14 @@
 import express from "express";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 import {
-  createUser, listUsers, updateUserContact, updateUserBranch,
+  createBranchStaff, createUser, listBranchStaff, listUsers, updateUserContact, updateUserBranch,
   updateUserRole, updateUserStatus, deleteUser,
 } from "../controllers/usersController.js";
 
 const router = express.Router();
+router.get("/staff", requireAuth, requireRole("branch"), listBranchStaff);
+router.post("/staff", requireAuth, requireRole("branch"), createBranchStaff);
+
 router.use(requireAuth, requireRole("admin"));
 
 router.post("/", createUser);
