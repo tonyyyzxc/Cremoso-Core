@@ -334,8 +334,7 @@ export default function ManagementPage() {
     }
   };
 
-  const changeRole = async (account) => {
-    const nextRole = account.role === "admin" ? "staff" : "admin";
+  const changeRole = async (account, nextRole) => {
     setAccountMenu(null);
     setBusyUserId(account._id);
     setError("");
@@ -971,18 +970,33 @@ export default function ManagementPage() {
               className="fixed z-50 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
               style={{
                 left: Math.min(accountMenu.x, window.innerWidth - 190),
-                top: Math.min(accountMenu.y, window.innerHeight - 100),
+                top: Math.min(accountMenu.y, window.innerHeight - 230),
               }}
             >
-              <button
-                type="button"
-                role="menuitem"
-                disabled={busyUserId === accountMenu.account._id}
-                onClick={() => changeRole(accountMenu.account)}
-                className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"
-              >
-                Make {accountMenu.account.role === "admin" ? "staff" : "admin"}
-              </button>
+              <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                Change role
+              </p>
+              {["admin", "branch", "staff"].map((role) => (
+                <button
+                  key={role}
+                  type="button"
+                  role="menuitem"
+                  disabled={
+                    busyUserId === accountMenu.account._id ||
+                    accountMenu.account.role === role ||
+                    (role !== "admin" && !accountMenu.account.branchId)
+                  }
+                  onClick={() => changeRole(accountMenu.account, role)}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm capitalize hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-neutral-800"
+                  title={
+                    role !== "admin" && !accountMenu.account.branchId
+                      ? "Assign a branch before selecting this role."
+                      : undefined
+                  }
+                >
+                  {role === accountMenu.account.role ? `${role} (current)` : role}
+                </button>
+              ))}
               <button
                 type="button"
                 role="menuitem"

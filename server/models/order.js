@@ -50,6 +50,7 @@ const orderSchema = new mongoose.Schema(
   {
     orderNumber: { type: String, required: true, unique: true, trim: true },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: "Branch", required: true, index: true },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     customer: { type: String, trim: true, default: "Walk-in" },
     channel: { type: String, required: true, trim: true },
     paymentMethod: { type: String, trim: true, default: "" },

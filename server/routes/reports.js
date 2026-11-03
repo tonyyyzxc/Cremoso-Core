@@ -5,7 +5,7 @@ import { createStaffSale, getSalesReport } from "../controllers/reportsControlle
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", requireRole("staff", "admin"), getSalesReport);
-router.post("/sales", requireRole("staff"), createStaffSale);
+router.get("/", requireRole("branch", "admin"), getSalesReport);
+router.post("/sales", requireRole("branch"), createStaffSale);
 
 export default router;

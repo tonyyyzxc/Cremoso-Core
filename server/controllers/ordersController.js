@@ -71,7 +71,7 @@ export async function createNewOrder(req, res) {
   const requestedItems = Array.isArray(body.items) ? body.items : [];
 
   if (!branchId || !mongoose.Types.ObjectId.isValid(branchId.toString())) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   if (customer.length > 120) return res.status(400).json({ error: "Customer name or identifier must be 120 characters or fewer." });
   if (!channelKey) return res.status(400).json({ error: "Choose a sales channel." });
@@ -236,6 +236,7 @@ export async function createNewOrder(req, res) {
     const subtotal = roundMoney(snapshotItems.reduce((sum, item) => sum + item.lineTotal, 0));
     const orderData = {
       branchId: branch._id,
+      createdBy: req.user._id,
       customer: customer || "Walk-in",
       channel: channel.name,
       items: snapshotItems,
@@ -344,7 +345,7 @@ export async function listOrders(req, res) {
 
 export async function listStaffOrderQueue(req, res) {
   if (!req.user.branchId) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
 
   try {
@@ -360,18 +361,20 @@ export async function listStaffOrderQueue(req, res) {
 
 export async function listStaffTransactions(req, res) {
   if (!req.user.branchId) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   const dateKey = typeof req.query.date === "string" ? req.query.date : getManilaDateKey();
   const range = getManilaDayRange(dateKey);
   if (!range) return res.status(400).json({ error: "Select a valid transaction date." });
 
   try {
-    const orders = await Order.find({
+    const filter = {
       branchId: req.user.branchId,
       status: "completed",
       updatedAt: { $gte: range.start, $lt: range.end },
-    })
+    };
+    if (req.user.role === "staff") filter.createdBy = req.user._id;
+    const orders = await Order.find(filter)
       .sort({ updatedAt: -1 })
       .limit(500);
     return res.json(orders);
@@ -383,7 +386,7 @@ export async function listStaffTransactions(req, res) {
 
 export async function confirmOrderPayment(req, res) {
   if (!req.user.branchId) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
     return res.status(400).json({ error: "Invalid order ID." });
@@ -554,7 +557,7 @@ export async function voidOrder(req, res) {
 
 export async function voidStaffOrder(req, res) {
   if (!req.user.branchId) {
-    return res.status(400).json({ error: "This staff account is not assigned to a branch." });
+    return res.status(400).json({ error: "This account is not assigned to a branch." });
   }
   return recordOrderAction(req, res, "void", req.user.branchId);
 }

@@ -71,7 +71,7 @@ async function main() {
     await upsertUser({
       email: account.email,
       password: account.password,
-      role: "staff",
+      role: "branch",
       status: "active",
       branchId: branch._id,
     });

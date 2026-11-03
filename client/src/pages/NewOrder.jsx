@@ -229,10 +229,28 @@ export default function NewOrderPage() {
   }, [loadCatalog]);
 
   useEffect(() => {
-    apiRequest("/api/staff/branch")
-      .then((data) => setBranchName(data.branch?.name || ""))
-      .catch(() => setBranchName(""))
-      .finally(() => setBranchLoaded(true));
+    let active = true;
+    Promise.resolve()
+      .then(() => {
+        try {
+          const role = JSON.parse(sessionStorage.getItem("user") || "null")?.role;
+          return role === "branch" ? apiRequest("/api/staff/branch") : null;
+        } catch {
+          return null;
+        }
+      })
+      .then((data) => {
+        if (active && data) setBranchName(data.branch?.name || "");
+      })
+      .catch(() => {
+        if (active) setBranchName("");
+      })
+      .finally(() => {
+        if (active) setBranchLoaded(true);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const categories = useMemo(

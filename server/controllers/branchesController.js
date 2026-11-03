@@ -48,7 +48,7 @@ export async function createBranchAccount(req, res) {
     const user = await User.create({
       email,
       passwordHash: await hashPassword(password),
-      role: "staff",
+      role: "branch",
       status: "active",
       branchId: branch._id,
     });

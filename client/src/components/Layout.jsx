@@ -19,6 +19,7 @@ const titleMap = {
   management: "Management",
   settings: "Settings",
   drive: "YourDrive",
+  "activity-logs": "Activity Logs",
 };
 
 export default function Layout() {
@@ -53,7 +54,7 @@ export default function Layout() {
   }, [user]);
 
   useEffect(() => {
-    if (user?.role !== "staff") return;
+    if (user?.role !== "branch") return;
     apiRequest("/api/staff/branch")
       .then((data) => setBranchName(data.branch?.name || ""))
       .catch(() => {
@@ -103,7 +104,7 @@ export default function Layout() {
           pageTitle={titleMap[activeId] || "Dashboard"}
           userName={branchName || user?.name || user?.email || ""}
           userEmail={user?.email || ""}
-          userRole={[user?.role?.toUpperCase(), user?.office]
+          userRole={[user?.role === "branch" ? "BRANCH" : user?.role?.toUpperCase(), user?.office]
             .filter(Boolean)
             .join(" / ")}
           userPicture={user?.picture}

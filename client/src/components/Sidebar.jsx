@@ -3,6 +3,7 @@ import {
   ClipboardCheck,
   ClipboardList,
   HardDrive,
+  History,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -32,6 +33,11 @@ const STAFF_NAV_ITEMS = [
     icon: ShoppingBag,
     available: true,
   },
+  { id: "activity-logs", label: "Activity Logs", icon: History, available: true },
+];
+
+const BRANCH_NAV_ITEMS = [
+  ...STAFF_NAV_ITEMS,
   { id: "reports", label: "Reports", icon: BarChart3, available: true },
   {
     id: "reconciliation",
@@ -41,6 +47,7 @@ const STAFF_NAV_ITEMS = [
   },
   { id: "staff", label: "Staff", icon: Users, available: true },
   { id: "drive", label: "YourDrive", icon: HardDrive, available: true },
+  { id: "menu", label: "Menu", icon: UtensilsCrossed, available: true },
 ];
 
 const ADMIN_NAV_ITEMS = [
@@ -54,6 +61,7 @@ const ADMIN_NAV_ITEMS = [
   { id: "reports", label: "Reports", icon: BarChart3, available: true },
   { id: "menu", label: "Menu", icon: UtensilsCrossed, available: true },
   { id: "management", label: "Management", icon: Users, available: true },
+  { id: "activity-logs", label: "Activity Logs", icon: History, available: true },
   { id: "drive", label: "YourDrive", icon: HardDrive, available: true },
 ];
 
@@ -65,8 +73,11 @@ export default function SidebarNav({
   collapsed,
   showIcons,
 }) {
-  const isAdmin = userRole?.toLowerCase() === "admin";
-  const navItems = isAdmin ? ADMIN_NAV_ITEMS : STAFF_NAV_ITEMS;
+  const navItems = {
+    admin: ADMIN_NAV_ITEMS,
+    branch: BRANCH_NAV_ITEMS,
+    staff: STAFF_NAV_ITEMS,
+  }[userRole?.toLowerCase()] || [];
   const iconRail = collapsed && showIcons;
   const labelsHidden = collapsed;
   const fullyCollapsed = collapsed && !showIcons;
