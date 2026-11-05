@@ -5,7 +5,6 @@ import {
   createDriveFolder,
   disconnectDrive,
   downloadDriveFile,
-  exportDriveSheet,
   getDriveConnectUrl,
   getDriveStatus,
   handleDriveCallback,
@@ -30,6 +29,7 @@ function handleUpload(req, res, next) {
   });
 }
 
+// Google OAuth callback and authenticated routes for the user's Google Drive.
 router.get("/callback", handleDriveCallback);
 router.use(requireAuth);
 router.get("/status", getDriveStatus);
@@ -38,7 +38,6 @@ router.get("/files", listDriveFiles);
 router.post("/upload", handleUpload, uploadDriveFile);
 router.post("/folder", createDriveFolder);
 router.get("/download/:id", downloadDriveFile);
-router.post("/export-sheet", exportDriveSheet);
 router.delete("/files/:id", trashDriveFile);
 router.post("/disconnect", disconnectDrive);
 
