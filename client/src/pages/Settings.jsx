@@ -76,7 +76,9 @@ export default function SettingsPage() {
   const [authSettingsLoaded, setAuthSettingsLoaded] = useState(false);
   const [passwordStatusLoaded, setPasswordStatusLoaded] = useState(false);
   const [branchLoaded, setBranchLoaded] = useState(false);
-  const [adminProfileLoaded, setAdminProfileLoaded] = useState(user?.role !== "admin");
+  const [adminProfileLoaded, setAdminProfileLoaded] = useState(
+    user?.role !== "admin",
+  );
 
   const isAdmin = user?.role === "admin";
 
@@ -129,7 +131,11 @@ export default function SettingsPage() {
       .finally(() => setBranchLoaded(true));
   }, [user?.role]);
 
-  const initialLoading = !authSettingsLoaded || !passwordStatusLoaded || !branchLoaded || !adminProfileLoaded;
+  const initialLoading =
+    !authSettingsLoaded ||
+    !passwordStatusLoaded ||
+    !branchLoaded ||
+    !adminProfileLoaded;
 
   const saveManagerInfo = async (event) => {
     event.preventDefault();
@@ -143,7 +149,11 @@ export default function SettingsPage() {
       setManagerName(data.manager.name);
       setManagerPhone(data.manager.phone || "");
       setManagerEmail(data.manager.email || managerEmail);
-      const updatedUser = { ...user, name: data.manager.name, phone: data.manager.phone || "" };
+      const updatedUser = {
+        ...user,
+        name: data.manager.name,
+        phone: data.manager.phone || "",
+      };
       sessionStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
       setManagerFeedback("Manager information saved.");
@@ -319,482 +329,663 @@ export default function SettingsPage() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <section className="mx-auto max-w-5xl space-y-7 text-[#0A3B3D] dark:text-white">
-      {initialLoading && <p role="status" className="sr-only">Loading settings...</p>}
-      <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition}>
-        <p className="text-sm font-medium text-[#0A8B8E]">
-          Account preferences
-        </p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight">Settings</h2>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
-          Manage your profile, password, and branch preferences for Cremoso.
-        </p>
-      </motion.header>
-
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+      <section className="mx-auto max-w-5xl space-y-7 text-[#0A3B3D] dark:text-white">
+        {initialLoading && (
+          <p role="status" className="sr-only">
+            Loading settings...
+          </p>
+        )}
+        <motion.header
+          initial={{ opacity: 0, y: -24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={fadeTransition}
         >
-          {error}
-        </p>
-      )}
+          <p className="text-sm font-medium text-[#0A8B8E]">
+            Account preferences
+          </p>
+          <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+            Settings
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
+            Manage your profile, password, and branch preferences for Cremoso.
+          </p>
+        </motion.header>
 
-      {initialLoading ? <div className="space-y-6"><section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-48" /><Skeleton className="mt-2 h-4 w-72 max-w-full" /><div className="mt-5 grid gap-5 lg:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-56" /><Skeleton className="h-11 w-full" /><Skeleton className="h-11 w-full" /><Skeleton className="h-10 w-32" /></div>)}</div></section><section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-44" /><div className="mt-5 grid gap-5 lg:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"><Skeleton className="h-6 w-40" /><Skeleton className="h-11 w-full" /><Skeleton className="h-11 w-full" /></div>)}</div></section></div> : <FadeIn from="bottom" delay={0.3}><div className="space-y-6">
-        <section className="rounded-3xl border border-[#0A8B8E]/20 bg-gradient-to-br from-white via-white to-[#0A8B8E]/5 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-[#0A8B8E]/10 sm:p-6">
-          <header className="mb-5 border-b border-[#0A8B8E]/10 pb-4 dark:border-neutral-800">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0A8B8E]">Account and security</p>
-            <h3 className="mt-1 text-lg font-semibold">Your profile and sign-in</h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Keep your contact information current and protect account access.</p>
-          </header>
-          <div className="grid gap-5 lg:grid-cols-2">
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-          <div className="mb-5 flex items-start gap-3">
-            <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
-              <KeyRound size={20} />
-            </div>
-            <div>
-              <h3 className="font-semibold">
-                {hasPassword ? "Change password" : "Set a password"}
-              </h3>
-              <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                {hasPassword
-                  ? "Enter your current password, then choose a new one."
-                  : "Create a password to sign in manually with your email."}
-              </p>
-            </div>
-          </div>
-            <form onSubmit={savePassword} className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
-            <label className="block space-y-1.5 text-sm font-medium">
-              Current password {!hasPassword && <span className="font-normal text-gray-500">(optional if none is set)</span>}
-              <span className="relative block">
-                <input
-                  className={`${inputClassName} pr-12`}
-                  type={showCurrentPassword ? "text" : "password"}
-                  autoComplete="current-password"
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
-                  placeholder={hasPassword ? "" : "No current password set"}
-                  required={hasPassword}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword((visible) => !visible)}
-                  aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
-                  className="absolute inset-y-0 right-3 text-gray-500 hover:text-[#0A8B8E] dark:text-gray-400"
-                >
-                  {showCurrentPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </span>
-            </label>
-            <label className="block space-y-1.5 text-sm font-medium">
-              Set a new password
-              <span className="relative block">
-                <input
-                  className={`${inputClassName} pr-12`}
-                  type={showPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="At least 8 characters"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((visible) => !visible)}
-                  aria-label={showPassword ? "Hide new password" : "Show new password"}
-                  className="absolute inset-y-0 right-3 text-gray-500 hover:text-[#0A8B8E] dark:text-gray-400"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </span>
-            </label>
-            <label className="block space-y-1.5 text-sm font-medium">
-              Confirm password
-              <span className="relative block">
-                <input
-                  className={`${inputClassName} pr-12`}
-                  type={showConfirmPassword ? "text" : "password"}
-                  autoComplete="new-password"
-                  minLength={8}
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                  placeholder="Enter the password again"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword((visible) => !visible)}
-                  aria-label={showConfirmPassword ? "Hide confirmation password" : "Show confirmation password"}
-                  className="absolute inset-y-0 right-3 text-gray-500 hover:text-[#0A8B8E] dark:text-gray-400"
-                >
-                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </span>
-            </label>
-            {passwordFeedback && (
-              <p
-                role={passwordFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                className={feedbackClassName(passwordFeedback)}
-              >
-                {passwordFeedback}
-              </p>
-            )}
-            <button
-              type="submit"
-              disabled={isSavingPassword}
-              className={buttonClassName}
-            >
-              {isSavingPassword ? "Saving..." : "Save password"}
-            </button>
-          </form>
-        </section>
-
-        {isAdmin && (
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
-                <CircleUserRound size={20} />
-              </div>
-              <div>
-                <h3 className="font-semibold">Admin information</h3>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                  Update your contact details. Your login email is read-only.
-                </p>
-              </div>
-            </div>
-            <form
-              onSubmit={saveAdminProfile}
-              className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
-            >
-              <label className="block space-y-1.5 text-sm font-medium">
-                Admin name
-                <input
-                  className={inputClassName}
-                  value={adminName}
-                  onChange={(event) => setAdminName(event.target.value)}
-                  autoComplete="name"
-                  required
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-medium">
-                Login email
-                <input
-                  className={`${inputClassName} opacity-70`}
-                  value={user?.email || ""}
-                  readOnly
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-medium">
-                Admin phone
-                <input
-                  className={inputClassName}
-                  type="tel"
-                  autoComplete="tel"
-                  value={adminPhone}
-                  onChange={(event) => setAdminPhone(event.target.value)}
-                  placeholder="Optional"
-                />
-              </label>
-              {adminProfileFeedback && (
-                <p
-                  role={adminProfileFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                  className={feedbackClassName(adminProfileFeedback)}
-                >
-                  {adminProfileFeedback}
-                </p>
-              )}
-              <button
-                type="submit"
-                disabled={isSavingAdminProfile}
-                className={buttonClassName}
-              >
-                {isSavingAdminProfile ? "Saving..." : "Save admin information"}
-              </button>
-            </form>
-          </section>
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+          >
+            {error}
+          </p>
         )}
 
-        {user?.role === "branch" && (
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
-                <CircleUserRound size={20} />
-              </div>
-              <div>
-                <h3 className="font-semibold">Manager information</h3>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                  Update your contact details. Your login email is read-only.
-                </p>
-              </div>
-            </div>
-            <form onSubmit={saveManagerInfo} className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
-              <label className="block space-y-1.5 text-sm font-medium">
-                Manager name
-                <input
-                  className={inputClassName}
-                  value={managerName}
-                  onChange={(event) => setManagerName(event.target.value)}
-                  autoComplete="name"
-                  required
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-medium">
-                Login email
-                <input
-                  className={`${inputClassName} opacity-70`}
-                  value={managerEmail}
-                  readOnly
-                />
-              </label>
-              <label className="block space-y-1.5 text-sm font-medium">
-                Manager phone
-                <input
-                  className={inputClassName}
-                  type="tel"
-                  autoComplete="tel"
-                  value={managerPhone}
-                  onChange={(event) => setManagerPhone(event.target.value)}
-                  placeholder="Optional"
-                />
-              </label>
-              {managerFeedback && (
-                <p
-                  role={managerFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                  className={feedbackClassName(managerFeedback)}
-                >
-                  {managerFeedback}
-                </p>
-              )}
-              <button type="submit" disabled={isSavingManager} className={buttonClassName}>
-                {isSavingManager ? "Saving..." : "Save manager information"}
-              </button>
-            </form>
-          </section>
-        )}
-
-          </div>
-        </section>
-
-        <section className="rounded-3xl border border-[#F2C879]/50 bg-gradient-to-br from-white via-white to-[#F2C879]/10 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/20 sm:p-6">
-          <header className="mb-5 border-b border-[#F2C879]/30 pb-4 dark:border-neutral-800">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8A641B] dark:text-amber-300">Branch and access settings</p>
-            <h3 className="mt-1 text-lg font-semibold">Operations preferences</h3>
-            <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">Manage your branch contact details and staff sign-in options.</p>
-          </header>
-          <div className="grid gap-5 lg:grid-cols-2">
-        {user?.role === "branch" && (
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
-                <Building2 size={20} />
-              </div>
-              <div>
-                <h3 className="font-semibold">Your branch</h3>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                  Branch details associated with your staff account.
-                </p>
-              </div>
-            </div>
-            {branch ? (
-              <form
-                onSubmit={saveBranchInfo}
-                className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
-              >
-                <h4 className="font-semibold">{branch.name}</h4>
-                <label className="block space-y-1.5 text-sm font-medium">
-                  <span className="inline-flex items-center gap-2">
-                    <MapPin size={16} className="text-[#0A8B8E]" /> Address
-                  </span>
-                  <input
-                    className={inputClassName}
-                    value={branchAddress}
-                    onChange={(event) => setBranchAddress(event.target.value)}
-                    placeholder="Street, city, or area"
-                  />
-                </label>
-                <label className="block space-y-1.5 text-sm font-medium">
-                  <span className="inline-flex items-center gap-2">
-                    <Phone size={16} className="text-[#0A8B8E]" /> Phone
-                  </span>
-                  <input
-                    className={inputClassName}
-                    type="tel"
-                    autoComplete="tel"
-                    value={branchPhone}
-                    onChange={(event) => setBranchPhone(event.target.value)}
-                    placeholder="Optional"
-                  />
-                </label>
-                <label className="block space-y-1.5 text-sm font-medium">
-                  <span className="inline-flex items-center gap-2">
-                    <Mail size={16} className="text-[#0A8B8E]" /> Contact email
-                  </span>
-                  <input
-                    className={inputClassName}
-                    type="email"
-                    autoComplete="email"
-                    value={branchEmail}
-                    onChange={(event) => setBranchEmail(event.target.value)}
-                    placeholder="Optional"
-                  />
-                </label>
-                {branchFeedback && (
-                  <p
-                    role={branchFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                    className={feedbackClassName(branchFeedback)}
+        {initialLoading ? (
+          <div className="space-y-6">
+            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="mt-2 h-4 w-72 max-w-full" />
+              <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                {[0, 1].map((index) => (
+                  <div
+                    key={index}
+                    className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"
                   >
-                    {branchFeedback}
-                  </p>
-                )}
-                <button
-                  type="submit"
-                  disabled={isSavingBranch}
-                  className={buttonClassName}
-                >
-                  {isSavingBranch ? "Saving..." : "Save branch details"}
-                </button>
-              </form>
-            ) : (
-              <p className="rounded-xl bg-[#FBF6EF] p-4 text-sm text-gray-600 dark:bg-neutral-950 dark:text-gray-300">
-                No branch is assigned to your account yet.
-              </p>
-            )}
-          </section>
-        )}
-
-        {isAdmin && (
-          <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
-                <ShieldCheck size={20} />
+                    <Skeleton className="h-6 w-40" />
+                    <Skeleton className="h-4 w-56" />
+                    <Skeleton className="h-11 w-full" />
+                    <Skeleton className="h-11 w-full" />
+                    <Skeleton className="h-10 w-32" />
+                  </div>
+                ))}
               </div>
-              <div>
-                <h3 className="font-semibold">Account sign-in</h3>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                  Choose how admins and staff can access their accounts.
-                </p>
+            </section>
+            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+              <Skeleton className="h-6 w-44" />
+              <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                {[0, 1].map((index) => (
+                  <div
+                    key={index}
+                    className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"
+                  >
+                    <Skeleton className="h-6 w-40" />
+                    <Skeleton className="h-11 w-full" />
+                    <Skeleton className="h-11 w-full" />
+                  </div>
+                ))}
               </div>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
-              <div>
-                <p className="text-sm font-medium">Google sign-in</p>
-                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  {accountsWithoutPassword > 0 && googleAuthEnabled
-                    ? `Set passwords for all ${accountsWithoutPassword} account${accountsWithoutPassword === 1 ? "" : "s"} without a password before turning off Google sign-in.`
-                    : googleAuthEnabled
-                    ? "Admins and staff can use their approved Google account."
-                    : "All accounts must sign in with email and password."}
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={googleAuthEnabled}
-                aria-label="Enable Google sign-in for all accounts"
-                onClick={toggleGoogleAuth}
-                disabled={
-                  isSavingGoogleSetting ||
-                  (googleAuthEnabled && accountsWithoutPassword > 0)
-                }
-                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${googleAuthEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
-              >
-                <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${googleAuthEnabled ? "left-6" : "left-1"}`}
-                />
-              </button>
-            </div>
-            {googleFeedback && (
-              <p
-                role={googleFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                className={`mt-3 ${feedbackClassName(googleFeedback)}`}
-              >
-                {googleFeedback}
-              </p>
-            )}
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
-              <div>
-                <p className="text-sm font-medium">Activity logging</p>
-                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  {activityLoggingEnabled
-                    ? "Records system activity for audit review. Turning this off pauses all activity records except the setting-change record."
-                    : "Paused. The setting-change record is still retained; other activity will not be recorded."}
-                  {" "}Changes can take up to 30 seconds to reach other server instances.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={activityLoggingEnabled}
-                aria-label="Enable activity logging"
-                onClick={toggleActivityLogging}
-                disabled={isSavingActivityLogging || !authSettingsLoaded}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${activityLoggingEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
-              >
-                <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${activityLoggingEnabled ? "left-6" : "left-1"}`}
-                />
-              </button>
-            </div>
-            {activityLoggingFeedback && (
-              <p
-                role={activityLoggingFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                className={`mt-3 ${feedbackClassName(activityLoggingFeedback)}`}
-              >
-                {activityLoggingFeedback}
-              </p>
-            )}
-          </section>
-        )}
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-            <div className="mb-5 flex items-start gap-3">
-              <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
-                <PanelLeft size={20} />
-              </div>
-              <div>
-                <h3 className="font-semibold">Sidebar</h3>
-                <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                  Choose how the sidebar looks when it is closed.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
-              <div>
-                <p className="text-sm font-medium">Show icons when collapsed</p>
-                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                  Off hides the sidebar completely. On keeps a narrow icon rail.
-                  Applies only to your account.
-                </p>
-              </div>
-              <button
-                type="button"
-                role="switch"
-                aria-checked={showSidebarIcons}
-                aria-label="Show icons when sidebar is collapsed"
-                onClick={toggleSidebarIcons}
-                disabled={isSavingSidebarSetting}
-                className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${showSidebarIcons ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
-              >
-                <span
-                  className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${showSidebarIcons ? "left-6" : "left-1"}`}
-                />
-              </button>
-            </div>
-            {sidebarFeedback && (
-              <p
-                role={sidebarFeedback.toLowerCase().includes("saved") ? "status" : "alert"}
-                className={`mt-3 ${feedbackClassName(sidebarFeedback)}`}
-              >
-                {sidebarFeedback}
-              </p>
-            )}
-          </section>
+            </section>
           </div>
-        </section>
-      </div></FadeIn>}
-      <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
-    </section>
+        ) : (
+          <FadeIn from="bottom" delay={0.3}>
+            <div className="space-y-6">
+              <section className="rounded-3xl border border-[#0A8B8E]/20 bg-linear-to-br from-white via-white to-[#0A8B8E]/5 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-[#0A8B8E]/10 sm:p-6">
+                <header className="mb-5 border-b border-[#0A8B8E]/10 pb-4 dark:border-neutral-800">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0A8B8E]">
+                    Account and security
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold">
+                    Your profile and sign-in
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Keep your contact information current and protect account
+                    access.
+                  </p>
+                </header>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <div className="mb-5 flex items-start gap-3">
+                      <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
+                        <KeyRound size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">
+                          {hasPassword ? "Change password" : "Set a password"}
+                        </h3>
+                        <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                          {hasPassword
+                            ? "Enter your current password, then choose a new one."
+                            : "Create a password to sign in manually with your email."}
+                        </p>
+                      </div>
+                    </div>
+                    <form
+                      onSubmit={savePassword}
+                      className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
+                    >
+                      <label className="block space-y-1.5 text-sm font-medium">
+                        Current password{" "}
+                        {!hasPassword && (
+                          <span className="font-normal text-gray-500">
+                            (optional if none is set)
+                          </span>
+                        )}
+                        <span className="relative block">
+                          <input
+                            className={`${inputClassName} pr-12`}
+                            type={showCurrentPassword ? "text" : "password"}
+                            autoComplete="current-password"
+                            value={currentPassword}
+                            onChange={(event) =>
+                              setCurrentPassword(event.target.value)
+                            }
+                            placeholder={
+                              hasPassword ? "" : "No current password set"
+                            }
+                            required={hasPassword}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowCurrentPassword((visible) => !visible)
+                            }
+                            aria-label={
+                              showCurrentPassword
+                                ? "Hide current password"
+                                : "Show current password"
+                            }
+                            className="absolute inset-y-0 right-3 text-gray-500 hover:text-[#0A8B8E] dark:text-gray-400"
+                          >
+                            {showCurrentPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
+                          </button>
+                        </span>
+                      </label>
+                      <label className="block space-y-1.5 text-sm font-medium">
+                        Set a new password
+                        <span className="relative block">
+                          <input
+                            className={`${inputClassName} pr-12`}
+                            type={showPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            minLength={8}
+                            value={password}
+                            onChange={(event) =>
+                              setPassword(event.target.value)
+                            }
+                            placeholder="At least 8 characters"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowPassword((visible) => !visible)
+                            }
+                            aria-label={
+                              showPassword
+                                ? "Hide new password"
+                                : "Show new password"
+                            }
+                            className="absolute inset-y-0 right-3 text-gray-500 hover:text-[#0A8B8E] dark:text-gray-400"
+                          >
+                            {showPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
+                          </button>
+                        </span>
+                      </label>
+                      <label className="block space-y-1.5 text-sm font-medium">
+                        Confirm password
+                        <span className="relative block">
+                          <input
+                            className={`${inputClassName} pr-12`}
+                            type={showConfirmPassword ? "text" : "password"}
+                            autoComplete="new-password"
+                            minLength={8}
+                            value={confirmPassword}
+                            onChange={(event) =>
+                              setConfirmPassword(event.target.value)
+                            }
+                            placeholder="Enter the password again"
+                            required
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setShowConfirmPassword((visible) => !visible)
+                            }
+                            aria-label={
+                              showConfirmPassword
+                                ? "Hide confirmation password"
+                                : "Show confirmation password"
+                            }
+                            className="absolute inset-y-0 right-3 text-gray-500 hover:text-[#0A8B8E] dark:text-gray-400"
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff size={18} />
+                            ) : (
+                              <Eye size={18} />
+                            )}
+                          </button>
+                        </span>
+                      </label>
+                      {passwordFeedback && (
+                        <p
+                          role={
+                            passwordFeedback.toLowerCase().includes("saved")
+                              ? "status"
+                              : "alert"
+                          }
+                          className={feedbackClassName(passwordFeedback)}
+                        >
+                          {passwordFeedback}
+                        </p>
+                      )}
+                      <button
+                        type="submit"
+                        disabled={isSavingPassword}
+                        className={buttonClassName}
+                      >
+                        {isSavingPassword ? "Saving..." : "Save password"}
+                      </button>
+                    </form>
+                  </section>
+
+                  {isAdmin && (
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                      <div className="mb-5 flex items-start gap-3">
+                        <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
+                          <CircleUserRound size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Admin information</h3>
+                          <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                            Update your contact details. Your login email is
+                            read-only.
+                          </p>
+                        </div>
+                      </div>
+                      <form
+                        onSubmit={saveAdminProfile}
+                        className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
+                      >
+                        <label className="block space-y-1.5 text-sm font-medium">
+                          Admin name
+                          <input
+                            className={inputClassName}
+                            value={adminName}
+                            onChange={(event) =>
+                              setAdminName(event.target.value)
+                            }
+                            autoComplete="name"
+                            required
+                          />
+                        </label>
+                        <label className="block space-y-1.5 text-sm font-medium">
+                          Login email
+                          <input
+                            className={`${inputClassName} opacity-70`}
+                            value={user?.email || ""}
+                            readOnly
+                          />
+                        </label>
+                        <label className="block space-y-1.5 text-sm font-medium">
+                          Admin phone
+                          <input
+                            className={inputClassName}
+                            type="tel"
+                            autoComplete="tel"
+                            value={adminPhone}
+                            onChange={(event) =>
+                              setAdminPhone(event.target.value)
+                            }
+                            placeholder="Optional"
+                          />
+                        </label>
+                        {adminProfileFeedback && (
+                          <p
+                            role={
+                              adminProfileFeedback
+                                .toLowerCase()
+                                .includes("saved")
+                                ? "status"
+                                : "alert"
+                            }
+                            className={feedbackClassName(adminProfileFeedback)}
+                          >
+                            {adminProfileFeedback}
+                          </p>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={isSavingAdminProfile}
+                          className={buttonClassName}
+                        >
+                          {isSavingAdminProfile
+                            ? "Saving..."
+                            : "Save admin information"}
+                        </button>
+                      </form>
+                    </section>
+                  )}
+
+                  {user?.role === "branch" && (
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                      <div className="mb-5 flex items-start gap-3">
+                        <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
+                          <CircleUserRound size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Manager information</h3>
+                          <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                            Update your contact details. Your login email is
+                            read-only.
+                          </p>
+                        </div>
+                      </div>
+                      <form
+                        onSubmit={saveManagerInfo}
+                        className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
+                      >
+                        <label className="block space-y-1.5 text-sm font-medium">
+                          Manager name
+                          <input
+                            className={inputClassName}
+                            value={managerName}
+                            onChange={(event) =>
+                              setManagerName(event.target.value)
+                            }
+                            autoComplete="name"
+                            required
+                          />
+                        </label>
+                        <label className="block space-y-1.5 text-sm font-medium">
+                          Login email
+                          <input
+                            className={`${inputClassName} opacity-70`}
+                            value={managerEmail}
+                            readOnly
+                          />
+                        </label>
+                        <label className="block space-y-1.5 text-sm font-medium">
+                          Manager phone
+                          <input
+                            className={inputClassName}
+                            type="tel"
+                            autoComplete="tel"
+                            value={managerPhone}
+                            onChange={(event) =>
+                              setManagerPhone(event.target.value)
+                            }
+                            placeholder="Optional"
+                          />
+                        </label>
+                        {managerFeedback && (
+                          <p
+                            role={
+                              managerFeedback.toLowerCase().includes("saved")
+                                ? "status"
+                                : "alert"
+                            }
+                            className={feedbackClassName(managerFeedback)}
+                          >
+                            {managerFeedback}
+                          </p>
+                        )}
+                        <button
+                          type="submit"
+                          disabled={isSavingManager}
+                          className={buttonClassName}
+                        >
+                          {isSavingManager
+                            ? "Saving..."
+                            : "Save manager information"}
+                        </button>
+                      </form>
+                    </section>
+                  )}
+                </div>
+              </section>
+
+              <section className="rounded-3xl border border-[#F2C879]/50 bg-linear-to-br from-white via-white to-[#F2C879]/10 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/20 sm:p-6">
+                <header className="mb-5 border-b border-[#F2C879]/30 pb-4 dark:border-neutral-800">
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8A641B] dark:text-amber-300">
+                    Branch and access settings
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold">
+                    Operations preferences
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Manage your branch contact details and staff sign-in
+                    options.
+                  </p>
+                </header>
+                <div className="grid gap-5 lg:grid-cols-2">
+                  {user?.role === "branch" && (
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                      <div className="mb-5 flex items-start gap-3">
+                        <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
+                          <Building2 size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Your branch</h3>
+                          <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                            Branch details associated with your staff account.
+                          </p>
+                        </div>
+                      </div>
+                      {branch ? (
+                        <form
+                          onSubmit={saveBranchInfo}
+                          className="space-y-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950"
+                        >
+                          <h4 className="font-semibold">{branch.name}</h4>
+                          <label className="block space-y-1.5 text-sm font-medium">
+                            <span className="inline-flex items-center gap-2">
+                              <MapPin size={16} className="text-[#0A8B8E]" />{" "}
+                              Address
+                            </span>
+                            <input
+                              className={inputClassName}
+                              value={branchAddress}
+                              onChange={(event) =>
+                                setBranchAddress(event.target.value)
+                              }
+                              placeholder="Street, city, or area"
+                            />
+                          </label>
+                          <label className="block space-y-1.5 text-sm font-medium">
+                            <span className="inline-flex items-center gap-2">
+                              <Phone size={16} className="text-[#0A8B8E]" />{" "}
+                              Phone
+                            </span>
+                            <input
+                              className={inputClassName}
+                              type="tel"
+                              autoComplete="tel"
+                              value={branchPhone}
+                              onChange={(event) =>
+                                setBranchPhone(event.target.value)
+                              }
+                              placeholder="Optional"
+                            />
+                          </label>
+                          <label className="block space-y-1.5 text-sm font-medium">
+                            <span className="inline-flex items-center gap-2">
+                              <Mail size={16} className="text-[#0A8B8E]" />{" "}
+                              Contact email
+                            </span>
+                            <input
+                              className={inputClassName}
+                              type="email"
+                              autoComplete="email"
+                              value={branchEmail}
+                              onChange={(event) =>
+                                setBranchEmail(event.target.value)
+                              }
+                              placeholder="Optional"
+                            />
+                          </label>
+                          {branchFeedback && (
+                            <p
+                              role={
+                                branchFeedback.toLowerCase().includes("saved")
+                                  ? "status"
+                                  : "alert"
+                              }
+                              className={feedbackClassName(branchFeedback)}
+                            >
+                              {branchFeedback}
+                            </p>
+                          )}
+                          <button
+                            type="submit"
+                            disabled={isSavingBranch}
+                            className={buttonClassName}
+                          >
+                            {isSavingBranch
+                              ? "Saving..."
+                              : "Save branch details"}
+                          </button>
+                        </form>
+                      ) : (
+                        <p className="rounded-xl bg-[#FBF6EF] p-4 text-sm text-gray-600 dark:bg-neutral-950 dark:text-gray-300">
+                          No branch is assigned to your account yet.
+                        </p>
+                      )}
+                    </section>
+                  )}
+
+                  {isAdmin && (
+                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                      <div className="mb-5 flex items-start gap-3">
+                        <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
+                          <ShieldCheck size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold">Account sign-in</h3>
+                          <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                            Choose how admins and staff can access their
+                            accounts.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+                        <div>
+                          <p className="text-sm font-medium">Google sign-in</p>
+                          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                            {accountsWithoutPassword > 0 && googleAuthEnabled
+                              ? `Set passwords for all ${accountsWithoutPassword} account${accountsWithoutPassword === 1 ? "" : "s"} without a password before turning off Google sign-in.`
+                              : googleAuthEnabled
+                                ? "Admins and staff can use their approved Google account."
+                                : "All accounts must sign in with email and password."}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={googleAuthEnabled}
+                          aria-label="Enable Google sign-in for all accounts"
+                          onClick={toggleGoogleAuth}
+                          disabled={
+                            isSavingGoogleSetting ||
+                            (googleAuthEnabled && accountsWithoutPassword > 0)
+                          }
+                          className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${googleAuthEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+                        >
+                          <span
+                            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${googleAuthEnabled ? "left-6" : "left-1"}`}
+                          />
+                        </button>
+                      </div>
+                      {googleFeedback && (
+                        <p
+                          role={
+                            googleFeedback.toLowerCase().includes("saved")
+                              ? "status"
+                              : "alert"
+                          }
+                          className={`mt-3 ${feedbackClassName(googleFeedback)}`}
+                        >
+                          {googleFeedback}
+                        </p>
+                      )}
+                      <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+                        <div>
+                          <p className="text-sm font-medium">
+                            Activity logging
+                          </p>
+                          <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                            {activityLoggingEnabled
+                              ? "Records system activity for audit review. Turning this off pauses all activity records except the setting-change record."
+                              : "Paused. The setting-change record is still retained; other activity will not be recorded."}{" "}
+                            Changes can take up to 30 seconds to reach other
+                            server instances.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={activityLoggingEnabled}
+                          aria-label="Enable activity logging"
+                          onClick={toggleActivityLogging}
+                          disabled={
+                            isSavingActivityLogging || !authSettingsLoaded
+                          }
+                          className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${activityLoggingEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+                        >
+                          <span
+                            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${activityLoggingEnabled ? "left-6" : "left-1"}`}
+                          />
+                        </button>
+                      </div>
+                      {activityLoggingFeedback && (
+                        <p
+                          role={
+                            activityLoggingFeedback
+                              .toLowerCase()
+                              .includes("saved")
+                              ? "status"
+                              : "alert"
+                          }
+                          className={`mt-3 ${feedbackClassName(activityLoggingFeedback)}`}
+                        >
+                          {activityLoggingFeedback}
+                        </p>
+                      )}
+                    </section>
+                  )}
+                  <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <div className="mb-5 flex items-start gap-3">
+                      <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
+                        <PanelLeft size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">Sidebar</h3>
+                        <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                          Choose how the sidebar looks when it is closed.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+                      <div>
+                        <p className="text-sm font-medium">
+                          Show icons when collapsed
+                        </p>
+                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                          Off hides the sidebar completely. On keeps a narrow
+                          icon rail. Applies only to your account.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={showSidebarIcons}
+                        aria-label="Show icons when sidebar is collapsed"
+                        onClick={toggleSidebarIcons}
+                        disabled={isSavingSidebarSetting}
+                        className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${showSidebarIcons ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+                      >
+                        <span
+                          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${showSidebarIcons ? "left-6" : "left-1"}`}
+                        />
+                      </button>
+                    </div>
+                    {sidebarFeedback && (
+                      <p
+                        role={
+                          sidebarFeedback.toLowerCase().includes("saved")
+                            ? "status"
+                            : "alert"
+                        }
+                        className={`mt-3 ${feedbackClassName(sidebarFeedback)}`}
+                      >
+                        {sidebarFeedback}
+                      </p>
+                    )}
+                  </section>
+                </div>
+              </section>
+            </div>
+          </FadeIn>
+        )}
+        <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
+      </section>
     </MotionConfig>
   );
 }
