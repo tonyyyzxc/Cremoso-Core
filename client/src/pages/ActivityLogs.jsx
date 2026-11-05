@@ -1,10 +1,17 @@
 import { useCallback, useEffect, useState } from "react";
-import { CalendarDays, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  RefreshCw,
+} from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 
-const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
-const inputClass = "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+const cardClass =
+  "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+const inputClass =
+  "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const pageSize = 25;
 
 const categories = [
@@ -29,17 +36,18 @@ function formatDate(value) {
 }
 
 function humanize(value) {
-  return value
-    ? value.split(".").join(" · ").replaceAll("_", " ")
-    : "Activity";
+  return value ? value.split(".").join(" · ").replaceAll("_", " ") : "Activity";
 }
 
 function StatusBadge({ status }) {
-  const styles = status === "failure"
-    ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-    : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300";
+  const styles =
+    status === "failure"
+      ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
+      : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300";
   return (
-    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${styles}`}>
+    <span
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${styles}`}
+    >
       {status || "success"}
     </span>
   );
@@ -79,11 +87,16 @@ export default function ActivityLogsPage() {
     setLoading(true);
     setError("");
     try {
-      const params = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(pageSize),
+      });
       Object.entries(appliedFilters).forEach(([key, value]) => {
         if (value) params.set(key, value);
       });
-      const result = await apiRequest(`/api/activity-logs?${params.toString()}`);
+      const result = await apiRequest(
+        `/api/activity-logs?${params.toString()}`,
+      );
       setLogs(result.logs);
       setTotal(result.total);
     } catch (loadError) {
@@ -146,12 +159,20 @@ export default function ActivityLogsPage() {
 
   return (
     <section className="mx-auto max-w-7xl space-y-6 text-[#0A3B3D] dark:text-white">
-      {!loaded && <p role="status" className="sr-only">Loading activity logs...</p>}
+      {!loaded && (
+        <p role="status" className="sr-only">
+          Loading activity logs...
+        </p>
+      )}
       <FadeIn from="top">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-[#0A8B8E]">System history</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">Activity Logs</h2>
+            <p className="text-sm font-semibold text-[#0A8B8E]">
+              System history
+            </p>
+            <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+              Activity Logs
+            </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               Review recorded actions and authentication events.
             </p>
@@ -169,42 +190,79 @@ export default function ActivityLogsPage() {
       </FadeIn>
 
       {error && (
-        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        >
           {error}
         </p>
       )}
       {filterError && (
-        <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+        <p
+          role="alert"
+          className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+        >
           Unable to load filter options: {filterError}
         </p>
       )}
 
       <FadeIn from="left" delay={0.1}>
-        <form onSubmit={applyFilters} className={`${cardClass} grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4`}>
+        <form
+          onSubmit={applyFilters}
+          className={`${cardClass} grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4`}
+        >
           <label className="space-y-1.5 text-sm font-medium">
             From
             <span className="relative block">
-              <CalendarDays size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input className={`${inputClass} w-full pl-9`} type="date" value={filters.from} onChange={(event) => updateFilter("from", event.target.value)} />
+              <CalendarDays
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                className={`${inputClass} w-full pl-9`}
+                type="date"
+                value={filters.from}
+                onChange={(event) => updateFilter("from", event.target.value)}
+              />
             </span>
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             To
             <span className="relative block">
-              <CalendarDays size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input className={`${inputClass} w-full pl-9`} type="date" value={filters.to} onChange={(event) => updateFilter("to", event.target.value)} />
+              <CalendarDays
+                size={16}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+              />
+              <input
+                className={`${inputClass} w-full pl-9`}
+                type="date"
+                value={filters.to}
+                onChange={(event) => updateFilter("to", event.target.value)}
+              />
             </span>
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Category
-            <select className={`${inputClass} w-full`} value={filters.category} onChange={(event) => updateFilter("category", event.target.value)}>
+            <select
+              className={`${inputClass} w-full`}
+              value={filters.category}
+              onChange={(event) => updateFilter("category", event.target.value)}
+            >
               <option value="">All categories</option>
-              {categories.map((category) => <option key={category} value={category}>{humanize(category)}</option>)}
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {humanize(category)}
+                </option>
+              ))}
             </select>
           </label>
           <label className="space-y-1.5 text-sm font-medium">
             Status
-            <select className={`${inputClass} w-full`} value={filters.status} onChange={(event) => updateFilter("status", event.target.value)}>
+            <select
+              className={`${inputClass} w-full`}
+              value={filters.status}
+              onChange={(event) => updateFilter("status", event.target.value)}
+            >
               <option value="">All statuses</option>
               <option value="success">Success</option>
               <option value="failure">Failure</option>
@@ -215,14 +273,32 @@ export default function ActivityLogsPage() {
             <>
               <label className="space-y-1.5 text-sm font-medium">
                 Branch
-                <select className={`${inputClass} w-full`} value={filters.branchId} onChange={(event) => updateFilter("branchId", event.target.value)} disabled={filtersLoading}>
+                <select
+                  className={`${inputClass} w-full`}
+                  value={filters.branchId}
+                  onChange={(event) =>
+                    updateFilter("branchId", event.target.value)
+                  }
+                  disabled={filtersLoading}
+                >
                   <option value="">All branches</option>
-                  {branches.map((branch) => <option key={branch._id} value={branch._id}>{branch.name}</option>)}
+                  {branches.map((branch) => (
+                    <option key={branch._id} value={branch._id}>
+                      {branch.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="space-y-1.5 text-sm font-medium">
                 Account
-                <select className={`${inputClass} w-full`} value={filters.accountId} onChange={(event) => updateFilter("accountId", event.target.value)} disabled={filtersLoading}>
+                <select
+                  className={`${inputClass} w-full`}
+                  value={filters.accountId}
+                  onChange={(event) =>
+                    updateFilter("accountId", event.target.value)
+                  }
+                  disabled={filtersLoading}
+                >
                   <option value="">All accounts</option>
                   {accounts.map((account) => (
                     <option key={account._id} value={account._id}>
@@ -235,10 +311,17 @@ export default function ActivityLogsPage() {
           )}
 
           <div className="flex items-end gap-2 sm:col-span-2 lg:col-span-4">
-            <button type="submit" className="rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a]">
+            <button
+              type="submit"
+              className="rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a]"
+            >
               Apply filters
             </button>
-            <button type="button" onClick={resetFilters} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800">
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
+            >
               Clear
             </button>
           </div>
@@ -265,7 +348,9 @@ export default function ActivityLogsPage() {
                   {total} {total === 1 ? "record" : "records"} found
                 </p>
               </div>
-              <p className="text-sm text-gray-500 dark:text-gray-400">Newest first</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                Newest first
+              </p>
             </div>
             {logs.length === 0 ? (
               <p className="p-10 text-center text-sm text-gray-500 dark:text-gray-400">
@@ -288,22 +373,36 @@ export default function ActivityLogsPage() {
                   <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                     {logs.map((log) => (
                       <tr key={log._id}>
-                        <td className="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300">{formatDate(log.createdAt)}</td>
+                        <td className="whitespace-nowrap px-5 py-4 text-gray-600 dark:text-gray-300">
+                          {formatDate(log.createdAt)}
+                        </td>
                         <td className="px-5 py-4">
-                          <p className="font-medium">{log.actorName || "System / unknown"}</p>
+                          <p className="font-medium">
+                            {log.actorName || "System / unknown"}
+                          </p>
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            {[log.actorEmail, log.actorRole].filter(Boolean).join(" · ") || "No account details"}
+                            {[log.actorEmail, log.actorRole]
+                              .filter(Boolean)
+                              .join(" · ") || "No account details"}
                           </p>
                         </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-300">
                           {log.branchId?.name || "—"}
                         </td>
                         <td className="max-w-100 px-5 py-4">
-                          <p className="font-medium">{log.summary || humanize(log.action)}</p>
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">{humanize(log.action)}</p>
+                          <p className="font-medium">
+                            {log.summary || humanize(log.action)}
+                          </p>
+                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                            {humanize(log.action)}
+                          </p>
                         </td>
-                        <td className="px-5 py-4 capitalize">{log.category || "—"}</td>
-                        <td className="px-5 py-4"><StatusBadge status={log.status} /></td>
+                        <td className="px-5 py-4 capitalize">
+                          {log.category || "—"}
+                        </td>
+                        <td className="px-5 py-4">
+                          <StatusBadge status={log.status} />
+                        </td>
                         <td className="px-5 py-4 text-gray-600 dark:text-gray-300">
                           {log.target?.label || log.target?.id || "—"}
                         </td>

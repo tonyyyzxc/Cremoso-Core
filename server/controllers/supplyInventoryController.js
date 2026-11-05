@@ -78,10 +78,6 @@ export async function updateSupply(req, res) {
 }
 
 export async function deleteSupply(req, res) {
-  if (!mongoose.Types.ObjectId.isValid(req.params.supplyId)) {
-    return res.status(400).json({ error: "Select a valid supply." });
-  }
-
   try {
     const supply = await Supply.findById(req.params.supplyId);
     if (!supply) return res.status(404).json({ error: "Supply not found." });

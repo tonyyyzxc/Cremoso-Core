@@ -1,5 +1,6 @@
 import express from "express";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
+import { validateObjectId } from "../middleware/validateObjectId.js";
 import {
   createSupply,
   deleteSupply,
@@ -14,7 +15,7 @@ router.use(requireAuth, requireRole("admin"));
 router.get("/", listSupplies);
 router.post("/", createSupply);
 router.patch("/:supplyId", updateSupply);
-router.delete("/:supplyId", deleteSupply);
+router.delete("/:supplyId", validateObjectId("supplyId", "Select a valid supply."), deleteSupply);
 router.put("/:supplyId/stock", setBranchSupplyQuantity);
 
 export default router;

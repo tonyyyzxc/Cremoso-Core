@@ -40,9 +40,6 @@ async function getCurrentCashSales(branchId, businessDate, range) {
 }
 
 export async function getShiftReconciliation(req, res) {
-  if (!req.user.branchId) {
-    return res.status(400).json({ error: "This account is not assigned to a branch." });
-  }
   const businessDate = getManilaDateKey();
   const range = getManilaDayRange(businessDate);
 
@@ -60,9 +57,6 @@ export async function getShiftReconciliation(req, res) {
 }
 
 export async function submitShiftReconciliation(req, res) {
-  if (!req.user.branchId) {
-    return res.status(400).json({ error: "This account is not assigned to a branch." });
-  }
   const openingFloat = Number(req.body.openingFloat);
   const countedCash = Number(req.body.countedCash);
   if (!Number.isFinite(openingFloat) || openingFloat < 0 || !Number.isFinite(countedCash) || countedCash < 0) {

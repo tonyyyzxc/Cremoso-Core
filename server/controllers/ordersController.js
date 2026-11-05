@@ -344,10 +344,6 @@ export async function listOrders(req, res) {
 }
 
 export async function listStaffOrderQueue(req, res) {
-  if (!req.user.branchId) {
-    return res.status(400).json({ error: "This account is not assigned to a branch." });
-  }
-
   try {
     const orders = await Order.find({ branchId: req.user.branchId, status: "pending" })
       .sort({ createdAt: 1 })
@@ -360,9 +356,6 @@ export async function listStaffOrderQueue(req, res) {
 }
 
 export async function listStaffTransactions(req, res) {
-  if (!req.user.branchId) {
-    return res.status(400).json({ error: "This account is not assigned to a branch." });
-  }
   const dateKey = typeof req.query.date === "string" ? req.query.date : getManilaDateKey();
   const range = getManilaDayRange(dateKey);
   if (!range) return res.status(400).json({ error: "Select a valid transaction date." });
@@ -385,13 +378,6 @@ export async function listStaffTransactions(req, res) {
 }
 
 export async function confirmOrderPayment(req, res) {
-  if (!req.user.branchId) {
-    return res.status(400).json({ error: "This account is not assigned to a branch." });
-  }
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ error: "Invalid order ID." });
-  }
-
   const paymentKey = typeof req.body?.paymentMethod === "string" ? req.body.paymentMethod : "";
   try {
     const config = await StoreConfig.findOne({ key: "default" });
@@ -420,9 +406,6 @@ export async function confirmOrderPayment(req, res) {
 }
 
 export async function getOrder(req, res) {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ error: "Invalid order ID." });
-  }
   try {
     const order = await Order.findById(req.params.id)
       .populate("branchId", "name")
@@ -437,9 +420,6 @@ export async function getOrder(req, res) {
 }
 
 export async function archiveOrder(req, res) {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ error: "Invalid order ID." });
-  }
   try {
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, archivedAt: null },
@@ -462,9 +442,6 @@ export async function archiveOrder(req, res) {
 }
 
 export async function deleteArchivedOrder(req, res) {
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ error: "Invalid order ID." });
-  }
   try {
     const order = await Order.findOneAndDelete({
       _id: req.params.id,
@@ -486,9 +463,6 @@ export async function deleteArchivedOrder(req, res) {
 async function recordOrderAction(req, res, action, branchId = null) {
   const reason = typeof req.body.reason === "string" ? req.body.reason.trim() : "";
   if (!reason) return res.status(400).json({ error: "Enter a reason for this action." });
-  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
-    return res.status(400).json({ error: "Invalid order ID." });
-  }
 
   try {
     const orderFilter = { _id: req.params.id };
@@ -556,9 +530,6 @@ export async function voidOrder(req, res) {
 }
 
 export async function voidStaffOrder(req, res) {
-  if (!req.user.branchId) {
-    return res.status(400).json({ error: "This account is not assigned to a branch." });
-  }
   return recordOrderAction(req, res, "void", req.user.branchId);
 }
 
