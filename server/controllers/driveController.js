@@ -1,6 +1,12 @@
 import { Readable } from "stream";
 import { google } from "googleapis";
 import User from "../models/user.js";
+import {
+  createOAuthClient,
+  getDriveClient,
+  isInvalidGrant,
+  sendDriveError,
+} from "../utils/googleDrive.js";
 import { signToken, verifyToken } from "../utils/jwt.js";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
@@ -11,19 +17,6 @@ const GOOGLE_EXPORT_MIME_TYPES = new Set([
   "application/vnd.google-apps.presentation",
 ]);
 
-function createOAuthClient() {
-  const { DRIVE_CLIENT_ID, DRIVE_CLIENT_SECRET, DRIVE_REDIRECT_URI } =
-    process.env;
-  if (!DRIVE_CLIENT_ID || !DRIVE_CLIENT_SECRET || !DRIVE_REDIRECT_URI) {
-    throw new Error("Google Drive OAuth is not fully configured.");
-  }
-  return new google.auth.OAuth2(
-    DRIVE_CLIENT_ID,
-    DRIVE_CLIENT_SECRET,
-    DRIVE_REDIRECT_URI,
-  );
-}
-
 function redirectToDrive(res, status) {
   const destination = new URL(
     "/drive",
@@ -31,38 +24,6 @@ function redirectToDrive(res, status) {
   );
   if (status) destination.searchParams.set("drive", status);
   return res.redirect(destination.toString());
-}
-
-function isInvalidGrant(error) {
-  return error?.response?.data?.error === "invalid_grant"
-    || error?.code === "invalid_grant"
-    || error?.message?.includes("invalid_grant");
-}
-
-async function sendDriveError(error, req, res) {
-  if (isInvalidGrant(error)) {
-    await User.updateOne(
-      { _id: req.user._id },
-      { $unset: { driveRefreshToken: "" } },
-    );
-    return res.status(401).json({
-      code: "DRIVE_RECONNECT_REQUIRED",
-      error: "Your Google Drive connection expired or was revoked. Reconnect required.",
-    });
-  }
-
-  console.error("Google Drive request error:", error);
-  return res.status(500).json({ error: "Unable to complete the Google Drive request." });
-}
-
-async function getDriveClient(userId) {
-  const user = await User.findById(userId).select("+driveRefreshToken");
-  if (!user?.driveRefreshToken) {
-    return { error: "Google Drive is not connected.", status: 409 };
-  }
-  const auth = createOAuthClient();
-  auth.setCredentials({ refresh_token: user.driveRefreshToken });
-  return { auth, drive: google.drive({ version: "v3", auth }) };
 }
 
 export async function getDriveStatus(req, res) {
@@ -261,58 +222,6 @@ export async function trashDriveFile(req, res) {
     });
     return res.json(result.data);
   } catch (error) {
-    return sendDriveError(error, req, res);
-  }
-}
-
-function isSheetsApiDisabled(error) {
-  const googleError = error?.response?.data?.error;
-  const reasons = googleError?.errors?.map((entry) => entry.reason) || [];
-  const details = `${googleError?.status || ""} ${googleError?.message || ""} ${reasons.join(" ")}`.toLowerCase();
-  return error?.response?.status === 403 && (
-    details.includes("service_disabled")
-    || details.includes("accessnotconfigured")
-    || details.includes("has not been used in project")
-    || details.includes("google sheets api has not been enabled")
-  );
-}
-
-export async function exportDriveSheet(req, res) {
-  const title = typeof req.body.title === "string" ? req.body.title.trim() : "";
-  const rows = req.body.rows;
-  if (!title || !Array.isArray(rows) || !rows.length || rows.some((row) => !Array.isArray(row))) {
-    return res.status(400).json({ error: "A report title and rows are required." });
-  }
-
-  try {
-    const { auth, drive, status } = await getDriveClient(req.user._id);
-    if (!drive) {
-      return res.status(status).json({
-        code: "DRIVE_RECONNECT_REQUIRED",
-        error: "Google Drive is not connected. Connect it from YourDrive to continue.",
-      });
-    }
-
-    const sheets = google.sheets({ version: "v4", auth });
-    const created = await sheets.spreadsheets.create({
-      requestBody: { properties: { title } },
-      fields: "spreadsheetId,spreadsheetUrl",
-    });
-    await sheets.spreadsheets.values.update({
-      spreadsheetId: created.data.spreadsheetId,
-      range: "A1",
-      valueInputOption: "RAW",
-      requestBody: {
-        values: rows.map((row) => row.map((value) => value ?? "")),
-      },
-    });
-    return res.status(201).json({ spreadsheetUrl: created.data.spreadsheetUrl });
-  } catch (error) {
-    if (isSheetsApiDisabled(error)) {
-      return res.status(503).json({
-        error: "Google Sheets API is disabled for this Google Cloud project. Enable it in Google Cloud Console and try again.",
-      });
-    }
     return sendDriveError(error, req, res);
   }
 }

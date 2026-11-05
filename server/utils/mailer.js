@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { google } from "googleapis";
 
+// Send password reset codes through the Gmail API using OAuth credentials.
 export async function sendPasswordResetCode(email, code) {
   const { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER } =
     process.env;

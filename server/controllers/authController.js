@@ -136,6 +136,7 @@ export async function login(req, res) {
       return res.status(400).json({ error: "Please complete the reCAPTCHA check." });
     }
 
+    // Verify the login's reCAPTCHA token with Google's site verification API.
     const recaptchaResponse = await fetch(
       "https://www.google.com/recaptcha/api/siteverify",
       {
@@ -449,6 +450,7 @@ export async function resetPassword(req, res) {
   }
 }
 
+// Verify the Google ID token before creating an application session.
 export async function googleLogin(req, res) {
   let identifier = "";
   try {
