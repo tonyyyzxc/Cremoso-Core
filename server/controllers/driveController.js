@@ -9,6 +9,7 @@ import {
 } from "../utils/googleDrive.js";
 import { signToken, verifyToken } from "../utils/jwt.js";
 import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
+import { handleOAuthCredentialValidationCallback } from "./integrationCredentialsController.js";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
 const DRIVE_STATE_PURPOSE = "drive-oauth";
@@ -66,6 +67,9 @@ export async function handleDriveCallback(req, res) {
   let state;
   try {
     state = verifyToken(req.query.state);
+    if (state.purpose === "integration-credential-validation") {
+      return handleOAuthCredentialValidationCallback(req, res, state, "googleDrive");
+    }
     if (
       state.purpose !== DRIVE_STATE_PURPOSE ||
       typeof state.id !== "string"

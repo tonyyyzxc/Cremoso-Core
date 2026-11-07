@@ -10,6 +10,7 @@ import {
 import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
 import { signToken, verifyToken } from "../utils/jwt.js";
 import { getSuperAdminEmail, isSuperAdminAccount } from "../utils/superAdmin.js";
+import { handleOAuthCredentialValidationCallback } from "./integrationCredentialsController.js";
 
 const CALENDAR_TIME_ZONE = "Asia/Manila";
 const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
@@ -49,6 +50,9 @@ export async function handleCalendarCallback(req, res) {
   let state;
   try {
     state = verifyToken(req.query.state);
+    if (state.purpose === "integration-credential-validation") {
+      return handleOAuthCredentialValidationCallback(req, res, state, "googleCalendar");
+    }
     if (state.purpose !== CALENDAR_STATE_PURPOSE || typeof state.id !== "string") {
       return res.status(400).send("Invalid Google Calendar authorization state.");
     }

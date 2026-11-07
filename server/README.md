@@ -76,7 +76,7 @@ The Super Admin can replace credential bundles from Settings. Overrides are encr
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-The editor handles Google sign-in, reCAPTCHA, Gmail, Google Drive, Google Calendar, and Google Sheets. PDF export has no external credentials. Replacing Google OAuth credentials may require users to reconnect that Google service. The verification code is sent to the configured Super Admin email using the Gmail integration.
+The editor handles Google sign-in, reCAPTCHA, Gmail, Google Drive, Google Calendar, and Google Sheets. It validates Google sign-in with a test ID token, reCAPTCHA with a fresh challenge response, Gmail by sending a test email to the Super Admin, and Drive/Calendar through temporary OAuth consent and read-only API calls. Sheets validation confirms OAuth and the requested Sheets scope; a real Sheets export remains the check that the API is enabled and available. Credentials replace the active bundle only after validation. PDF export has no external credentials. Replacing Google OAuth credentials may require users to reconnect that Google service. The verification code is sent to the configured Super Admin email using the Gmail integration.
 
 ## Run
 

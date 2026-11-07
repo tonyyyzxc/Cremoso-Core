@@ -7,6 +7,7 @@ import {
 } from "../utils/googleSheetsAuth.js";
 import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
 import { signToken, verifyToken } from "../utils/jwt.js";
+import { handleOAuthCredentialValidationCallback } from "./integrationCredentialsController.js";
 
 const SHEETS_SCOPE = "https://www.googleapis.com/auth/spreadsheets";
 const SHEETS_STATE_PURPOSE = "sheets-oauth";
@@ -59,6 +60,9 @@ export async function handleSheetsCallback(req, res) {
   let state;
   try {
     state = verifyToken(req.query.state);
+    if (state.purpose === "integration-credential-validation") {
+      return handleOAuthCredentialValidationCallback(req, res, state, "googleSheets");
+    }
     if (state.purpose !== SHEETS_STATE_PURPOSE || typeof state.id !== "string") {
       return res.status(400).send("Invalid Google Sheets authorization state.");
     }

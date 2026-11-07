@@ -2,8 +2,8 @@ import { randomUUID } from "node:crypto";
 import { google } from "googleapis";
 import { getIntegrationCredentials } from "./integrationCredentials.js";
 
-async function sendCodeEmail(email, subject, text, html) {
-  const credentials = await getIntegrationCredentials("gmail");
+async function sendCodeEmail(email, subject, text, html, suppliedCredentials) {
+  const credentials = suppliedCredentials || await getIntegrationCredentials("gmail");
   const { clientId, clientSecret, refreshToken, sender } = credentials;
   if (!clientId || !clientSecret || !refreshToken || !sender) {
     throw new Error("Gmail API is not fully configured.");
@@ -63,4 +63,11 @@ export async function sendIntegrationCredentialCode(email, code) {
   const text = `Your verification code is ${code}. It expires in 10 minutes. If you did not request this change, ignore this email.`;
   const html = `<p>Your Cremoso integration credential verification code is:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request this change, you can ignore this email.</p>`;
   return sendCodeEmail(email, subject, text, html);
+}
+
+export async function sendIntegrationCredentialTestEmail(email, credentials) {
+  const subject = "Cremoso Gmail credential test";
+  const text = "This test email confirms that the configured Gmail integration can send messages.";
+  const html = "<p>This test email confirms that the configured Gmail integration can send messages.</p>";
+  return sendCodeEmail(email, subject, text, html, credentials);
 }

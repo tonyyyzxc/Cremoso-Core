@@ -53,7 +53,7 @@ export function isCredentialEncryptionConfigured() {
   );
 }
 
-function encryptCredentials(credentials) {
+export function encryptIntegrationCredentialBundle(credentials) {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", getEncryptionKey(), iv);
   const ciphertext = Buffer.concat([
@@ -65,7 +65,7 @@ function encryptCredentials(credentials) {
     .join(".");
 }
 
-function decryptCredentials(encryptedPayload) {
+export function decryptIntegrationCredentialBundle(encryptedPayload) {
   const [encodedIv, encodedTag, encodedCiphertext] = encryptedPayload.split(".");
   const decipher = createDecipheriv(
     "aes-256-gcm",
@@ -86,7 +86,9 @@ export async function getIntegrationCredentials(integration) {
 
   const stored = await IntegrationCredential.findOne({ integration })
     .select("+encryptedPayload");
-  return stored ? decryptCredentials(stored.encryptedPayload) : fallback();
+  return stored
+    ? decryptIntegrationCredentialBundle(stored.encryptedPayload)
+    : fallback();
 }
 
 export async function getIntegrationCredentialStatuses() {
@@ -111,7 +113,7 @@ export async function getIntegrationCredentialStatuses() {
 }
 
 export async function saveIntegrationCredentials(integration, credentials) {
-  const encryptedPayload = encryptCredentials(credentials);
+  const encryptedPayload = encryptIntegrationCredentialBundle(credentials);
   await IntegrationCredential.findOneAndUpdate(
     { integration },
     { $set: { encryptedPayload } },
