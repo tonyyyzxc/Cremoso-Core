@@ -1,26 +1,31 @@
 import { google } from "googleapis";
 import User from "../models/user.js";
+import { isIntegrationEnabled } from "./integrationConfig.js";
+import { getIntegrationCredentials } from "./integrationCredentials.js";
 
-export function createOAuthClient() {
-  const { DRIVE_CLIENT_ID, DRIVE_CLIENT_SECRET, DRIVE_REDIRECT_URI } =
-    process.env;
-  if (!DRIVE_CLIENT_ID || !DRIVE_CLIENT_SECRET || !DRIVE_REDIRECT_URI) {
+export async function createOAuthClient() {
+  const { clientId, clientSecret, redirectUri } =
+    await getIntegrationCredentials("googleDrive");
+  if (!clientId || !clientSecret || !redirectUri) {
     throw new Error("Google Drive OAuth is not fully configured.");
   }
   return new google.auth.OAuth2(
-    DRIVE_CLIENT_ID,
-    DRIVE_CLIENT_SECRET,
-    DRIVE_REDIRECT_URI,
+    clientId,
+    clientSecret,
+    redirectUri,
   );
 }
 
 // Build a Google Drive API client using this user's saved OAuth refresh token.
-export async function getDriveClient(userId) {
+export async function getDriveClient(userId, { requireDriveEnabled = true } = {}) {
+  if (requireDriveEnabled && !(await isIntegrationEnabled("googleDriveEnabled"))) {
+    return { error: "Google Drive is disabled by an administrator.", status: 503 };
+  }
   const user = await User.findById(userId).select("+driveRefreshToken");
   if (!user?.driveRefreshToken) {
     return { error: "Google Drive is not connected.", status: 409 };
   }
-  const auth = createOAuthClient();
+  const auth = await createOAuthClient();
   auth.setCredentials({ refresh_token: user.driveRefreshToken });
   return { auth, drive: google.drive({ version: "v3", auth }) };
 }
@@ -35,10 +40,7 @@ export async function sendDriveError(error, req, res) {
   if (isInvalidGrant(error)) {
     await User.updateOne(
       { _id: req.user._id },
-      {
-        $unset: { driveRefreshToken: "" },
-        $set: { googleCalendarConnected: false },
-      },
+      { $unset: { driveRefreshToken: "" } },
     );
     return res.status(401).json({
       code: "DRIVE_RECONNECT_REQUIRED",

@@ -52,13 +52,42 @@ export async function submitBranchApplication(req, res) {
 export async function listBranchApplications(_req, res) {
   try {
     const applications = await BranchApplication.find()
-      .select("branchName branchAddress branchPhone managerName managerPhone managerEmail status reviewedAt createdAt")
+      .select("branchName branchAddress branchPhone managerName managerPhone managerEmail status hiddenAt reviewedAt createdAt")
       .populate("reviewedBy", "name email")
       .sort({ createdAt: -1 });
     return res.json(applications);
   } catch (error) {
     console.error("Branch application list error:", error);
     return res.status(500).json({ error: "Unable to load branch applications." });
+  }
+}
+
+export async function setBranchApplicationVisibility(req, res) {
+  if (typeof req.body.hidden !== "boolean") {
+    return res.status(400).json({ error: "Hidden must be a boolean value." });
+  }
+
+  try {
+    const application = await BranchApplication.findById(req.params.id);
+    if (!application) return res.status(404).json({ error: "Branch application not found." });
+
+    application.hiddenAt = req.body.hidden ? new Date() : null;
+    await application.save();
+    return res.json({ id: application._id, hiddenAt: application.hiddenAt });
+  } catch (error) {
+    console.error("Branch application visibility error:", error);
+    return res.status(500).json({ error: "Unable to update branch application visibility." });
+  }
+}
+
+export async function deleteBranchApplication(req, res) {
+  try {
+    const application = await BranchApplication.findByIdAndDelete(req.params.id);
+    if (!application) return res.status(404).json({ error: "Branch application not found." });
+    return res.json({ id: application._id });
+  } catch (error) {
+    console.error("Branch application deletion error:", error);
+    return res.status(500).json({ error: "Unable to delete branch application." });
   }
 }
 

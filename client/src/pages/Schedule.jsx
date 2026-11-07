@@ -130,11 +130,12 @@ export default function SchedulePage() {
 
   useEffect(() => {
     let active = true;
-    const callbackStatus = new URLSearchParams(window.location.search).get("drive");
+    const callbackStatus = new URLSearchParams(window.location.search).get("calendar");
     if (callbackStatus) {
-      if (callbackStatus === "connected") toast.success("Google Calendar access connected.");
+      if (callbackStatus === "connected") toast.success("Google Calendar connected.");
       if (callbackStatus === "connect_failed") toast.error("Unable to connect Google Calendar. Please try again.");
-      if (callbackStatus === "connect_cancelled") toast.error("Google connection was cancelled.");
+      if (callbackStatus === "connect_cancelled") toast.error("Google Calendar connection was cancelled.");
+      if (callbackStatus === "disabled") toast.error("Google Calendar is disabled by an administrator.");
       window.history.replaceState({}, "", window.location.pathname);
     }
 
@@ -186,7 +187,7 @@ export default function SchedulePage() {
 
   const connectGoogle = async () => {
     try {
-      const { url } = await apiRequest("/api/drive/connect?returnTo=%2Fschedule");
+      const { url } = await apiRequest("/api/calendar/connect");
       window.location.assign(url);
     } catch (requestError) {
       setError(requestError.message);
@@ -307,7 +308,7 @@ export default function SchedulePage() {
         </div>
       )}
 
-      {calendarStatus && !calendarStatus.calendarConnected && (
+      {calendarStatus?.enabled && !calendarStatus.calendarConnected && (
         <section className={`${cardClass} flex flex-wrap items-center justify-between gap-4 p-5`}>
           <div>
             <h3 className="font-semibold">Connect Google Calendar</h3>
@@ -410,14 +411,17 @@ export default function SchedulePage() {
               />
             </label>
           </div>
-          {!calendarStatus?.calendarConnected && (
+          {!calendarStatus?.enabled && (
+            <p className="text-sm text-amber-700 dark:text-amber-300">Google Calendar sync is disabled. Shifts will be saved in Cremoso-Core without syncing to Google.</p>
+          )}
+          {calendarStatus?.enabled && !calendarStatus.calendarConnected && (
             <p className="text-sm text-amber-700 dark:text-amber-300">
               Connect Calendar before creating shifts.
             </p>
           )}
           <button
             type="submit"
-            disabled={saving || !calendarStatus?.calendarConnected || !form.assignedStaffIds.length}
+            disabled={saving || (calendarStatus?.enabled && !calendarStatus.calendarConnected) || !form.assignedStaffIds.length}
             className={primaryButtonClass}
           >
             {editingId ? <Pencil size={16} /> : <Plus size={16} />}
@@ -464,7 +468,7 @@ export default function SchedulePage() {
         {shifts.map((shift) => {
           const creatorId = getId(shift.calendarCreatorId);
           const isCreator = creatorId === user?.id;
-          const isPending = shift.calendarSyncStatus === "pending";
+          const isPending = calendarStatus?.enabled && shift.calendarSyncStatus === "pending";
           return (
             <article key={shift._id} className={`${cardClass} ${shift.status === "cancelled" ? "opacity-70" : ""} p-5`}>
               <div className="flex flex-wrap items-start justify-between gap-4">

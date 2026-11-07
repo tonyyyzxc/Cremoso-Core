@@ -7,8 +7,10 @@ import { comparePassword, hashPassword } from "../utils/password.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetCode } from "../utils/mailer.js";
 import { logActivity } from "../utils/activityLog.js";
+import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
+import { isSuperAdminAccount } from "../utils/superAdmin.js";
+import { getIntegrationCredentials } from "../utils/integrationCredentials.js";
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const PASSWORD_RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
 const PASSWORD_RESET_CODE_RESEND_DELAY_MS = 60 * 1000;
 const PASSWORD_RESET_CODE_MAX_ATTEMPTS = 5;
@@ -73,6 +75,7 @@ const publicUser = (user) => ({
   office: user.office,
   email: user.email,
   role: user.role,
+  isSuperAdmin: isSuperAdminAccount(user),
   status: user.status,
 });
 
@@ -115,7 +118,11 @@ export async function login(req, res) {
       });
       return res.status(400).json({ error: "Username/email and password are required." });
     }
-    if (!process.env.RECAPTCHA_SECRET_KEY) {
+    const recaptchaEnabled = await isIntegrationEnabled("recaptchaEnabled");
+    const recaptchaCredentials = recaptchaEnabled
+      ? await getIntegrationCredentials("recaptcha")
+      : null;
+    if (recaptchaEnabled && !recaptchaCredentials?.secretKey) {
       await logActivity(req, {
         action: "auth.login.failed",
         category: "auth",
@@ -125,7 +132,7 @@ export async function login(req, res) {
       });
       return res.status(503).json({ error: "reCAPTCHA is not configured on the server." });
     }
-    if (!recaptchaToken) {
+    if (recaptchaEnabled && !recaptchaToken) {
       await logActivity(req, {
         action: "auth.login.failed",
         category: "auth",
@@ -137,21 +144,21 @@ export async function login(req, res) {
     }
 
     // Verify the login's reCAPTCHA token with Google's site verification API.
-    const recaptchaResponse = await fetch(
+    const recaptchaResponse = recaptchaEnabled ? await fetch(
       "https://www.google.com/recaptcha/api/siteverify",
       {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
-          secret: process.env.RECAPTCHA_SECRET_KEY,
+          secret: recaptchaCredentials.secretKey,
           response: recaptchaToken,
         }),
       },
-    );
-    if (!recaptchaResponse.ok) {
+    ) : null;
+    if (recaptchaResponse && !recaptchaResponse.ok) {
       throw new Error(`reCAPTCHA verification failed with status ${recaptchaResponse.status}.`);
     }
-    const recaptchaResult = await recaptchaResponse.json();
+    const recaptchaResult = recaptchaResponse ? await recaptchaResponse.json() : { success: true };
     if (recaptchaResult.success !== true) {
       await logActivity(req, {
         action: "auth.login.failed",
@@ -199,6 +206,7 @@ export async function login(req, res) {
 }
 
 export async function requestPasswordResetCode(req, res) {
+  if (!(await requireIntegration("gmailEnabled", res, "Gmail password reset"))) return;
   const email = typeof req.body.email === "string"
     ? req.body.email.trim().toLowerCase()
     : "";
@@ -454,6 +462,7 @@ export async function resetPassword(req, res) {
 export async function googleLogin(req, res) {
   let identifier = "";
   try {
+    if (!(await requireIntegration("staffGoogleAuthEnabled", res, "Google sign-in"))) return;
     const { idToken } = req.body;
     if (!idToken) {
       await logActivity(req, {
@@ -464,7 +473,8 @@ export async function googleLogin(req, res) {
       });
       return res.status(400).json({ error: "Google credential is required." });
     }
-    if (!process.env.GOOGLE_CLIENT_ID) {
+    const googleCredentials = await getIntegrationCredentials("googleAuth");
+    if (!googleCredentials.clientId) {
       await logActivity(req, {
         action: "auth.google.rejected",
         category: "auth",
@@ -473,7 +483,11 @@ export async function googleLogin(req, res) {
       });
       return res.status(503).json({ error: "Google sign-in is not configured on the server." });
     }
-    const ticket = await googleClient.verifyIdToken({ idToken, audience: process.env.GOOGLE_CLIENT_ID });
+    const googleClient = new OAuth2Client(googleCredentials.clientId);
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: googleCredentials.clientId,
+    });
     const payload = ticket.getPayload();
     if (!payload?.email || !payload.email_verified) {
       await logActivity(req, {

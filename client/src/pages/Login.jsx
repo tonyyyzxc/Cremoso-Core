@@ -15,7 +15,6 @@ import {
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || "";
 const signupInputClass =
   "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20";
 
@@ -55,6 +54,13 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState("");
+  const [loginIntegrations, setLoginIntegrations] = useState({
+    staffGoogleAuthEnabled: false,
+    recaptchaEnabled: true,
+    gmailEnabled: true,
+    recaptchaSiteKey: import.meta.env.VITE_RECAPTCHA_SITE_KEY || "",
+    loaded: false,
+  });
   const [step, setStep] = useState(0);
   const [resetStep, setResetStep] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -74,6 +80,22 @@ function Login() {
     return () => {
       document.body.style.overflow = "";
     };
+  }, []);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/auth-settings/public`)
+      .then((response) => {
+        if (!response.ok) throw new Error("Unable to load public sign-in settings.");
+        return response.json();
+      })
+      .then((config) => setLoginIntegrations((current) => ({
+        ...current,
+        ...config,
+        recaptchaSiteKey:
+          config.recaptchaSiteKey || import.meta.env.VITE_RECAPTCHA_SITE_KEY || "",
+        loaded: true,
+      })))
+      .catch(() => setLoginIntegrations((current) => ({ ...current, loaded: true })));
   }, []);
 
   useEffect(() => {
@@ -224,13 +246,13 @@ function Login() {
   // Password login returns { token, user }.
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (!RECAPTCHA_SITE_KEY) {
+    if (loginIntegrations.recaptchaEnabled && !loginIntegrations.recaptchaSiteKey) {
       toast.error(
         "reCAPTCHA is not configured. Please contact an administrator.",
       );
       return;
     }
-    if (!recaptchaToken) {
+    if (loginIntegrations.recaptchaEnabled && !recaptchaToken) {
       toast.error("Please complete the reCAPTCHA check.");
       return;
     }
@@ -240,7 +262,7 @@ function Login() {
       const result = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password, recaptchaToken }),
+        body: JSON.stringify({ identifier, password, recaptchaToken: loginIntegrations.recaptchaEnabled ? recaptchaToken : "" }),
       });
       const data = await result.json().catch(() => ({}));
 
@@ -677,7 +699,7 @@ function Login() {
                             <EyeIcon open={showPassword} />
                           </button>
                         </div>
-                        {!isSignup && (
+                        {!isSignup && loginIntegrations.gmailEnabled && (
                           <div className="text-right">
                             <button
                               type="button"
@@ -798,9 +820,9 @@ function Login() {
               {isForgotPassword && (
                 <FlowStepper step={resetStep} steps={passwordResetSteps} />
               )}
-              {!isSignup && !isForgotPassword && (
+              {!isSignup && !isForgotPassword && loginIntegrations.recaptchaEnabled && (
                 <div className="space-y-1">
-                  {RECAPTCHA_SITE_KEY ? (
+                  {loginIntegrations.recaptchaSiteKey ? (
                     <div
                       ref={recaptchaContainerRef}
                       className="w-full overflow-hidden"
@@ -816,7 +838,7 @@ function Login() {
                       >
                         <ReCAPTCHA
                           ref={recaptchaRef}
-                          sitekey={RECAPTCHA_SITE_KEY}
+                          sitekey={loginIntegrations.recaptchaSiteKey}
                           onChange={(token) => setRecaptchaToken(token || "")}
                           onExpired={() => setRecaptchaToken("")}
                         />
@@ -852,9 +874,11 @@ function Login() {
                   type="submit"
                   disabled={
                     isSubmitting ||
+                    !loginIntegrations.loaded ||
                     (!isSignup &&
                       !isForgotPassword &&
-                      (!RECAPTCHA_SITE_KEY || !recaptchaToken))
+                      loginIntegrations.recaptchaEnabled &&
+                      (!loginIntegrations.recaptchaSiteKey || !recaptchaToken))
                   }
                   className="flex-1 bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
@@ -873,7 +897,7 @@ function Login() {
               </div>
             </form>
 
-            {!isSignup && !isForgotPassword && (
+            {!isSignup && !isForgotPassword && loginIntegrations.staffGoogleAuthEnabled && (
               <>
                 <div className="flex items-center gap-3 my-5">
                   <div className="h-px flex-1 bg-gray-200" />

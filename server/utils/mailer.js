@@ -1,17 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { google } from "googleapis";
+import { getIntegrationCredentials } from "./integrationCredentials.js";
 
-// Send password reset codes through the Gmail API using OAuth credentials.
-export async function sendPasswordResetCode(email, code) {
-  const { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER } =
-    process.env;
-  if (!GMAIL_CLIENT_ID || !GMAIL_CLIENT_SECRET || !GMAIL_REFRESH_TOKEN || !GMAIL_SENDER) {
+async function sendCodeEmail(email, subject, text, html) {
+  const credentials = await getIntegrationCredentials("gmail");
+  const { clientId, clientSecret, refreshToken, sender } = credentials;
+  if (!clientId || !clientSecret || !refreshToken || !sender) {
     throw new Error("Gmail API is not fully configured.");
   }
 
-  const subject = "Your Cremoso password reset code";
-  const text = `Your password reset code is ${code}. It expires in 10 minutes.`;
-  const html = `<p>Your Cremoso password reset code is:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request a password reset, you can ignore this email.</p>`;
   const encodedSubject = /^[\x00-\x7F]*$/.test(subject)
     ? subject
     : `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
@@ -19,7 +16,7 @@ export async function sendPasswordResetCode(email, code) {
   const encodeBody = (body) =>
     Buffer.from(body, "utf8").toString("base64").match(/.{1,76}/g).join("\r\n");
   const rawMessage = [
-    `From: ${GMAIL_SENDER}`,
+    `From: ${sender}`,
     `To: ${email}`,
     `Subject: ${encodedSubject}`,
     "MIME-Version: 1.0",
@@ -40,10 +37,10 @@ export async function sendPasswordResetCode(email, code) {
   ].join("\r\n");
 
   const oauth2Client = new google.auth.OAuth2(
-    GMAIL_CLIENT_ID,
-    GMAIL_CLIENT_SECRET,
+    clientId,
+    clientSecret,
   );
-  oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN });
+  oauth2Client.setCredentials({ refresh_token: refreshToken });
   const gmail = google.gmail({ version: "v1", auth: oauth2Client });
   await gmail.users.messages.send({
     userId: "me",
@@ -51,4 +48,19 @@ export async function sendPasswordResetCode(email, code) {
       raw: Buffer.from(rawMessage, "utf8").toString("base64url"),
     },
   });
+}
+
+// Send password reset codes through the configured Gmail API integration.
+export async function sendPasswordResetCode(email, code) {
+  const subject = "Your Cremoso password reset code";
+  const text = `Your password reset code is ${code}. It expires in 10 minutes.`;
+  const html = `<p>Your Cremoso password reset code is:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request a password reset, you can ignore this email.</p>`;
+  return sendCodeEmail(email, subject, text, html);
+}
+
+export async function sendIntegrationCredentialCode(email, code) {
+  const subject = "Cremoso integration credential change code";
+  const text = `Your verification code is ${code}. It expires in 10 minutes. If you did not request this change, ignore this email.`;
+  const html = `<p>Your Cremoso integration credential verification code is:</p><p style="font-size:24px;font-weight:bold;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request this change, you can ignore this email.</p>`;
+  return sendCodeEmail(email, subject, text, html);
 }

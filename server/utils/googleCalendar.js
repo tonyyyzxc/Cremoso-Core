@@ -1,26 +1,36 @@
 import { google } from "googleapis";
 import User from "../models/user.js";
-import { createOAuthClient } from "./googleDrive.js";
+import { isIntegrationEnabled } from "./integrationConfig.js";
+import { getIntegrationCredentials } from "./integrationCredentials.js";
+
+export async function createCalendarOAuthClient() {
+  const { clientId, clientSecret, redirectUri } =
+    await getIntegrationCredentials("googleCalendar");
+  if (!clientId || !clientSecret || !redirectUri) {
+    throw new Error("Google Calendar OAuth is not fully configured.");
+  }
+  return new google.auth.OAuth2(
+    clientId,
+    clientSecret,
+    redirectUri,
+  );
+}
 
 export async function getCalendarClient(userId) {
-  const user = await User.findById(userId).select("+driveRefreshToken");
-  if (!user?.driveRefreshToken) {
-    return {
-      error: "Connect Google Drive and Calendar before syncing shifts.",
-      status: 409,
-      code: "GOOGLE_CONNECTION_REQUIRED",
-    };
+  if (!(await isIntegrationEnabled("googleCalendarEnabled"))) {
+    return { error: "Google Calendar is disabled by an administrator.", status: 503 };
   }
-  if (!user.googleCalendarConnected) {
+  const user = await User.findById(userId).select("+googleCalendarRefreshToken");
+  if (!user?.googleCalendarRefreshToken) {
     return {
-      error: "Reconnect Google from YourDrive to grant Calendar event access.",
+      error: "Connect Google Calendar before syncing shifts.",
       status: 409,
       code: "CALENDAR_RECONNECT_REQUIRED",
     };
   }
 
-  const auth = createOAuthClient();
-  auth.setCredentials({ refresh_token: user.driveRefreshToken });
+  const auth = await createCalendarOAuthClient();
+  auth.setCredentials({ refresh_token: user.googleCalendarRefreshToken });
   return { calendar: google.calendar({ version: "v3", auth }) };
 }
 
@@ -32,14 +42,11 @@ export async function sendCalendarError(error, req, res) {
   ) {
     await User.updateOne(
       { _id: req.user._id },
-      {
-        $unset: { driveRefreshToken: "" },
-        $set: { googleCalendarConnected: false },
-      },
+      { $unset: { googleCalendarRefreshToken: "" } },
     );
     return res.status(401).json({
       code: "GOOGLE_RECONNECT_REQUIRED",
-      error: "Your Google connection expired or was revoked. Reconnect from YourDrive.",
+      error: "Your Google Calendar connection expired or was revoked. Reconnect Google Calendar.",
     });
   }
 
@@ -62,14 +69,14 @@ export async function sendCalendarError(error, req, res) {
     if (!apiDisabled) {
       await User.updateOne(
         { _id: req.user._id },
-        { $set: { googleCalendarConnected: false } },
+        { $unset: { googleCalendarRefreshToken: "" } },
       );
     }
     return res.status(apiDisabled ? 503 : 409).json({
       code: apiDisabled ? "GOOGLE_CALENDAR_API_DISABLED" : "CALENDAR_RECONNECT_REQUIRED",
       error: apiDisabled
         ? "Google Calendar API is disabled for this Google Cloud project."
-        : "Reconnect Google from YourDrive to grant Calendar event access.",
+        : "Reconnect Google Calendar to grant event access.",
     });
   }
 

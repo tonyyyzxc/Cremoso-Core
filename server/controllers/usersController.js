@@ -4,6 +4,7 @@ import Session from "../models/session.js";
 import User from "../models/user.js";
 import Worker from "../models/Worker.js";
 import { hashPassword } from "../utils/password.js";
+import { isSuperAdminAccount } from "../utils/superAdmin.js";
 
 const validEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
@@ -16,6 +17,9 @@ export async function createUser(req, res) {
   const branchId = typeof req.body.branchId === "string" ? req.body.branchId : "";
   if (!validEmail(email)) return res.status(400).json({ error: "Enter a valid email address." });
   if (password.length < 8) return res.status(400).json({ error: "Password must be at least 8 characters long." });
+  if (role === "admin" && !isSuperAdminAccount(req.user)) {
+    return res.status(403).json({ error: "Only the Super Admin can create Admin accounts." });
+  }
   if (!["admin", "branch", "staff"].includes(role)) return res.status(400).json({ error: "Role must be admin, branch, or staff." });
   if (role === "admin" && !name) return res.status(400).json({ error: "Enter the admin's name." });
   if (role !== "admin" && !name) return res.status(400).json({ error: "Enter the account holder's name." });
@@ -35,7 +39,7 @@ export async function createUser(req, res) {
     await user.populate("branchId", "name");
     return res.status(201).json({
       _id: user._id, name: user.name, phone: user.phone, email: user.email,
-      role: user.role, status: user.status, branchId: user.branchId,
+      role: user.role, isSuperAdmin: isSuperAdminAccount(user), status: user.status, branchId: user.branchId,
     });
   } catch (error) {
     console.error("Account creation error:", error);
@@ -106,11 +110,17 @@ export async function createBranchStaff(req, res) {
   }
 }
 
-export async function listUsers(_req, res) {
+export async function listUsers(req, res) {
   try {
     const users = await User.find().select("name username email phone role status office branchId createdAt")
       .populate("branchId", "name").sort({ createdAt: -1 });
-    return res.json(users);
+    const visibleUsers = isSuperAdminAccount(req.user)
+      ? users
+      : users.filter((user) => !isSuperAdminAccount(user));
+    return res.json(visibleUsers.map((user) => ({
+      ...user.toObject(),
+      isSuperAdmin: isSuperAdminAccount(user),
+    })));
   } catch (error) {
     console.error("User list error:", error);
     return res.status(500).json({ error: "Unable to load users." });
@@ -158,6 +168,13 @@ export async function updateUserRole(req, res) {
   try {
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found." });
+    const targetIsSuperAdmin = isSuperAdminAccount(target);
+    if (targetIsSuperAdmin) {
+      return res.status(403).json({ error: "Super Admin status is controlled by the server setting." });
+    }
+    if ((role === "admin" || target.role === "admin") && !isSuperAdminAccount(req.user)) {
+      return res.status(403).json({ error: "Only the Super Admin can create or change Admin accounts." });
+    }
     if (role !== "admin" && !target.branchId) return res.status(400).json({ error: "Assign a branch before changing this account to branch or staff." });
     if (target.role === "admin" && role !== "admin") {
       const adminCount = await User.countDocuments({ role: "admin", status: "active" });
@@ -178,6 +195,12 @@ export async function updateUserStatus(req, res) {
   try {
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found." });
+    if (isSuperAdminAccount(target)) {
+      return res.status(403).json({ error: "Super Admin access is controlled by the server setting." });
+    }
+    if (target.role === "admin" && !isSuperAdminAccount(req.user)) {
+      return res.status(403).json({ error: "Only the Super Admin can change Admin account status." });
+    }
     if (status === "active" && target.role !== "admin" && !target.branchId) return res.status(400).json({ error: "Assign a branch before activating this account." });
     if (target.role === "admin" && target.status === "active" && status === "disabled") {
       const activeAdminCount = await User.countDocuments({ role: "admin", status: "active" });
@@ -196,6 +219,12 @@ export async function deleteUser(req, res) {
   try {
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found." });
+    if (isSuperAdminAccount(target)) {
+      return res.status(403).json({ error: "Super Admin access is controlled by the server setting." });
+    }
+    if (target.role === "admin" && !isSuperAdminAccount(req.user)) {
+      return res.status(403).json({ error: "Only the Super Admin can delete Admin accounts." });
+    }
 
     const accountIds = target.branchId
       ? await User.find({ branchId: target.branchId }).distinct("_id")

@@ -1,6 +1,7 @@
 import { verifyToken } from "../utils/jwt.js";
 import User from "../models/user.js";
 import Session from "../models/session.js";
+import { isSuperAdminAccount } from "../utils/superAdmin.js";
 
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -45,4 +46,11 @@ export function requireRole(...roles) {
     }
     next();
   };
+}
+
+export function requireSuperAdmin(req, res, next) {
+  if (!isSuperAdminAccount(req.user)) {
+    return res.status(403).json({ error: "Only the Super Admin can manage integration credentials." });
+  }
+  next();
 }

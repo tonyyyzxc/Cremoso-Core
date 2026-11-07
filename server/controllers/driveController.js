@@ -8,9 +8,9 @@ import {
   sendDriveError,
 } from "../utils/googleDrive.js";
 import { signToken, verifyToken } from "../utils/jwt.js";
+import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
-const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DRIVE_STATE_PURPOSE = "drive-oauth";
 const GOOGLE_EXPORT_MIME_TYPES = new Set([
   "application/vnd.google-apps.document",
@@ -29,29 +29,30 @@ function redirectAfterOAuth(res, status, returnTo = "/drive") {
 
 export async function getDriveStatus(req, res) {
   try {
+    const enabled = await isIntegrationEnabled("googleDriveEnabled");
     const user = await User.findById(req.user._id).select("+driveRefreshToken");
-    return res.json({ connected: Boolean(user?.driveRefreshToken) });
+    return res.json({ enabled, connected: enabled && Boolean(user?.driveRefreshToken) });
   } catch (error) {
     console.error("Google Drive status error:", error);
     return res.status(500).json({ error: "Unable to load Google Drive status." });
   }
 }
 
-export function getDriveConnectUrl(req, res) {
+export async function getDriveConnectUrl(req, res) {
   try {
-    const auth = createOAuthClient();
+    if (!(await requireIntegration("googleDriveEnabled", res, "Google Drive"))) return;
+    const auth = await createOAuthClient();
     const state = signToken(
       {
         id: req.user._id.toString(),
         purpose: DRIVE_STATE_PURPOSE,
-        returnTo: req.query.returnTo === "/schedule" ? "/schedule" : "/drive",
       },
       "10m",
     );
     const url = auth.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
-      scope: [DRIVE_SCOPE, CALENDAR_EVENTS_SCOPE],
+      scope: [DRIVE_SCOPE],
       state,
     });
     return res.json({ url });
@@ -75,29 +76,29 @@ export async function handleDriveCallback(req, res) {
     return res.status(400).send("Google Drive authorization state is invalid or expired.");
   }
 
-  const returnTo = state.returnTo === "/schedule" ? "/schedule" : "/drive";
-  if (req.query.error) return redirectAfterOAuth(res, "connect_cancelled", returnTo);
+  if (!(await isIntegrationEnabled("googleDriveEnabled"))) {
+    return redirectAfterOAuth(res, "disabled");
+  }
+  if (req.query.error) return redirectAfterOAuth(res, "connect_cancelled");
   if (typeof req.query.code !== "string") {
-    return redirectAfterOAuth(res, "connect_failed", returnTo);
+    return redirectAfterOAuth(res, "connect_failed");
   }
 
   try {
-    const { tokens } = await createOAuthClient().getToken(req.query.code);
+    const auth = await createOAuthClient();
+    const { tokens } = await auth.getToken(req.query.code);
     if (!tokens.refresh_token) {
-      return redirectAfterOAuth(res, "connect_failed", returnTo);
+      return redirectAfterOAuth(res, "connect_failed");
     }
 
     const user = await User.findOne({ _id: state.id, status: "active" });
-    if (!user) return redirectAfterOAuth(res, "connect_failed", returnTo);
+    if (!user) return redirectAfterOAuth(res, "connect_failed");
     user.driveRefreshToken = tokens.refresh_token;
-    user.googleCalendarConnected = (tokens.scope || "")
-      .split(" ")
-      .includes(CALENDAR_EVENTS_SCOPE);
     await user.save();
-    return redirectAfterOAuth(res, "connected", returnTo);
+    return redirectAfterOAuth(res, "connected");
   } catch (error) {
     console.error("Google Drive callback error:", error);
-    return redirectAfterOAuth(res, "connect_failed", returnTo);
+    return redirectAfterOAuth(res, "connect_failed");
   }
 }
 
@@ -236,6 +237,7 @@ export async function trashDriveFile(req, res) {
 }
 
 export async function disconnectDrive(req, res) {
+  if (!(await requireIntegration("googleDriveEnabled", res, "Google Drive"))) return;
   try {
     const user = await User.findById(req.user._id).select("+driveRefreshToken");
     if (!user?.driveRefreshToken) {
@@ -243,7 +245,8 @@ export async function disconnectDrive(req, res) {
     }
 
     try {
-      await createOAuthClient().revokeToken(user.driveRefreshToken);
+      const auth = await createOAuthClient();
+      await auth.revokeToken(user.driveRefreshToken);
     } catch (error) {
       if (isInvalidGrant(error)) return sendDriveError(error, req, res);
       console.error("Google Drive token revocation error:", error);
@@ -251,7 +254,6 @@ export async function disconnectDrive(req, res) {
     }
 
     user.driveRefreshToken = undefined;
-    user.googleCalendarConnected = false;
     await user.save();
     return res.json({ connected: false });
   } catch (error) {

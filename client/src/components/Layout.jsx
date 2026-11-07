@@ -105,7 +105,14 @@ export default function Layout() {
           pageTitle={titleMap[activeId] || "Dashboard"}
           userName={branchName || user?.name || user?.email || ""}
           userEmail={user?.email || ""}
-          userRole={[user?.role === "branch" ? "BRANCH" : user?.role?.toUpperCase(), user?.office]
+          userRole={[
+            user?.isSuperAdmin
+              ? "SUPER ADMIN"
+              : user?.role === "branch"
+                ? "BRANCH"
+                : user?.role?.toUpperCase(),
+            user?.office,
+          ]
             .filter(Boolean)
             .join(" / ")}
           userPicture={user?.picture}

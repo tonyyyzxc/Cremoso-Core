@@ -1,6 +1,7 @@
 import AuthConfig from "../models/authConfig.js";
 import User from "../models/user.js";
 import { logActivity, updateActivityLoggingCache } from "../utils/activityLog.js";
+import { getIntegrationCredentials } from "../utils/integrationCredentials.js";
 
 async function getConfig() {
   return AuthConfig.findOneAndUpdate(
@@ -19,6 +20,12 @@ export async function getAuthConfig(req, res) {
     return res.json({
       staffGoogleAuthEnabled:
         config.staffGoogleAuthEnabled || accountsWithoutPassword > 0,
+      recaptchaEnabled: config.recaptchaEnabled !== false,
+      gmailEnabled: config.gmailEnabled !== false,
+      pdfEnabled: config.pdfEnabled !== false,
+      googleSheetsEnabled: config.googleSheetsEnabled !== false,
+      googleCalendarEnabled: config.googleCalendarEnabled !== false,
+      googleDriveEnabled: config.googleDriveEnabled !== false,
       activityLoggingEnabled: config.activityLoggingEnabled !== false,
       showSidebarIcons: req.user.showSidebarIcons !== false,
       accountsWithoutPassword,
@@ -26,6 +33,26 @@ export async function getAuthConfig(req, res) {
   } catch (error) {
     console.error("Auth settings load error:", error);
     return res.status(500).json({ error: "Unable to load authentication settings." });
+  }
+}
+
+export async function getPublicIntegrationStatus(req, res) {
+  try {
+    const config = await AuthConfig.findOne({ key: "default" });
+    const [googleCredentials, recaptchaCredentials] = await Promise.all([
+      getIntegrationCredentials("googleAuth"),
+      getIntegrationCredentials("recaptcha"),
+    ]);
+    return res.json({
+      staffGoogleAuthEnabled: config?.staffGoogleAuthEnabled !== false,
+      recaptchaEnabled: config?.recaptchaEnabled !== false,
+      gmailEnabled: config?.gmailEnabled !== false,
+      googleClientId: googleCredentials.clientId,
+      recaptchaSiteKey: recaptchaCredentials.siteKey,
+    });
+  } catch (error) {
+    console.error("Public integration status load error:", error);
+    return res.status(500).json({ error: "Unable to load integration status." });
   }
 }
 
@@ -44,14 +71,24 @@ export async function updateSidebarPreference(req, res) {
 }
 
 export async function updateAuthConfig(req, res) {
-  const updatesGoogleAuth = Object.hasOwn(req.body, "staffGoogleAuthEnabled");
+  const integrationSettings = [
+    "staffGoogleAuthEnabled",
+    "recaptchaEnabled",
+    "gmailEnabled",
+    "pdfEnabled",
+    "googleSheetsEnabled",
+    "googleCalendarEnabled",
+    "googleDriveEnabled",
+  ];
+  const updates = integrationSettings.filter((setting) => Object.hasOwn(req.body, setting));
+  const updatesGoogleAuth = updates.includes("staffGoogleAuthEnabled");
   const updatesActivityLogging = Object.hasOwn(req.body, "activityLoggingEnabled");
   if (
-    (!updatesGoogleAuth && !updatesActivityLogging) ||
-    (updatesGoogleAuth && typeof req.body.staffGoogleAuthEnabled !== "boolean") ||
+    (!updates.length && !updatesActivityLogging) ||
+    updates.some((setting) => typeof req.body[setting] !== "boolean") ||
     (updatesActivityLogging && typeof req.body.activityLoggingEnabled !== "boolean")
   ) {
-    return res.status(400).json({ error: "Provide a valid authentication or activity logging setting." });
+    return res.status(400).json({ error: "Provide valid integration or activity logging settings." });
   }
   try {
     if (updatesGoogleAuth && req.body.staffGoogleAuthEnabled === false) {
@@ -65,9 +102,7 @@ export async function updateAuthConfig(req, res) {
       }
     }
     const config = await getConfig();
-    if (updatesGoogleAuth) {
-      config.staffGoogleAuthEnabled = req.body.staffGoogleAuthEnabled;
-    }
+    updates.forEach((setting) => { config[setting] = req.body[setting]; });
     if (updatesActivityLogging) {
       config.activityLoggingEnabled = req.body.activityLoggingEnabled;
     }
@@ -90,6 +125,12 @@ export async function updateAuthConfig(req, res) {
     return res.json({
       staffGoogleAuthEnabled:
         config.staffGoogleAuthEnabled || accountsWithoutPassword > 0,
+      recaptchaEnabled: config.recaptchaEnabled !== false,
+      gmailEnabled: config.gmailEnabled !== false,
+      pdfEnabled: config.pdfEnabled !== false,
+      googleSheetsEnabled: config.googleSheetsEnabled !== false,
+      googleCalendarEnabled: config.googleCalendarEnabled !== false,
+      googleDriveEnabled: config.googleDriveEnabled !== false,
       activityLoggingEnabled: config.activityLoggingEnabled !== false,
       accountsWithoutPassword,
     });

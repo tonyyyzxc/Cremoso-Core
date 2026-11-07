@@ -14,6 +14,7 @@ const branchApplicationSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    hiddenAt: { type: Date, default: null },
     reviewedAt: { type: Date, default: null },
     reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   },

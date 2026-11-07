@@ -53,9 +53,15 @@ const userSchema = new mongoose.Schema(
       default: null,
       select: false,
     },
-    googleCalendarConnected: {
-      type: Boolean,
-      default: false,
+    googleSheetsRefreshToken: {
+      type: String,
+      default: null,
+      select: false,
+    },
+    googleCalendarRefreshToken: {
+      type: String,
+      default: null,
+      select: false,
     },
     passwordResetCodeHash: {
       type: String,

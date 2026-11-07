@@ -28,6 +28,66 @@ const feedbackClassName = (message) =>
     ? "text-sm text-emerald-700 dark:text-emerald-300"
     : "text-sm text-red-700 dark:text-red-300";
 
+const integrationLabels = {
+  recaptchaEnabled: "reCAPTCHA",
+  gmailEnabled: "Gmail password reset",
+  pdfEnabled: "PDF export",
+  googleSheetsEnabled: "Google Sheets export",
+  googleCalendarEnabled: "Google Calendar",
+  googleDriveEnabled: "Google Drive",
+};
+
+const integrationDescriptions = {
+  staffGoogleAuthEnabled: "Google sign-in availability for admin and staff accounts.",
+  recaptchaEnabled: "reCAPTCHA verification on password sign-in.",
+  gmailEnabled: "Password-reset emails. Super Admin credential verification emails remain available.",
+  pdfEnabled: "PDF report export.",
+  googleSheetsEnabled: "Google Sheets report export.",
+  googleCalendarEnabled: "Google Calendar shift syncing.",
+  googleDriveEnabled: "Google Drive connection and file actions.",
+};
+
+const credentialIntegrations = {
+  googleAuth: { label: "Google sign-in", fields: { clientId: "Google client ID" } },
+  recaptcha: {
+    label: "reCAPTCHA",
+    fields: { siteKey: "Site key", secretKey: "Secret key" },
+  },
+  gmail: {
+    label: "Gmail password reset",
+    fields: {
+      clientId: "OAuth client ID",
+      clientSecret: "OAuth client secret",
+      refreshToken: "Refresh token",
+      sender: "Sender email",
+    },
+  },
+  googleDrive: {
+    label: "Google Drive",
+    fields: {
+      clientId: "OAuth client ID",
+      clientSecret: "OAuth client secret",
+      redirectUri: "Redirect URI",
+    },
+  },
+  googleCalendar: {
+    label: "Google Calendar",
+    fields: {
+      clientId: "OAuth client ID",
+      clientSecret: "OAuth client secret",
+      redirectUri: "Redirect URI",
+    },
+  },
+  googleSheets: {
+    label: "Google Sheets",
+    fields: {
+      clientId: "OAuth client ID",
+      clientSecret: "OAuth client secret",
+      redirectUri: "Redirect URI",
+    },
+  },
+};
+
 export default function SettingsPage() {
   const toast = useToast();
   const { setShowSidebarIcons } = useOutletContext();
@@ -57,6 +117,18 @@ export default function SettingsPage() {
   const [accountsWithoutPassword, setAccountsWithoutPassword] = useState(0);
   const [isSavingGoogleSetting, setIsSavingGoogleSetting] = useState(false);
   const [googleFeedback, setGoogleFeedback] = useState("");
+  const [integrationSettings, setIntegrationSettings] = useState({});
+  const [savingIntegration, setSavingIntegration] = useState("");
+  const [pendingIntegrationChange, setPendingIntegrationChange] = useState(null);
+  const [credentialStatuses, setCredentialStatuses] = useState({});
+  const [credentialEncryptionConfigured, setCredentialEncryptionConfigured] = useState(false);
+  const [credentialEditor, setCredentialEditor] = useState(null);
+  const [credentialValues, setCredentialValues] = useState({});
+  const [credentialIdentifier, setCredentialIdentifier] = useState("");
+  const [credentialPassword, setCredentialPassword] = useState("");
+  const [credentialCode, setCredentialCode] = useState("");
+  const [credentialChallengeId, setCredentialChallengeId] = useState("");
+  const [credentialBusy, setCredentialBusy] = useState(false);
   const [activityLoggingEnabled, setActivityLoggingEnabled] = useState(true);
   const [isSavingActivityLogging, setIsSavingActivityLogging] = useState(false);
   const [activityLoggingFeedback, setActivityLoggingFeedback] = useState("");
@@ -81,11 +153,20 @@ export default function SettingsPage() {
   );
 
   const isAdmin = user?.role === "admin";
+  const isSuperAdmin = user?.isSuperAdmin === true;
 
   useEffect(() => {
     apiRequest("/api/auth-settings")
       .then((config) => {
         setGoogleAuthEnabled(config.staffGoogleAuthEnabled);
+        setIntegrationSettings({
+          recaptchaEnabled: config.recaptchaEnabled !== false,
+          gmailEnabled: config.gmailEnabled !== false,
+          pdfEnabled: config.pdfEnabled !== false,
+          googleSheetsEnabled: config.googleSheetsEnabled !== false,
+          googleCalendarEnabled: config.googleCalendarEnabled !== false,
+          googleDriveEnabled: config.googleDriveEnabled !== false,
+        });
         setActivityLoggingEnabled(config.activityLoggingEnabled !== false);
         setShowSidebarIconsState(config.showSidebarIcons !== false);
         setAccountsWithoutPassword(config.accountsWithoutPassword || 0);
@@ -93,6 +174,16 @@ export default function SettingsPage() {
       .catch((err) => setError(err.message))
       .finally(() => setAuthSettingsLoaded(true));
   }, []);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    apiRequest("/api/integration-credentials")
+      .then((data) => {
+        setCredentialStatuses(data.integrations || {});
+        setCredentialEncryptionConfigured(data.encryptionConfigured === true);
+      })
+      .catch((err) => setError(err.message));
+  }, [isSuperAdmin]);
 
   useEffect(() => {
     apiRequest("/api/auth/password-status")
@@ -255,8 +346,34 @@ export default function SettingsPage() {
     }
   };
 
-  const toggleGoogleAuth = async () => {
-    const nextValue = !googleAuthEnabled;
+  const toggleGoogleAuth = () => {
+    setPendingIntegrationChange({
+      setting: "staffGoogleAuthEnabled",
+      enabled: !googleAuthEnabled,
+    });
+  };
+
+  const confirmIntegrationChange = async () => {
+    if (!pendingIntegrationChange) return;
+    const { setting, enabled: nextValue } = pendingIntegrationChange;
+    if (setting !== "staffGoogleAuthEnabled") {
+      setSavingIntegration(setting);
+      try {
+        const config = await apiRequest("/api/auth-settings", {
+          method: "PATCH",
+          body: JSON.stringify({ [setting]: nextValue }),
+        });
+        setIntegrationSettings((current) => ({ ...current, [setting]: config[setting] !== false }));
+        toast.success(`${integrationLabels[setting]} ${config[setting] ? "enabled" : "disabled"}.`);
+        setPendingIntegrationChange(null);
+      } catch (err) {
+        toast.error(err.message);
+      } finally {
+        setSavingIntegration("");
+      }
+      return;
+    }
+
     setIsSavingGoogleSetting(true);
     setGoogleFeedback("");
     try {
@@ -272,8 +389,10 @@ export default function SettingsPage() {
           ? "Google sign-in enabled for all accounts."
           : "Google sign-in disabled for all accounts.",
       );
+      setPendingIntegrationChange(null);
     } catch (err) {
       setGoogleFeedback(err.message);
+      toast.error(err.message);
     } finally {
       setIsSavingGoogleSetting(false);
     }
@@ -299,6 +418,91 @@ export default function SettingsPage() {
       setActivityLoggingFeedback(err.message);
     } finally {
       setIsSavingActivityLogging(false);
+    }
+  };
+
+  const toggleIntegration = (setting) => {
+    setPendingIntegrationChange({
+      setting,
+      enabled: !integrationSettings[setting],
+    });
+  };
+
+  const openCredentialEditor = (integration, mode) => {
+    const fields = credentialIntegrations[integration].fields;
+    setCredentialEditor({ integration, mode });
+    setCredentialValues(Object.fromEntries(Object.keys(fields).map((field) => [field, ""])));
+    setCredentialIdentifier(user?.username || user?.email || "");
+    setCredentialPassword("");
+    setCredentialCode("");
+    setCredentialChallengeId("");
+  };
+
+  const closeCredentialEditor = () => {
+    if (credentialBusy) return;
+    setCredentialEditor(null);
+    setCredentialValues({});
+    setCredentialPassword("");
+    setCredentialCode("");
+    setCredentialChallengeId("");
+  };
+
+  const requestCredentialCode = async (event) => {
+    event?.preventDefault();
+    setCredentialBusy(true);
+    try {
+      const result = await apiRequest("/api/integration-credentials/challenge", {
+        method: "POST",
+        body: JSON.stringify({
+          identifier: credentialIdentifier,
+          password: credentialPassword,
+        }),
+      });
+      setCredentialChallengeId(result.challengeId);
+      setCredentialPassword("");
+      toast.success("Verification code sent to the Super Admin email.");
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCredentialBusy(false);
+    }
+  };
+
+  const submitCredentialChange = async (event) => {
+    event.preventDefault();
+    if (!credentialEditor || !credentialChallengeId) return;
+    if (credentialEditor.mode === "remove" && !window.confirm(
+      "Remove this saved credential override and use the environment credentials instead?",
+    )) return;
+
+    setCredentialBusy(true);
+    try {
+      const { integration, mode } = credentialEditor;
+      const request = {
+        method: mode === "remove" ? "DELETE" : "PUT",
+        body: JSON.stringify({
+          challengeId: credentialChallengeId,
+          code: credentialCode,
+          ...(mode === "replace" ? { credentials: credentialValues } : {}),
+        }),
+      };
+      const result = await apiRequest(`/api/integration-credentials/${integration}`, request);
+      const status = await apiRequest("/api/integration-credentials");
+      setCredentialStatuses(status.integrations || {});
+      setCredentialEncryptionConfigured(status.encryptionConfigured === true);
+      setCredentialEditor(null);
+      setCredentialValues({});
+      setCredentialPassword("");
+      setCredentialCode("");
+      setCredentialChallengeId("");
+      toast.success(result.message);
+      if (["googleAuth", "recaptcha"].includes(integration)) {
+        window.setTimeout(() => window.location.reload(), 700);
+      }
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setCredentialBusy(false);
     }
   };
 
@@ -885,6 +1089,78 @@ export default function SettingsPage() {
                           {googleFeedback}
                         </p>
                       )}
+                      {isSuperAdmin && (
+                        <div className="mt-6 border-t border-gray-100 pt-5 dark:border-neutral-800">
+                          <h4 className="font-semibold">Integration credentials</h4>
+                          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            Replace a saved credential bundle or remove its override to use deployment credentials. Secret values are never displayed. Changing Google OAuth credentials may require users to reconnect.
+                          </p>
+                          {!credentialEncryptionConfigured && (
+                            <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                              Set INTEGRATION_CREDENTIALS_ENCRYPTION_KEY in the server deployment environment before managing credentials.
+                            </p>
+                          )}
+                          <div className="mt-4 space-y-3">
+                            {Object.entries(credentialIntegrations).map(([integration, details]) => {
+                              const status = credentialStatuses[integration];
+                              return (
+                                <div key={integration} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+                                  <div>
+                                    <p className="text-sm font-medium">{details.label}</p>
+                                    <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                      {status?.hasOverride
+                                        ? "Saved override is active."
+                                        : "Using deployment credentials."}{" "}
+                                      {status && !status.configured && "Credentials are incomplete."}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => openCredentialEditor(integration, "replace")}
+                                      disabled={!credentialEncryptionConfigured}
+                                      className="rounded-xl border border-gray-200 px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-white dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-900"
+                                    >
+                                      Replace
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => openCredentialEditor(integration, "remove")}
+                                      disabled={!status?.hasOverride || !credentialEncryptionConfigured}
+                                      className="rounded-xl border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+                                    >
+                                      Remove override
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      <div className="mt-4 space-y-3">
+                        {Object.entries(integrationLabels).map(([setting, label]) => (
+                          <div key={setting} className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
+                            <div>
+                              <p className="text-sm font-medium">{label}</p>
+                              <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
+                                {integrationSettings[setting] ? `${label} is available to all accounts.` : `${label} is disabled for all accounts.`}
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              role="switch"
+                              aria-checked={Boolean(integrationSettings[setting])}
+                              aria-label={`Enable ${label}`}
+                              onClick={() => toggleIntegration(setting)}
+                              disabled={savingIntegration === setting || !authSettingsLoaded}
+                              className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${integrationSettings[setting] ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+                            >
+                              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${integrationSettings[setting] ? "left-6" : "left-1"}`} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                       <div className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
                         <div>
                           <p className="text-sm font-medium">
@@ -985,6 +1261,197 @@ export default function SettingsPage() {
           </FadeIn>
         )}
         <AnimatePresence>{initialLoading && <StreakBar />}</AnimatePresence>
+        <AnimatePresence>
+          {pendingIntegrationChange && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onMouseDown={(event) => {
+                if (
+                  event.target === event.currentTarget
+                  && !isSavingGoogleSetting
+                  && !savingIntegration
+                ) {
+                  setPendingIntegrationChange(null);
+                }
+              }}
+            >
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="integration-change-title"
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                className="w-full max-w-md space-y-5 rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+              >
+                <div>
+                  <h3 id="integration-change-title" className="text-lg font-semibold">
+                    {pendingIntegrationChange.enabled ? "Enable" : "Disable"}{" "}
+                    {pendingIntegrationChange.setting === "staffGoogleAuthEnabled"
+                      ? "Google sign-in"
+                      : integrationLabels[pendingIntegrationChange.setting]}?
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                    {integrationDescriptions[pendingIntegrationChange.setting]}
+                  </p>
+                  <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                    This change applies to all accounts, including yours.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPendingIntegrationChange(null)}
+                    disabled={isSavingGoogleSetting || Boolean(savingIntegration)}
+                    className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={confirmIntegrationChange}
+                    disabled={isSavingGoogleSetting || Boolean(savingIntegration)}
+                    className={buttonClassName}
+                  >
+                    {isSavingGoogleSetting || savingIntegration
+                      ? "Saving..."
+                      : `Confirm ${pendingIntegrationChange.enabled ? "enable" : "disable"}`}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {credentialEditor && (
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget && !credentialBusy) {
+                  closeCredentialEditor();
+                }
+              }}
+            >
+              <motion.form
+                onSubmit={submitCredentialChange}
+                initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold">
+                    {credentialEditor.mode === "remove" ? "Remove credential override" : `Replace ${credentialIntegrations[credentialEditor.integration].label} credentials`}
+                  </h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Verify your account and enter the one-time code sent to the Super Admin email.
+                  </p>
+                </div>
+
+                {!credentialChallengeId ? (
+                  <div className="space-y-4">
+                    <label className="block space-y-1.5 text-sm font-medium">
+                      Username or email
+                      <input
+                        className={inputClassName}
+                        autoComplete="username"
+                        value={credentialIdentifier}
+                        onChange={(event) => setCredentialIdentifier(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="block space-y-1.5 text-sm font-medium">
+                      Password
+                      <input
+                        className={inputClassName}
+                        type="password"
+                        autoComplete="current-password"
+                        value={credentialPassword}
+                        onChange={(event) => setCredentialPassword(event.target.value)}
+                        required
+                      />
+                    </label>
+                    {credentialEditor.mode === "replace" && (
+                      <div className="space-y-4 border-t border-gray-100 pt-4 dark:border-neutral-800">
+                        {Object.entries(credentialIntegrations[credentialEditor.integration].fields).map(([field, label]) => (
+                          <label key={field} className="block space-y-1.5 text-sm font-medium">
+                            {label}
+                            <input
+                              className={inputClassName}
+                              type={field === "sender" || field === "redirectUri" ? "text" : "password"}
+                              autoComplete="off"
+                              value={credentialValues[field] || ""}
+                              onChange={(event) => setCredentialValues((current) => ({
+                                ...current,
+                                [field]: event.target.value,
+                              }))}
+                              required
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={requestCredentialCode}
+                      disabled={credentialBusy}
+                      className={buttonClassName}
+                    >
+                      {credentialBusy ? "Sending code..." : "Verify and send code"}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <label className="block space-y-1.5 text-sm font-medium">
+                      Six-digit verification code
+                      <input
+                        className={inputClassName}
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        maxLength={6}
+                        pattern="[0-9]{6}"
+                        value={credentialCode}
+                        onChange={(event) => setCredentialCode(event.target.value.replace(/\D/g, ""))}
+                        required
+                      />
+                    </label>
+                    {credentialEditor.mode === "replace" && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        New credential values are held only for this form until saved.
+                      </p>
+                    )}
+                    <div className="flex justify-end gap-2">
+                      <button type="submit" disabled={credentialBusy} className={buttonClassName}>
+                        {credentialBusy
+                          ? "Saving..."
+                          : credentialEditor.mode === "remove"
+                            ? "Remove override"
+                            : "Save credentials"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-neutral-800">
+                  <button
+                    type="button"
+                    disabled={credentialBusy}
+                    onClick={closeCredentialEditor}
+                    className="px-3 py-2 text-sm font-semibold text-gray-600 dark:text-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </motion.form>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
     </MotionConfig>
   );

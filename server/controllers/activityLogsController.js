@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
 import ActivityLog from "../models/activityLog.js";
+import User from "../models/user.js";
+import { getSuperAdminEmail, isSuperAdminAccount } from "../utils/superAdmin.js";
 
 const categories = new Set([
   "auth",
@@ -108,6 +110,19 @@ export async function listActivityLogs(req, res) {
   }
 
   try {
+    if (!isSuperAdminAccount(req.user)) {
+      const superAdminEmail = getSuperAdminEmail();
+      if (superAdminEmail) {
+        const superAdmin = await User.findOne({
+          email: superAdminEmail,
+          role: "admin",
+        }).select("_id").lean();
+        const hiddenActorFilters = [{ actorEmail: { $ne: superAdminEmail } }];
+        if (superAdmin) hiddenActorFilters.push({ actor: { $ne: superAdmin._id } });
+        filter.$and = [...(filter.$and || []), ...hiddenActorFilters];
+      }
+    }
+
     const [logs, total] = await Promise.all([
       ActivityLog.find(filter)
         .populate("branchId", "name")

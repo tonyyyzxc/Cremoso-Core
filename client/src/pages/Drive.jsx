@@ -43,6 +43,7 @@ export default function DrivePage() {
   const toast = useToast();
   const fileInputRef = useRef(null);
   const [connected, setConnected] = useState(false);
+  const [driveEnabled, setDriveEnabled] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [loadingFiles, setLoadingFiles] = useState(false);
   const [busy, setBusy] = useState("");
@@ -84,6 +85,7 @@ export default function DrivePage() {
 
     apiRequest("/api/drive/status")
       .then((data) => {
+        setDriveEnabled(data.enabled !== false);
         setConnected(data.connected);
         if (data.connected) return loadFiles(rootFolder.id);
         return undefined;
@@ -250,6 +252,15 @@ export default function DrivePage() {
   }
 
   if (!connected) {
+    if (!driveEnabled) {
+      return (
+        <section className={`${cardClass} mx-auto max-w-2xl p-8 text-center`}>
+          <HardDrive className="mx-auto text-gray-400" size={40} />
+          <h1 className="mt-4 text-xl font-semibold text-[#0A3B3D] dark:text-white">Google Drive is disabled</h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-gray-500 dark:text-gray-400">An administrator has disabled Google Drive for all accounts.</p>
+        </section>
+      );
+    }
     return (
       <section className={`${cardClass} mx-auto max-w-2xl p-8 text-center`}>
         <HardDrive className="mx-auto text-[#0A8B8E]" size={40} />

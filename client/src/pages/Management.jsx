@@ -44,6 +44,7 @@ export default function ManagementPage() {
   const [branches, setBranches] = useState([]);
   const [workers, setWorkers] = useState([]);
   const [applications, setApplications] = useState([]);
+  const [applicationView, setApplicationView] = useState("visible");
   const [currentUser] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -52,6 +53,7 @@ export default function ManagementPage() {
     }
   });
   const [email, setEmail] = useState("");
+  const [newStaffBranchId, setNewStaffBranchId] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [accountType, setAccountType] = useState("branch");
@@ -76,6 +78,7 @@ export default function ManagementPage() {
   const [busyApplicationId, setBusyApplicationId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const isSuperAdmin = currentUser?.isSuperAdmin === true;
 
   const loadData = useCallback(async () => {
     const [loadedUsers, loadedBranches, loadedWorkers, loadedApplications] =
@@ -106,7 +109,7 @@ export default function ManagementPage() {
   const filteredAccounts = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
     return users.filter((account) => {
-      if (account._id === currentUser?.id) return false;
+      if (account._id === currentUser?.id && !isSuperAdmin) return false;
       const matchesStatus =
         statusFilter === "all" || account.status === statusFilter;
       const matchesSearch =
@@ -116,7 +119,7 @@ export default function ManagementPage() {
           .some((value) => value.toLowerCase().includes(normalizedSearch));
       return matchesStatus && matchesSearch;
     });
-  }, [users, currentUser?.id, search, statusFilter]);
+  }, [users, currentUser?.id, isSuperAdmin, search, statusFilter]);
 
   const filteredWorkers = useMemo(() => {
     const normalizedSearch = workerSearch.trim().toLowerCase();
@@ -133,6 +136,12 @@ export default function ManagementPage() {
     });
   }, [workers, workerSearch, workerBranchFilter]);
 
+  const filteredApplications = applications.filter((application) =>
+    applicationView === "hidden"
+      ? Boolean(application.hiddenAt)
+      : !application.hiddenAt,
+  );
+
   const pendingCount =
     applications.filter((application) => application.status === "pending")
       .length +
@@ -147,6 +156,7 @@ export default function ManagementPage() {
     setError("");
     try {
       const isBranch = accountType === "branch";
+      const isStaff = accountType === "staff";
       const result = await apiRequest(
         isBranch ? "/api/branches/account" : "/api/users",
         {
@@ -163,7 +173,8 @@ export default function ManagementPage() {
               : {
                   name: newAccountName,
                   email,
-                  role: "admin",
+                  role: isStaff ? "staff" : "admin",
+                  ...(isStaff ? { branchId: newStaffBranchId } : {}),
                   password: newPassword,
                 },
           ),
@@ -182,12 +193,14 @@ export default function ManagementPage() {
       setNewBranchName("");
       setNewBranchAddress("");
       setNewBranchPhone("");
+      setNewStaffBranchId("");
       setEmail("");
       setNewPassword("");
       setShowNewPassword(false);
+      setAccountType("branch");
       setShowAddAccount(false);
       toast.success(
-        isBranch ? "Branch account added." : "Admin account added.",
+        isBranch ? "Branch account added." : isStaff ? "Staff account added." : "Admin account added.",
       );
     } catch (err) {
       setError(err.message);
@@ -205,6 +218,7 @@ export default function ManagementPage() {
     setNewBranchName("");
     setNewBranchAddress("");
     setNewBranchPhone("");
+    setNewStaffBranchId("");
     setEmail("");
     setNewPassword("");
     setShowNewPassword(false);
@@ -334,6 +348,52 @@ export default function ManagementPage() {
     }
   };
 
+  const setApplicationHidden = async (application, hidden) => {
+    setBusyApplicationId(application._id);
+    setError("");
+    try {
+      const result = await apiRequest(
+        `/api/branch-applications/${application._id}/visibility`,
+        { method: "PATCH", body: JSON.stringify({ hidden }) },
+      );
+      setApplications((current) =>
+        current.map((item) =>
+          item._id === application._id
+            ? { ...item, hiddenAt: result.hiddenAt }
+            : item,
+        ),
+      );
+      toast.success(hidden ? "Application hidden." : "Application restored.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyApplicationId("");
+    }
+  };
+
+  const deleteApplication = async (application) => {
+    const confirmed = window.confirm(
+      `Permanently delete the application for "${application.branchName}"? This will not delete any branch or account already created from it.`,
+    );
+    if (!confirmed) return;
+
+    setBusyApplicationId(application._id);
+    setError("");
+    try {
+      await apiRequest(`/api/branch-applications/${application._id}`, {
+        method: "DELETE",
+      });
+      setApplications((current) =>
+        current.filter((item) => item._id !== application._id),
+      );
+      toast.success("Application deleted.");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusyApplicationId("");
+    }
+  };
+
   const changeRole = async (account, nextRole) => {
     setAccountMenu(null);
     setBusyUserId(account._id);
@@ -433,7 +493,8 @@ export default function ManagementPage() {
               <UserPlus size={17} /> Add account
             </button>
             <div className="inline-flex items-center gap-2 rounded-xl border border-[#0A8B8E]/15 bg-[#0A8B8E]/5 px-3.5 py-2.5 text-sm font-medium text-[#0A6B6E] dark:text-teal-300">
-              <ShieldCheck size={17} /> Admin workspace
+              <ShieldCheck size={17} />
+              {isSuperAdmin ? "Super Admin workspace" : "Admin workspace"}
             </div>
           </div>
         </motion.header>
@@ -488,14 +549,31 @@ export default function ManagementPage() {
           className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}
         >
           <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
-            <h3 className="font-semibold">Branch applications</h3>
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Review branch manager requests. Approved applications create the
-              branch and manager account.
-            </p>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <h3 className="font-semibold">Branch applications</h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Review branch manager requests. Approved applications create the
+                  branch and manager account.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {["visible", "hidden"].map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => setApplicationView(view)}
+                    aria-pressed={applicationView === view}
+                    className={`rounded-xl border px-3 py-2 text-sm font-semibold capitalize ${applicationView === view ? "border-[#0A8B8E] bg-[#0A8B8E]/10 text-[#087477] dark:text-teal-300" : "border-gray-200 text-gray-600 dark:border-neutral-700 dark:text-gray-300"}`}
+                  >
+                    {view} ({applications.filter((application) => Boolean(application.hiddenAt) === (view === "hidden")).length})
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           <div className="divide-y divide-gray-100 dark:divide-neutral-800">
-            {applications.map((application) => (
+            {filteredApplications.map((application) => (
               <article
                 key={application._id}
                 className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6"
@@ -526,35 +604,59 @@ export default function ManagementPage() {
                       : ` · Submitted ${new Date(application.createdAt).toLocaleDateString()}`}
                   </p>
                 </div>
-                {application.status === "pending" && (
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => reviewApplication(application, "rejected")}
-                      disabled={Boolean(busyApplicationId)}
-                      className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
-                    >
-                      {busyApplicationId === application._id
-                        ? "Saving..."
-                        : "Reject"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => reviewApplication(application, "approved")}
-                      disabled={Boolean(busyApplicationId)}
-                      className={buttonClassName}
-                    >
-                      {busyApplicationId === application._id
-                        ? "Saving..."
-                        : "Approve"}
-                    </button>
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-2">
+                  {application.status === "pending" && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => reviewApplication(application, "rejected")}
+                        disabled={Boolean(busyApplicationId)}
+                        className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
+                      >
+                        {busyApplicationId === application._id
+                          ? "Saving..."
+                          : "Reject"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => reviewApplication(application, "approved")}
+                        disabled={Boolean(busyApplicationId)}
+                        className={buttonClassName}
+                      >
+                        {busyApplicationId === application._id
+                          ? "Saving..."
+                          : "Approve"}
+                      </button>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setApplicationHidden(application, !application.hiddenAt)}
+                    disabled={Boolean(busyApplicationId)}
+                    className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
+                  >
+                    {busyApplicationId === application._id
+                      ? "Saving..."
+                    : application.hiddenAt
+                      ? "Restore"
+                      : "Hide"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteApplication(application)}
+                    disabled={Boolean(busyApplicationId)}
+                    className="rounded-xl border border-red-200 px-3.5 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
+                  >
+                    Delete
+                  </button>
+                </div>
               </article>
             ))}
-            {!applications.length && (
+            {!filteredApplications.length && (
               <p className="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                No branch applications have been submitted.
+                {applicationView === "hidden"
+                  ? "No hidden branch applications."
+                  : "No visible branch applications."}
               </p>
             )}
           </div>
@@ -627,7 +729,7 @@ export default function ManagementPage() {
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 {filteredAccounts.length} of{" "}
                 {
-                  users.filter((account) => account._id !== currentUser?.id)
+                  users.filter((account) => isSuperAdmin || account._id !== currentUser?.id)
                     .length
                 }{" "}
                 accounts
@@ -689,6 +791,7 @@ export default function ManagementPage() {
                       key={account._id}
                       onContextMenu={(event) => {
                         event.preventDefault();
+                        if (account.isSuperAdmin || (!isSuperAdmin && account.role === "admin")) return;
                         setAccountMenu({
                           account,
                           x: event.clientX,
@@ -726,7 +829,9 @@ export default function ManagementPage() {
                       <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-300">
                         {branch?.address || "No address"}
                       </td>
-                      <td className="px-5 py-4 capitalize">{account.role}</td>
+                      <td className="px-5 py-4 capitalize">
+                        {account.isSuperAdmin ? "Super Admin" : account.role}
+                      </td>
                       <td className="px-5 py-4">{workerCount}</td>
                       <td className="px-5 py-4">
                         <span
@@ -742,6 +847,8 @@ export default function ManagementPage() {
                             onClick={() => changeStatus(account)}
                             disabled={
                               busyUserId === account._id ||
+                              account.isSuperAdmin ||
+                              (account.role === "admin" && !isSuperAdmin) ||
                               (account.status !== "active" && !account.branchId)
                             }
                             className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[#0A3B3D] transition hover:bg-[#FBF6EF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800"
@@ -822,7 +929,8 @@ export default function ManagementPage() {
                     onChange={(event) => setAccountType(event.target.value)}
                   >
                     <option value="branch">Branch account</option>
-                    <option value="admin">Admin account</option>
+                    <option value="staff">Staff account</option>
+                    {isSuperAdmin && <option value="admin">Admin account</option>}
                   </select>
                 </label>
                 {accountType === "branch" ? (
@@ -862,6 +970,32 @@ export default function ManagementPage() {
                         }
                         placeholder="Street, city, or area"
                       />
+                    </label>
+                  </>
+                ) : accountType === "staff" ? (
+                  <>
+                    <label className="space-y-1.5 text-sm font-medium">
+                      Staff name <span className="text-red-600">*</span>
+                      <input
+                        className={inputClassName}
+                        value={newAccountName}
+                        onChange={(event) => setNewAccountName(event.target.value)}
+                        required
+                      />
+                    </label>
+                    <label className="space-y-1.5 text-sm font-medium">
+                      Branch <span className="text-red-600">*</span>
+                      <select
+                        className={inputClassName}
+                        value={newStaffBranchId}
+                        onChange={(event) => setNewStaffBranchId(event.target.value)}
+                        required
+                      >
+                        <option value="">Select a branch</option>
+                        {branches.map((branch) => (
+                          <option key={branch._id} value={branch._id}>{branch.name}</option>
+                        ))}
+                      </select>
                     </label>
                   </>
                 ) : (
@@ -945,7 +1079,9 @@ export default function ManagementPage() {
                       ? "Adding..."
                       : accountType === "branch"
                         ? "Add branch account"
-                        : "Add admin account"}
+                        : accountType === "staff"
+                          ? "Add staff account"
+                          : "Add admin account"}
                   </button>
                 </div>
               </form>
@@ -976,7 +1112,7 @@ export default function ManagementPage() {
               <p className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
                 Change role
               </p>
-              {["admin", "branch", "staff"].map((role) => (
+              {(isSuperAdmin ? ["admin", "branch", "staff"] : ["branch", "staff"]).map((role) => (
                 <button
                   key={role}
                   type="button"
@@ -1000,7 +1136,11 @@ export default function ManagementPage() {
               <button
                 type="button"
                 role="menuitem"
-                disabled={busyUserId === accountMenu.account._id}
+                disabled={
+                  busyUserId === accountMenu.account._id ||
+                  accountMenu.account.isSuperAdmin ||
+                  (accountMenu.account.role === "admin" && !isSuperAdmin)
+                }
                 onClick={() => openAccountEditor(accountMenu.account)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"
               >
