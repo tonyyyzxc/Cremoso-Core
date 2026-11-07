@@ -63,6 +63,10 @@ function Login() {
   const recaptchaRef = useRef(null);
   const recaptchaContainerRef = useRef(null);
   const [recaptchaScale, setRecaptchaScale] = useState(1);
+  // BEGIN removable BALLDONTLIE login scores integration.
+  const [nbaGames, setNbaGames] = useState([]);
+  const [nbaScoresStatus, setNbaScoresStatus] = useState("loading");
+  // END removable BALLDONTLIE login scores integration.
 
   // Optional: prevents page scrolling while the login page is mounted.
   useEffect(() => {
@@ -86,6 +90,34 @@ function Login() {
 
     return () => observer.disconnect();
   }, [isSignup, isForgotPassword]);
+
+  // BEGIN removable BALLDONTLIE login scores integration.
+  useEffect(() => {
+    if (isSignup || isForgotPassword) return undefined;
+
+    let active = true;
+    const loadScores = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/integrations/balldontlie/scores`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || "Unable to load NBA scores.");
+        if (active) {
+          setNbaGames(data.games || []);
+          setNbaScoresStatus("loaded");
+        }
+      } catch {
+        if (active) setNbaScoresStatus("unavailable");
+      }
+    };
+
+    Promise.resolve().then(loadScores);
+    const refreshTimer = window.setInterval(loadScores, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(refreshTimer);
+    };
+  }, [isSignup, isForgotPassword]);
+  // END removable BALLDONTLIE login scores integration.
 
   const handleSignup = async (event) => {
     event.preventDefault();
@@ -402,6 +434,44 @@ function Login() {
                 : "py-14 md:py-0"
             }`}
           >
+            {/* BEGIN removable BALLDONTLIE login scores integration. */}
+            {!isSignup && !isForgotPassword && (
+              <section
+                aria-label="Today's NBA scores (Eastern Time)"
+                aria-live="polite"
+                className="relative z-10 mb-5 w-full max-w-[270px] rounded-2xl border border-white/20 bg-[#08777a]/70 p-3 text-white shadow-sm"
+              >
+                <h2 className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
+                  NBA scores · ET
+                </h2>
+                {nbaScoresStatus === "loading" && (
+                  <p className="py-2 text-center text-xs text-white/75">Loading scores...</p>
+                )}
+                {nbaScoresStatus === "unavailable" && (
+                  <p className="py-2 text-center text-xs text-white/75">Scores unavailable</p>
+                )}
+                {nbaScoresStatus === "loaded" && nbaGames.length === 0 && (
+                  <p className="py-2 text-center text-xs text-white/75">No NBA games today (ET)</p>
+                )}
+                {nbaGames.slice(0, 3).map((game) => (
+                  <div
+                    key={game.id}
+                    className="flex items-center justify-between gap-2 border-t border-white/15 py-1.5 text-xs first:border-0"
+                  >
+                    <span className="font-semibold">{game.visitorTeam}</span>
+                    <span className="tabular-nums">
+                      {game.visitorScore} - {game.homeScore}
+                    </span>
+                    <span className="font-semibold">{game.homeTeam}</span>
+                    <span className="min-w-16 text-right text-[10px] text-white/70">
+                      {game.status || "Scheduled"}
+                    </span>
+                  </div>
+                ))}
+              </section>
+            )}
+            {/* END removable BALLDONTLIE login scores integration. */}
+
             {/* Soft-serve swirl icon */}
             <img
               src="/android-chrome-512x512.png"

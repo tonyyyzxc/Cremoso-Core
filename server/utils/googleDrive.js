@@ -35,7 +35,10 @@ export async function sendDriveError(error, req, res) {
   if (isInvalidGrant(error)) {
     await User.updateOne(
       { _id: req.user._id },
-      { $unset: { driveRefreshToken: "" } },
+      {
+        $unset: { driveRefreshToken: "" },
+        $set: { googleCalendarConnected: false },
+      },
     );
     return res.status(401).json({
       code: "DRIVE_RECONNECT_REQUIRED",

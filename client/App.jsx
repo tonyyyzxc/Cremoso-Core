@@ -14,6 +14,7 @@ import ReconciliationPage from "./src/pages/Reconciliation.jsx";
 import ReportsPage from "./src/pages/Reports.jsx";
 import DrivePage from "./src/pages/Drive.jsx";
 import ActivityLogsPage from "./src/pages/ActivityLogs.jsx";
+import SchedulePage from "./src/pages/Schedule.jsx";
 
 function getStoredUser() {
   try {
@@ -69,6 +70,7 @@ function App() {
         <Route path="/new-order" element={<RequireStaff><NewOrderPage /></RequireStaff>} />
         <Route path="/order-queue" element={<RequireStaff><OrderQueuePage /></RequireStaff>} />
         <Route path="/transactions" element={<RequireStaff><TransactionsPage /></RequireStaff>} />
+        <Route path="/schedule" element={<SchedulePage />} />
         <Route path="/reports" element={<RequireBranchOrAdmin><ReportsPage /></RequireBranchOrAdmin>} />
         <Route path="/reconciliation" element={<RequireBranch><ReconciliationPage /></RequireBranch>} />
         <Route path="/menu" element={<RequireBranchOrAdmin><MenuPage /></RequireBranchOrAdmin>} />

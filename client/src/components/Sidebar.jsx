@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  CalendarDays,
   ClipboardCheck,
   ClipboardList,
   HardDrive,
@@ -33,12 +34,14 @@ const STAFF_NAV_ITEMS = [
     icon: ShoppingBag,
     available: true,
   },
+  { id: "schedule", label: "Schedule", icon: CalendarDays, available: true },
   { id: "activity-logs", label: "Activity Logs", icon: History, available: true },
 ];
 
 const BRANCH_NAV_ITEMS = [
   ...STAFF_NAV_ITEMS,
   { id: "reports", label: "Reports", icon: BarChart3, available: true },
+  { id: "schedule", label: "Schedule", icon: CalendarDays, available: true },
   {
     id: "reconciliation",
     label: "Shift Reconciliation",
@@ -59,6 +62,7 @@ const ADMIN_NAV_ITEMS = [
   },
   { id: "orders", label: "Orders", icon: ShoppingBag, available: true },
   { id: "reports", label: "Reports", icon: BarChart3, available: true },
+  { id: "schedule", label: "Schedule", icon: CalendarDays, available: true },
   { id: "menu", label: "Menu", icon: UtensilsCrossed, available: true },
   { id: "management", label: "Management", icon: Users, available: true },
   { id: "activity-logs", label: "Activity Logs", icon: History, available: true },

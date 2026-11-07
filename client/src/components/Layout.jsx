@@ -13,6 +13,7 @@ const titleMap = {
   "order-queue": "Order Queue",
   transactions: "Transactions",
   reports: "Reports",
+  schedule: "Shift Schedule",
   reconciliation: "Shift Reconciliation",
   orders: "Orders",
   menu: "Menu",

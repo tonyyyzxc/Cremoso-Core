@@ -10,6 +10,7 @@ import {
 import { signToken, verifyToken } from "../utils/jwt.js";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+const CALENDAR_EVENTS_SCOPE = "https://www.googleapis.com/auth/calendar.events";
 const DRIVE_STATE_PURPOSE = "drive-oauth";
 const GOOGLE_EXPORT_MIME_TYPES = new Set([
   "application/vnd.google-apps.document",
@@ -17,9 +18,9 @@ const GOOGLE_EXPORT_MIME_TYPES = new Set([
   "application/vnd.google-apps.presentation",
 ]);
 
-function redirectToDrive(res, status) {
+function redirectAfterOAuth(res, status, returnTo = "/drive") {
   const destination = new URL(
-    "/drive",
+    returnTo,
     process.env.CLIENT_URL || "http://localhost:5173",
   );
   if (status) destination.searchParams.set("drive", status);
@@ -40,13 +41,17 @@ export function getDriveConnectUrl(req, res) {
   try {
     const auth = createOAuthClient();
     const state = signToken(
-      { id: req.user._id.toString(), purpose: DRIVE_STATE_PURPOSE },
+      {
+        id: req.user._id.toString(),
+        purpose: DRIVE_STATE_PURPOSE,
+        returnTo: req.query.returnTo === "/schedule" ? "/schedule" : "/drive",
+      },
       "10m",
     );
     const url = auth.generateAuthUrl({
       access_type: "offline",
       prompt: "consent",
-      scope: [DRIVE_SCOPE],
+      scope: [DRIVE_SCOPE, CALENDAR_EVENTS_SCOPE],
       state,
     });
     return res.json({ url });
@@ -70,25 +75,29 @@ export async function handleDriveCallback(req, res) {
     return res.status(400).send("Google Drive authorization state is invalid or expired.");
   }
 
-  if (req.query.error) return redirectToDrive(res, "connect_cancelled");
+  const returnTo = state.returnTo === "/schedule" ? "/schedule" : "/drive";
+  if (req.query.error) return redirectAfterOAuth(res, "connect_cancelled", returnTo);
   if (typeof req.query.code !== "string") {
-    return redirectToDrive(res, "connect_failed");
+    return redirectAfterOAuth(res, "connect_failed", returnTo);
   }
 
   try {
     const { tokens } = await createOAuthClient().getToken(req.query.code);
     if (!tokens.refresh_token) {
-      return redirectToDrive(res, "connect_failed");
+      return redirectAfterOAuth(res, "connect_failed", returnTo);
     }
 
     const user = await User.findOne({ _id: state.id, status: "active" });
-    if (!user) return redirectToDrive(res, "connect_failed");
+    if (!user) return redirectAfterOAuth(res, "connect_failed", returnTo);
     user.driveRefreshToken = tokens.refresh_token;
+    user.googleCalendarConnected = (tokens.scope || "")
+      .split(" ")
+      .includes(CALENDAR_EVENTS_SCOPE);
     await user.save();
-    return redirectToDrive(res, "connected");
+    return redirectAfterOAuth(res, "connected", returnTo);
   } catch (error) {
     console.error("Google Drive callback error:", error);
-    return redirectToDrive(res, "connect_failed");
+    return redirectAfterOAuth(res, "connect_failed", returnTo);
   }
 }
 
@@ -242,6 +251,7 @@ export async function disconnectDrive(req, res) {
     }
 
     user.driveRefreshToken = undefined;
+    user.googleCalendarConnected = false;
     await user.save();
     return res.json({ connected: false });
   } catch (error) {

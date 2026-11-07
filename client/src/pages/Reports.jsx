@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
-import { BarChart3, CircleAlert, Download, FileSpreadsheet, Plus, RefreshCw, Save, ShoppingBag, Trash2, TrendingUp } from "lucide-react";
+import { BarChart3, CircleAlert, Download, FileDown, FileSpreadsheet, Plus, RefreshCw, Save, ShoppingBag, Trash2, TrendingUp } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
@@ -190,6 +190,7 @@ export default function ReportsPage() {
   const [catalogLoaded, setCatalogLoaded] = useState(isAdmin);
   const [saving, setSaving] = useState(false);
   const [exportingSheet, setExportingSheet] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -347,6 +348,108 @@ export default function ReportsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = async () => {
+    const pdfTab = window.open("", "_blank");
+    if (!pdfTab) {
+      toast.error("Allow pop-ups for this site to open the PDF report.");
+      return;
+    }
+
+    setExportingPdf(true);
+    try {
+      const { jsPDF } = await import("jspdf");
+      const selectedBranch = branches.find((branch) => branch._id === branchId);
+      const reportName = `Cremoso Sales Report - ${selectedBranch?.name || "All branches"} - ${from} to ${to}`;
+      const document = new jsPDF({ orientation: "landscape" });
+      document.setProperties({ title: reportName });
+      const pageWidth = document.internal.pageSize.getWidth();
+      const pageHeight = document.internal.pageSize.getHeight();
+      const margin = 12;
+      const columns = [
+        { title: "Source", width: 20 },
+        { title: "Transaction", width: 28 },
+        { title: "Branch", width: 27 },
+        { title: "Date", width: 20 },
+        { title: "Channel", width: 22 },
+        { title: "Payment", width: 23 },
+        { title: "Items", width: 103 },
+        { title: "Qty", width: 12 },
+        { title: "Revenue", width: 25 },
+      ];
+      const tableWidth = columns.reduce((sum, column) => sum + column.width, 0);
+      const startX = Math.max(margin, (pageWidth - tableWidth) / 2);
+      let y = 44;
+
+      const safeText = (value) => String(value ?? "").replace(/[^\x20-\x7E]/g, " ");
+      const pdfMoney = (value) => `PHP ${Number(value || 0).toFixed(2)}`;
+      const drawTableHeader = () => {
+        document.setFillColor(10, 139, 142);
+        document.setTextColor(255, 255, 255);
+        document.setFontSize(7);
+        document.setFont("helvetica", "bold");
+        let x = startX;
+        for (const column of columns) {
+          document.rect(x, y, column.width, 8, "F");
+          document.text(column.title, x + 1.5, y + 5.3);
+          x += column.width;
+        }
+        document.setTextColor(20, 40, 40);
+        document.setFont("helvetica", "normal");
+        y += 8;
+      };
+
+      document.setFont("helvetica", "bold");
+      document.setFontSize(17);
+      document.text("Cremoso Sales Report", margin, 16);
+      document.setFont("helvetica", "normal");
+      document.setFontSize(9);
+      document.text(`Branch: ${safeText(selectedBranch?.name || "All branches")}`, margin, 23);
+      document.text(`Period: ${from} to ${to}`, margin, 29);
+      document.text(`Revenue: ${pdfMoney(totalRevenue)}    Transactions: ${recordCount}`, margin, 35);
+      drawTableHeader();
+
+      const exportRows = makeExportRows(sales, onlineOrders).slice(1);
+      const reportRows = exportRows.length
+        ? exportRows.map((row) => [...row.slice(0, 8), pdfMoney(row[8])])
+        : [["", "", "", "", "", "", "No transactions in this date range.", "", ""]];
+
+      for (let index = 0; index < reportRows.length; index += 1) {
+        const values = reportRows[index].map(safeText);
+        const cellLines = values.map((value, cellIndex) => document.splitTextToSize(
+          value,
+          columns[cellIndex].width - 3,
+        ));
+        const rowHeight = Math.max(7, ...cellLines.map((lines) => lines.length * 3.5 + 3));
+        if (y + rowHeight > pageHeight - margin) {
+          document.addPage();
+          y = margin;
+          drawTableHeader();
+        }
+
+        document.setFillColor(index % 2 ? 248 : 255, index % 2 ? 250 : 255, index % 2 ? 250 : 255);
+        let x = startX;
+        for (let cellIndex = 0; cellIndex < columns.length; cellIndex += 1) {
+          const column = columns[cellIndex];
+          document.rect(x, y, column.width, rowHeight, "FD");
+          document.text(cellLines[cellIndex], x + 1.5, y + 4.5);
+          x += column.width;
+        }
+        y += rowHeight;
+      }
+
+      pdfTab.opener = null;
+      const pdfUrl = URL.createObjectURL(document.output("blob"));
+      pdfTab.location.replace(pdfUrl);
+      setTimeout(() => URL.revokeObjectURL(pdfUrl), 60_000);
+    } catch (error) {
+      pdfTab.close();
+      console.error("Sales report PDF export error:", error);
+      toast.error("Unable to generate the PDF report.");
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const exportGoogleSheet = async () => {
     setExportingSheet(true);
     try {
@@ -389,7 +492,7 @@ export default function ReportsPage() {
   const initialLoading = !reportLoaded || !catalogLoaded;
   return <MotionConfig reducedMotion="user"><section className="mx-auto max-w-375 space-y-6 text-[#0A3B3D] dark:text-white">
     {initialLoading && <p role="status" className="sr-only">Loading reports...</p>}
-    <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">{isAdmin ? "Company performance" : "Branch sales"}</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Reports</h2><p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track revenue and sales from staff entries and completed online orders.</p></div><div className="flex gap-2">{isAdmin && <><button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><Download size={16} /> Export CSV</button><button type="button" onClick={exportGoogleSheet} disabled={loading || exportingSheet} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><FileSpreadsheet size={16} /> {exportingSheet ? "Exporting..." : "Export to Google Sheets"}</button></> }<button type="button" onClick={loadReports} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button></div></motion.header>
+    <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">{isAdmin ? "Company performance" : "Branch sales"}</p><h2 className="mt-1 text-3xl font-semibold tracking-tight">Reports</h2><p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Track revenue and sales from staff entries and completed online orders.</p></div><div className="flex gap-2">{isAdmin && <><button type="button" onClick={exportCsv} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><Download size={16} /> Export CSV</button><button type="button" onClick={exportPdf} disabled={loading || exportingPdf} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><FileDown size={16} /> {exportingPdf ? "Generating PDF..." : "Export PDF"}</button><button type="button" onClick={exportGoogleSheet} disabled={loading || exportingSheet} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><FileSpreadsheet size={16} /> {exportingSheet ? "Exporting..." : "Export to Google Sheets"}</button></> }<button type="button" onClick={loadReports} disabled={loading} className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button></div></motion.header>
     {error && <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"><CircleAlert size={17} className="mt-0.5 shrink-0" />{error}</div>}
     {notice && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">{notice}</p>}
 

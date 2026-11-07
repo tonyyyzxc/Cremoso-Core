@@ -257,7 +257,7 @@ export default function DrivePage() {
           Connect your Google Drive
         </h1>
         <p className="mx-auto mt-2 max-w-lg text-sm text-gray-500 dark:text-gray-400">
-          Connect your personal Google account to browse and manage its Drive files here.
+          Connect your Google account to manage Drive files and sync scheduled shifts with Google Calendar.
         </p>
         {error && (
           <p role="alert" className="mt-4 text-sm text-red-700 dark:text-red-300">
@@ -285,7 +285,7 @@ export default function DrivePage() {
             YourDrive
           </h1>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Files in your personal Google Drive
+            Your personal Google Drive and shift calendar connection
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
