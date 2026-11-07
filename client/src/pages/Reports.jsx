@@ -137,23 +137,118 @@ function makeChartBuckets(data, from, to, leftKey, rightKey) {
 function TrendChart({ title, data, leftKey, rightKey, from, to, currency = false }) {
   const chartData = makeChartBuckets(data, from, to, leftKey, rightKey);
   const hasSales = data.some((entry) => entry[leftKey] > 0 || entry[rightKey] > 0);
-  const max = Math.max(1, ...chartData.map((entry) => entry[leftKey] + entry[rightKey]));
+  const [visibleSeries, setVisibleSeries] = useState({ staff: true, online: true });
+  const [activeBar, setActiveBar] = useState(null);
+  const visibleValues = chartData.flatMap((entry) => [
+    ...(visibleSeries.staff ? [Number(entry[leftKey] || 0)] : []),
+    ...(visibleSeries.online ? [Number(entry[rightKey] || 0)] : []),
+  ]);
+  const largestValue = Math.max(0, ...visibleValues);
+  let axisStep;
+  let axisMaximum;
+
+  if (currency && largestValue > 0) {
+    const roughStep = largestValue / 4;
+    const magnitude = 10 ** Math.floor(Math.log10(roughStep));
+    axisStep = Math.ceil(roughStep / magnitude) * magnitude;
+    axisMaximum = axisStep * 4;
+  } else if (currency) {
+    axisStep = 0.25;
+    axisMaximum = 1;
+  } else {
+    axisStep = Math.max(1, Math.ceil(largestValue / 4));
+    axisMaximum = Math.max(2, Math.ceil(Math.max(largestValue, 2) / axisStep) * axisStep);
+  }
+
+  const ticks = Array.from(
+    { length: Math.round(axisMaximum / axisStep) + 1 },
+    (_, index) => axisMaximum - index * axisStep,
+  );
+  const tooltipId = `reports-chart-tooltip-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  const formatValue = (value) => currency ? money(value) : Number(value || 0).toLocaleString("en-PH");
+  const formatAxisValue = (value) => currency
+    ? new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", notation: "compact", maximumFractionDigits: 1 }).format(value)
+    : Math.round(value).toLocaleString("en-PH");
+  const formatDate = (date) => new Intl.DateTimeFormat("en-PH", {
+    dateStyle: "full",
+    timeZone: "UTC",
+  }).format(new Date(`${date}T00:00:00Z`));
+
+  const toggleSeries = (series) => {
+    setVisibleSeries((current) => ({ ...current, [series]: !current[series] }));
+    setActiveBar((current) => current?.series === series ? null : current);
+  };
+
+  const renderBar = (entry, series, value, index) => {
+    if (!visibleSeries[series]) return null;
+    const barId = `${entry.date}-${series}`;
+    const isActive = activeBar?.id === barId;
+    const isDimmed = activeBar && !isActive;
+    const height = value > 0 ? Math.max((value / axisMaximum) * 100, 1) : 0;
+    const label = series === "staff" ? "Staff sales" : "Online orders";
+    const fill = series === "staff"
+      ? "linear-gradient(to top, #08777a, #1aa3a5)"
+      : "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, #f2c879)";
+
+    return (
+      <motion.div
+        key={barId}
+        role="img"
+        tabIndex={0}
+        aria-label={`${label}, ${formatDate(entry.date)}: ${formatValue(value)}. Staff sales: ${formatValue(entry[leftKey])}. Online orders: ${formatValue(entry[rightKey])}.`}
+        aria-describedby={activeBar?.id === barId ? tooltipId : undefined}
+        onMouseEnter={() => setActiveBar({ id: barId, date: entry.date, series })}
+        onMouseLeave={(event) => {
+          if (document.activeElement !== event.currentTarget) setActiveBar(null);
+        }}
+        onFocus={() => setActiveBar({ id: barId, date: entry.date, series })}
+        onBlur={() => setActiveBar(null)}
+        initial={{ height: 0 }}
+        animate={{ height: height ? `${height}%` : "2px" }}
+        transition={{ duration: 0.45, ease: "easeOut", delay: index * 0.025 }}
+        className={`w-3 shrink-0 cursor-help rounded-t outline-none transition-[opacity,transform,filter] duration-150 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#0A8B8E] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-white dark:focus-visible:ring-offset-neutral-900 ${isActive ? "z-10 scale-110" : ""} ${isDimmed ? "opacity-45" : "opacity-100"}`}
+        style={{ backgroundImage: fill }}
+      />
+    );
+  };
+
   return <section className={`${cardClass} p-5`}>
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{title}</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Staff-entered sales and completed online orders</p></div><div className="flex gap-4 text-xs"><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-[#0A8B8E]" />Staff sales</span><span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-[#F2C879]" />Online orders</span></div></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold">{title}</h3><p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Staff-entered sales and completed online orders</p></div><div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+      <button type="button" aria-pressed={visibleSeries.staff} onClick={() => toggleSeries("staff")} className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0A8B8E] ${visibleSeries.staff ? "" : "opacity-50"}`}><i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "linear-gradient(to top, #08777a, #1aa3a5)" }} />Staff sales</button>
+      <button type="button" aria-pressed={visibleSeries.online} onClick={() => toggleSeries("online")} className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F2C879] ${visibleSeries.online ? "" : "opacity-50"}`}><i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, #f2c879)" }} />Online orders</button>
+    </div></div>
     {!hasSales && <p className="mt-4 text-xs text-gray-500">No sales recorded in this date range. Showing zero activity.</p>}
-    <div className="mt-4 flex h-56 items-end gap-2 overflow-x-auto border-b border-gray-200 pb-2 dark:border-neutral-700">
-      {chartData.map((entry) => {
-        const total = entry[leftKey] + entry[rightKey];
-        const firstHeight = Math.max(0, (entry[leftKey] / max) * 100);
-        const secondHeight = Math.max(0, (entry[rightKey] / max) * 100);
-        return <div key={entry.date} title={`${entry.date}: ${currency ? money(total) : total}`} className="flex h-full min-w-10 flex-1 flex-col justify-end">
-          <div className="flex h-full items-end justify-center gap-1">
-            <div className="w-3 rounded-t bg-[#0A8B8E]" style={{ height: firstHeight ? `${firstHeight}%` : "2px" }} />
-            <div className="w-3 rounded-t bg-[#F2C879]" style={{ height: secondHeight ? `${secondHeight}%` : "2px" }} />
+    <div className="relative mt-4 h-56">
+      <div className="flex h-full gap-2" role="group" aria-label={`${title} chart data`}>
+        <div className="relative h-full w-[4.5rem] shrink-0 text-right text-[10px] text-gray-500 dark:text-gray-400" aria-hidden="true">
+          <div className="absolute inset-x-0 top-0 bottom-6">
+            {ticks.map((tick) => <span key={tick} className="absolute right-1 -translate-y-1/2 whitespace-nowrap" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }}>{formatAxisValue(tick)}</span>)}
           </div>
-          <span className="mt-2 truncate text-center text-[10px] text-gray-500">{entry.date.slice(5)}</span>
-        </div>;
-      })}
+        </div>
+        <div className="relative h-full min-w-0 flex-1 overflow-x-auto border-b border-gray-200 dark:border-neutral-700">
+          <div className="relative h-full" style={{ minWidth: `${Math.max(chartData.length * 40, 40)}px` }}>
+            <div className="absolute inset-x-0 top-0 bottom-6" aria-hidden="true">
+              {ticks.map((tick) => <div key={tick} className="absolute inset-x-0 border-t border-gray-200/70 dark:border-neutral-700/70" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }} />)}
+            </div>
+            <div className="absolute inset-0 flex items-stretch gap-2">
+              {chartData.map((entry, index) => <div key={entry.date} className="flex h-full min-w-10 flex-1 flex-col">
+                <div className="relative min-h-0 flex-1">
+                  <div className="absolute inset-0 flex items-end justify-center gap-1">
+                    {renderBar(entry, "staff", Number(entry[leftKey] || 0), index)}
+                    {renderBar(entry, "online", Number(entry[rightKey] || 0), index)}
+                  </div>
+                </div>
+                <span className="h-6 shrink-0 truncate pt-1 text-center text-[10px] text-gray-500 dark:text-gray-400">{entry.date.slice(5)}</span>
+              </div>)}
+            </div>
+          </div>
+        </div>
+      </div>
+      {activeBar && <div id={tooltipId} role="tooltip" className="pointer-events-none absolute left-[calc(50%_+_2.25rem)] top-1 z-20 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-[#0A3B3D] shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-white">
+        <p className="mb-1 font-semibold">{formatDate(activeBar.date)}</p>
+        <p>Staff sales: {formatValue(chartData.find((entry) => entry.date === activeBar.date)?.[leftKey])}</p>
+        <p>Online orders: {formatValue(chartData.find((entry) => entry.date === activeBar.date)?.[rightKey])}</p>
+      </div>}
     </div>
   </section>;
 }
