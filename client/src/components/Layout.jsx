@@ -4,6 +4,12 @@ import { AnimatePresence } from "motion/react";
 import SidebarNav from "./Sidebar";
 import TopBar from "./Topbar";
 import { apiRequest } from "../utils/api.js";
+import {
+  disablePushNotifications,
+  getPushBrowserId,
+  getPushRegistrationStatus,
+  initializePushMessaging,
+} from "../firebase.js";
 import { StreakBar } from "./loading.jsx";
 
 const titleMap = {
@@ -55,6 +61,13 @@ export default function Layout() {
   }, [user]);
 
   useEffect(() => {
+    if (!["branch", "staff"].includes(user?.role)) return;
+    getPushRegistrationStatus()
+      .then(({ registered }) => registered ? initializePushMessaging() : false)
+      .catch((error) => console.error("Push registration load error:", error));
+  }, [user?.role]);
+
+  useEffect(() => {
     if (user?.role !== "branch") return;
     apiRequest("/api/staff/branch")
       .then((data) => setBranchName(data.branch?.name || ""))
@@ -80,10 +93,20 @@ export default function Layout() {
 
   const handleLogout = async () => {
     setLoggingOut(true);
+    let browserId = "";
     try {
-      await apiRequest("/api/auth/logout", { method: "POST" });
-    } catch {
-      // Clear this browser's credentials even if the API cannot be reached.
+      browserId = getPushBrowserId();
+      await disablePushNotifications();
+    } catch (error) {
+      console.error("Push registration removal during logout failed:", error);
+    }
+    try {
+      await apiRequest("/api/auth/logout", {
+        method: "POST",
+        body: JSON.stringify({ browserId }),
+      });
+    } catch (error) {
+      console.error("Logout request failed:", error);
     }
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("user");

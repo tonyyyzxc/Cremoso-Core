@@ -5,6 +5,7 @@ import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import ReCAPTCHA from "react-google-recaptcha";
 import {
   Building2,
+  Bell,
   CircleUserRound,
   Eye,
   EyeOff,
@@ -16,6 +17,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import {
+  disablePushNotifications,
+  enablePushNotifications,
+  getPushRegistrationStatus,
+} from "../firebase.js";
 import { useToast } from "../hooks/UseToast.jsx";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
@@ -37,6 +43,7 @@ const integrationLabels = {
   googleSheetsEnabled: "Google Sheets export",
   googleCalendarEnabled: "Google Calendar",
   googleDriveEnabled: "Google Drive",
+  firebaseMessagingEnabled: "Firebase Cloud Messaging",
 };
 
 const integrationDescriptions = {
@@ -47,6 +54,7 @@ const integrationDescriptions = {
   googleSheetsEnabled: "Google Sheets report export.",
   googleCalendarEnabled: "Google Calendar shift syncing.",
   googleDriveEnabled: "Google Drive connection and file actions.",
+  firebaseMessagingEnabled: "Web push notifications delivered through Firebase Cloud Messaging.",
 };
 
 const credentialIntegrationByToggle = {
@@ -56,6 +64,7 @@ const credentialIntegrationByToggle = {
   googleDriveEnabled: "googleDrive",
   googleCalendarEnabled: "googleCalendar",
   googleSheetsEnabled: "googleSheets",
+  firebaseMessagingEnabled: "firebaseMessaging",
 };
 
 const credentialIntegrations = {
@@ -95,6 +104,19 @@ const credentialIntegrations = {
       clientId: "OAuth client ID",
       clientSecret: "OAuth client secret",
       redirectUri: "Redirect URI",
+    },
+  },
+  firebaseMessaging: {
+    label: "Firebase Cloud Messaging",
+    fields: {
+      apiKey: "Firebase API key",
+      authDomain: "Firebase auth domain",
+      projectId: "Firebase project ID",
+      storageBucket: "Firebase storage bucket",
+      messagingSenderId: "Firebase messaging sender ID",
+      appId: "Firebase app ID",
+      measurementId: "Firebase measurement ID",
+      vapidKey: "VAPID public key",
     },
   },
 };
@@ -147,6 +169,10 @@ export default function SettingsPage() {
   const [activityLoggingEnabled, setActivityLoggingEnabled] = useState(true);
   const [isSavingActivityLogging, setIsSavingActivityLogging] = useState(false);
   const [activityLoggingFeedback, setActivityLoggingFeedback] = useState("");
+  const [pushRegistered, setPushRegistered] = useState(false);
+  const [pushStatusLoaded, setPushStatusLoaded] = useState(false);
+  const [isSavingPush, setIsSavingPush] = useState(false);
+  const [pushFeedback, setPushFeedback] = useState("");
   const [showSidebarIcons, setShowSidebarIconsState] = useState(true);
   const [isSavingSidebarSetting, setIsSavingSidebarSetting] = useState(false);
   const [sidebarFeedback, setSidebarFeedback] = useState("");
@@ -181,6 +207,7 @@ export default function SettingsPage() {
           googleSheetsEnabled: config.googleSheetsEnabled !== false,
           googleCalendarEnabled: config.googleCalendarEnabled !== false,
           googleDriveEnabled: config.googleDriveEnabled !== false,
+          firebaseMessagingEnabled: config.firebaseMessagingEnabled !== false,
         });
         setActivityLoggingEnabled(config.activityLoggingEnabled !== false);
         setShowSidebarIconsState(config.showSidebarIcons !== false);
@@ -199,6 +226,14 @@ export default function SettingsPage() {
       })
       .catch((err) => setError(err.message));
   }, [isSuperAdmin]);
+
+  useEffect(() => {
+    if (!["branch", "staff"].includes(user?.role)) return;
+    getPushRegistrationStatus()
+      .then(({ registered }) => setPushRegistered(registered))
+      .catch((err) => setPushFeedback(err.message))
+      .finally(() => setPushStatusLoaded(true));
+  }, [user?.role]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -467,6 +502,36 @@ export default function SettingsPage() {
     }
   };
 
+  const togglePushNotifications = async () => {
+    setIsSavingPush(true);
+    setPushFeedback("");
+    try {
+      if (pushRegistered) {
+        const { tokenRemoved } = await disablePushNotifications();
+        setPushRegistered(false);
+        setPushFeedback(tokenRemoved
+          ? "Push alerts are disabled for this browser."
+          : "Push alerts are disabled on the server, but this browser could not clear its saved token.");
+        if (tokenRemoved) toast.success("Push alerts disabled.");
+        else toast.error("Push alerts were disabled, but the browser token could not be cleared.");
+      } else {
+        const registered = await enablePushNotifications();
+        if (!registered) {
+          setPushFeedback("Notification permission was not granted.");
+          return;
+        }
+        setPushRegistered(true);
+        setPushFeedback("Push alerts are enabled for this browser.");
+        toast.success("Push alerts enabled.");
+      }
+    } catch (err) {
+      setPushFeedback(err.message);
+      toast.error(err.message);
+    } finally {
+      setIsSavingPush(false);
+    }
+  };
+
   const toggleIntegration = (setting) => {
     setPendingIntegrationChange({
       setting,
@@ -607,7 +672,7 @@ export default function SettingsPage() {
       setCredentialTestToken("");
       setCredentialChallengeId("");
       toast.success(result.message);
-      if (["googleAuth", "recaptcha"].includes(integration)) {
+      if (["googleAuth", "recaptcha", "firebaseMessaging"].includes(integration)) {
         window.setTimeout(() => window.location.reload(), 700);
       }
     } catch (err) {
@@ -718,6 +783,55 @@ export default function SettingsPage() {
         ) : (
           <FadeIn from="bottom" delay={0.3}>
             <div className="space-y-6">
+              {["branch", "staff"].includes(user?.role) && (
+                <section className="rounded-3xl border border-[#0A8B8E]/20 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+                  <div className="flex items-start gap-3">
+                    <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
+                      <Bell size={20} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold">Browser notifications</h3>
+                      <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
+                        Receive new-order alerts and, for branch managers, low-stock alerts on this browser.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={pushRegistered}
+                      aria-label="Enable browser notifications"
+                      onClick={togglePushNotifications}
+                      disabled={
+                        isSavingPush ||
+                        !pushStatusLoaded ||
+                        !authSettingsLoaded ||
+                        (!pushRegistered && integrationSettings.firebaseMessagingEnabled === false)
+                      }
+                      className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${pushRegistered ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
+                    >
+                      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${pushRegistered ? "left-6" : "left-1"}`} />
+                    </button>
+                  </div>
+                  <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                    {integrationSettings.firebaseMessagingEnabled === false
+                      ? "Push alerts are currently disabled by an administrator."
+                      : pushRegistered
+                        ? "Push alerts are enabled for this browser."
+                        : "Enable alerts to receive notifications while this browser is not open to the app."}
+                  </p>
+                  {pushFeedback && (
+                    <p
+                      role={
+                        ["Push alerts are enabled for this browser.", "Push alerts are disabled for this browser."]
+                          .includes(pushFeedback) ? "status" : "alert"
+                      }
+                      className={`mt-3 text-sm ${["Push alerts are enabled for this browser.", "Push alerts are disabled for this browser."].includes(pushFeedback) ? "text-emerald-700 dark:text-emerald-300" : "text-red-700 dark:text-red-300"}`}
+                    >
+                      {pushFeedback}
+                    </p>
+                  )}
+                </section>
+              )}
               <section className="rounded-3xl border border-[#0A8B8E]/20 bg-linear-to-br from-white via-white to-[#0A8B8E]/5 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-[#0A8B8E]/10 sm:p-6">
                 <header className="mb-5 border-b border-[#0A8B8E]/10 pb-4 dark:border-neutral-800">
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#0A8B8E]">

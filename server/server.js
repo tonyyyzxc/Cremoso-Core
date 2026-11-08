@@ -20,6 +20,7 @@ import storeConfigRouter from "./routes/storeConfig.js";
 import supplyInventoryRouter from "./routes/supplyInventory.js";
 import usersRouter from "./routes/users.js";
 import integrationCredentialsRouter from "./routes/integrationCredentials.js";
+import pushRouter from "./routes/push.js";
 // BEGIN removable BALLDONTLIE login scores integration.
 import ballDontLieScoresRouter from "./integrations/balldontlie/scoresRoute.js";
 // END removable BALLDONTLIE login scores integration.
@@ -35,6 +36,7 @@ app.use("/api/calendar", calendarRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/auth-settings", authConfigRouter);
 app.use("/api/integration-credentials", integrationCredentialsRouter);
+app.use("/api/push", pushRouter);
 app.use("/api/activity-logs", activityLogsRouter);
 app.use("/api/branches", branchesRouter);
 app.use("/api/branch-applications", branchApplicationsRouter);

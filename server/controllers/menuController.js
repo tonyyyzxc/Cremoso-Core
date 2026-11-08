@@ -45,7 +45,7 @@ export async function updateMenuItem(req, res) {
   const branchId = getBranchId(req);
   try {
     if (!(await validateBranchId(branchId, res))) return;
-    const allowed = ["name", "description", "itemType", "category", "price", "includedFruitPortions", "includedToppingPortions", "includedSaucePortions", "active", "archived", "displayOrder", "supplyUsage", "variants", "addons"];
+    const allowed = ["name", "description", "itemType", "category", "price", "lowStockThreshold", "includedFruitPortions", "includedToppingPortions", "includedSaucePortions", "active", "archived", "displayOrder", "supplyUsage", "variants", "addons"];
     const updates = Object.fromEntries(Object.entries(req.body).filter(([key]) => allowed.includes(key)));
     const item = await MenuItem.findOneAndUpdate(
       { _id: req.params.id, branchId },

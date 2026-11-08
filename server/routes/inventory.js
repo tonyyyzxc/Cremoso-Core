@@ -5,7 +5,7 @@ import { listInventory, setInventoryQuantity } from "../controllers/inventoryCon
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", listInventory);
+router.get("/", requireRole("admin", "branch"), listInventory);
 router.put("/:menuItemId", requireRole("admin"), setInventoryQuantity);
 
 export default router;

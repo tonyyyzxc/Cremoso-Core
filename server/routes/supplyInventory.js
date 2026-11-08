@@ -10,12 +10,12 @@ import {
 } from "../controllers/supplyInventoryController.js";
 
 const router = express.Router();
-router.use(requireAuth, requireRole("admin"));
+router.use(requireAuth);
 
-router.get("/", listSupplies);
-router.post("/", createSupply);
-router.patch("/:supplyId", updateSupply);
-router.delete("/:supplyId", validateObjectId("supplyId", "Select a valid supply."), deleteSupply);
-router.put("/:supplyId/stock", setBranchSupplyQuantity);
+router.get("/", requireRole("admin", "branch"), listSupplies);
+router.post("/", requireRole("admin"), createSupply);
+router.patch("/:supplyId", requireRole("admin"), updateSupply);
+router.delete("/:supplyId", requireRole("admin"), validateObjectId("supplyId", "Select a valid supply."), deleteSupply);
+router.put("/:supplyId/stock", requireRole("admin"), setBranchSupplyQuantity);
 
 export default router;

@@ -10,6 +10,7 @@ const authConfigSchema = new mongoose.Schema(
     googleSheetsEnabled: { type: Boolean, default: true },
     googleCalendarEnabled: { type: Boolean, default: true },
     googleDriveEnabled: { type: Boolean, default: true },
+    firebaseMessagingEnabled: { type: Boolean, default: true },
     activityLoggingEnabled: { type: Boolean, default: true },
   },
   { timestamps: true },

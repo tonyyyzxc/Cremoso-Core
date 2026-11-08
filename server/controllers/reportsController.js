@@ -8,6 +8,7 @@ import Sale from "../models/sale.js";
 import Supply from "../models/supply.js";
 import SupplyInventory from "../models/supplyInventory.js";
 import StoreConfig from "../models/storeConfig.js";
+import { notifyLowStockTransition } from "../utils/pushNotifications.js";
 
 const roundMoney = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
@@ -54,7 +55,13 @@ async function updateStock(model, branchId, id, quantity, reserved) {
     { new: true },
   );
   if (!stock) throw Object.assign(new Error("There is not enough branch stock to record this sale."), { statusCode: 409 });
-  reserved.push({ model, id, quantity });
+  reserved.push({
+    model,
+    id,
+    quantity,
+    previousQuantity: stock.quantity + quantity,
+    updatedQuantity: stock.quantity,
+  });
 }
 
 async function restoreStock(branchId, reserved) {
@@ -215,6 +222,15 @@ export async function createStaffSale(req, res) {
       saleNumber: createSaleNumber(), branchId, businessDate, items: snapshotItems,
       subtotal, total: subtotal, paymentMethod: paymentMethod.name, recordedBy: req.user._id,
     });
+    await Promise.all(reserved.map(({ model, id, previousQuantity, updatedQuantity }) =>
+      notifyLowStockTransition({
+        branchId,
+        stockType: model === Inventory ? "menuItem" : "supply",
+        stockId: id,
+        previousQuantity,
+        quantity: updatedQuantity,
+      }),
+    ));
     return res.status(201).json(sale);
   } catch (error) {
     await restoreStock(branchId, reserved).catch((restoreError) => console.error("Sale stock restoration error:", restoreError));

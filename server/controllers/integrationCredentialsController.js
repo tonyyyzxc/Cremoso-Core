@@ -288,6 +288,17 @@ export async function validateAndSaveIntegrationCredentials(req, res) {
       }
     } else if (integration === "gmail") {
       await sendIntegrationCredentialTestEmail(getSuperAdminEmail(), credentials);
+    } else if (integration === "firebaseMessaging") {
+      if (
+        !/^[a-z0-9-]+$/.test(credentials.projectId)
+        || !/^[A-Za-z0-9_-]{20,}$/.test(credentials.vapidKey)
+        || !credentials.authDomain.includes(".")
+        || !credentials.appId.startsWith("1:")
+      ) {
+        return res.status(422).json({
+          error: "Check the Firebase project values and VAPID public key.",
+        });
+      }
     } else if (oauthValidationScopes[integration]) {
       let redirectUrl;
       try {

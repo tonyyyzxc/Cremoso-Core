@@ -19,6 +19,7 @@ const menuItemSchema = new mongoose.Schema(
     itemType: { type: String, enum: ["product", "addon"], default: "product", index: true },
     category: { type: String, required: true, trim: true, default: "Other" },
     price: { type: Number, required: true, min: 0 },
+    lowStockThreshold: { type: Number, min: 0, validate: Number.isInteger, default: 0 },
     includedFruitPortions: { type: Number, min: 0, default: 0 },
     includedToppingPortions: { type: Number, min: 0, default: 0 },
     includedSaucePortions: { type: Number, min: 0, default: 0 },

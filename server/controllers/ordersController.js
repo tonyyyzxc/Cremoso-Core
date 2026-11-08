@@ -7,6 +7,10 @@ import Order from "../models/order.js";
 import Supply from "../models/supply.js";
 import SupplyInventory from "../models/supplyInventory.js";
 import StoreConfig from "../models/storeConfig.js";
+import {
+  notifyLowStockTransition,
+  notifyNewOrder,
+} from "../utils/pushNotifications.js";
 
 const allowedStatuses = new Set(["pending", "completed", "voided", "refunded"]);
 
@@ -263,6 +267,7 @@ export async function createNewOrder(req, res) {
 
     const reservedInventory = [];
     const reservedSupplies = [];
+    const stockTransitions = [];
     try {
       for (const [menuItemId, quantity] of quantitiesByMenuItem) {
         const stock = await Inventory.findOneAndUpdate(
@@ -277,6 +282,12 @@ export async function createNewOrder(req, res) {
           throw error;
         }
         reservedInventory.push({ menuItemId, quantity });
+        stockTransitions.push({
+          stockType: "menuItem",
+          stockId: menuItemId,
+          previousQuantity: stock.quantity + quantity,
+          quantity: stock.quantity,
+        });
       }
 
       for (const [supplyId, quantity] of quantitiesBySupply) {
@@ -292,6 +303,12 @@ export async function createNewOrder(req, res) {
           throw error;
         }
         reservedSupplies.push({ supplyId, quantity });
+        stockTransitions.push({
+          stockType: "supply",
+          stockId: supplyId,
+          previousQuantity: stock.quantity + quantity,
+          quantity: stock.quantity,
+        });
       }
 
       for (let attempt = 0; attempt < 3; attempt += 1) {
@@ -302,6 +319,13 @@ export async function createNewOrder(req, res) {
           } catch (populateError) {
             console.error("Order branch lookup error:", populateError);
           }
+          await Promise.all([
+            notifyNewOrder(order),
+            ...stockTransitions.map((transition) => notifyLowStockTransition({
+              branchId: branch._id,
+              ...transition,
+            })),
+          ]);
           return res.status(201).json(order);
         } catch (error) {
           if (error.code !== 11000 || attempt === 2) throw error;

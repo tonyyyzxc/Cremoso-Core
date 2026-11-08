@@ -26,6 +26,7 @@ export async function getAuthConfig(req, res) {
       googleSheetsEnabled: config.googleSheetsEnabled !== false,
       googleCalendarEnabled: config.googleCalendarEnabled !== false,
       googleDriveEnabled: config.googleDriveEnabled !== false,
+      firebaseMessagingEnabled: config.firebaseMessagingEnabled !== false,
       activityLoggingEnabled: config.activityLoggingEnabled !== false,
       showSidebarIcons: req.user.showSidebarIcons !== false,
       accountsWithoutPassword,
@@ -39,9 +40,10 @@ export async function getAuthConfig(req, res) {
 export async function getPublicIntegrationStatus(req, res) {
   try {
     const config = await AuthConfig.findOne({ key: "default" });
-    const [googleCredentials, recaptchaCredentials] = await Promise.all([
+    const [googleCredentials, recaptchaCredentials, firebaseMessagingCredentials] = await Promise.all([
       getIntegrationCredentials("googleAuth"),
       getIntegrationCredentials("recaptcha"),
+      getIntegrationCredentials("firebaseMessaging"),
     ]);
     return res.json({
       staffGoogleAuthEnabled: config?.staffGoogleAuthEnabled !== false,
@@ -49,6 +51,10 @@ export async function getPublicIntegrationStatus(req, res) {
       gmailEnabled: config?.gmailEnabled !== false,
       googleClientId: googleCredentials.clientId,
       recaptchaSiteKey: recaptchaCredentials.siteKey,
+      firebaseMessagingEnabled: config?.firebaseMessagingEnabled !== false,
+      firebaseMessaging: config?.firebaseMessagingEnabled !== false
+        ? firebaseMessagingCredentials
+        : null,
     });
   } catch (error) {
     console.error("Public integration status load error:", error);
@@ -79,6 +85,7 @@ export async function updateAuthConfig(req, res) {
     "googleSheetsEnabled",
     "googleCalendarEnabled",
     "googleDriveEnabled",
+    "firebaseMessagingEnabled",
   ];
   const updates = integrationSettings.filter((setting) => Object.hasOwn(req.body, setting));
   const updatesGoogleAuth = updates.includes("staffGoogleAuthEnabled");
@@ -131,6 +138,7 @@ export async function updateAuthConfig(req, res) {
       googleSheetsEnabled: config.googleSheetsEnabled !== false,
       googleCalendarEnabled: config.googleCalendarEnabled !== false,
       googleDriveEnabled: config.googleDriveEnabled !== false,
+      firebaseMessagingEnabled: config.firebaseMessagingEnabled !== false,
       activityLoggingEnabled: config.activityLoggingEnabled !== false,
       accountsWithoutPassword,
     });

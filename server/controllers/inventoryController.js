@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import Inventory from "../models/inventory.js";
 import MenuItem from "../models/menuItem.js";
+import { notifyLowStockTransition } from "../utils/pushNotifications.js";
 
 export async function listInventory(req, res) {
   const branchId = req.user.role !== "admin"
@@ -51,11 +52,22 @@ export async function setInventoryQuantity(req, res) {
     if (!branch) return res.status(404).json({ error: "Branch not found." });
     if (!menuItem) return res.status(404).json({ error: "Menu item not found." });
 
-    const inventory = await Inventory.findOneAndUpdate(
-      { branchId, menuItemId },
+    const filter = { branchId, menuItemId };
+    const previousInventory = await Inventory.findOneAndUpdate(
+      filter,
       { $set: { quantity } },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
-    ).populate("menuItemId", "name active archived").populate("branchId", "name");
+      { new: false, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+    ).select("quantity");
+    const inventory = await Inventory.findOne(filter)
+      .populate("menuItemId", "name active archived")
+      .populate("branchId", "name");
+    await notifyLowStockTransition({
+      branchId,
+      stockType: "menuItem",
+      stockId: menuItemId,
+      previousQuantity: previousInventory?.quantity ?? 0,
+      quantity,
+    });
     return res.json(inventory);
   } catch (error) {
     console.error("Inventory update error:", error);

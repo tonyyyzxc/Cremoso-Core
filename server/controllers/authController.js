@@ -3,6 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.js";
 import Session from "../models/session.js";
 import AuthConfig from "../models/authConfig.js";
+import PushRegistration from "../models/pushRegistration.js";
 import { comparePassword, hashPassword } from "../utils/password.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetCode } from "../utils/mailer.js";
@@ -690,6 +691,21 @@ export async function updateProfile(req, res) {
 }
 
 export async function logout(req, res) {
+  const browserId = req.body?.browserId;
+  if (
+    typeof browserId === "string" &&
+    /^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$/i.test(browserId)
+  ) {
+    try {
+      await PushRegistration.deleteOne({ browserId, userId: req.user._id });
+    } catch (error) {
+      console.error("Logout push registration cleanup error:", {
+        name: error?.name,
+        code: error?.code,
+      });
+    }
+  }
+
   try {
     req.session.revoked = true;
     await req.session.save();

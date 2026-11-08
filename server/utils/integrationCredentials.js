@@ -8,6 +8,16 @@ export const integrationCredentialFields = {
   googleDrive: ["clientId", "clientSecret", "redirectUri"],
   googleCalendar: ["clientId", "clientSecret", "redirectUri"],
   googleSheets: ["clientId", "clientSecret", "redirectUri"],
+  firebaseMessaging: [
+    "apiKey",
+    "authDomain",
+    "projectId",
+    "storageBucket",
+    "messagingSenderId",
+    "appId",
+    "measurementId",
+    "vapidKey",
+  ],
 };
 
 const environmentCredentials = {
@@ -36,6 +46,18 @@ const environmentCredentials = {
     clientId: process.env.SHEETS_CLIENT_ID || "",
     clientSecret: process.env.SHEETS_CLIENT_SECRET || "",
     redirectUri: process.env.SHEETS_REDIRECT_URI || "",
+  }),
+  firebaseMessaging: () => ({
+    apiKey: "AIzaSyD_07muvmXKY0TWEVU7dY39qlt3hZWn1mA",
+    authDomain: "cremoso-75651.firebaseapp.com",
+    projectId: "cremoso-75651",
+    storageBucket: "cremoso-75651.firebasestorage.app",
+    messagingSenderId: "1067682465252",
+    appId: "1:1067682465252:web:a82e1e80148a5278f033f1",
+    measurementId: "G-2NE10Z11ZH",
+    vapidKey: process.env.FIREBASE_VAPID_KEY
+      || process.env.VITE_FIREBASE_VAPID_KEY
+      || "",
   }),
 };
 

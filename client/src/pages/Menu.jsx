@@ -11,6 +11,7 @@ const blankItem = (displayOrder = 0) => ({
   itemType: "product",
   category: "Soft-Serve",
   price: "",
+  lowStockThreshold: "0",
   includedFruitPortions: "0",
   includedToppingPortions: "0",
   includedSaucePortions: "0",
@@ -32,7 +33,9 @@ function menuUrl(branchId, itemId = "") {
 }
 
 export default function MenuPage() {
-  const [tab, setTab] = useState("items");
+  const [tab, setTab] = useState(() => (
+    new URLSearchParams(window.location.search).get("tab") === "inventory" ? "inventory" : "items"
+  ));
   const [items, setItems] = useState([]);
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
@@ -54,18 +57,22 @@ export default function MenuPage() {
   const [branchesLoading, setBranchesLoading] = useState(true);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const isAdmin = useMemo(() => {
-    try { return JSON.parse(sessionStorage.getItem("user") || "null")?.role === "admin"; }
-    catch { return false; }
+  const currentUser = useMemo(() => {
+    try { return JSON.parse(sessionStorage.getItem("user") || "null"); }
+    catch { return null; }
   }, []);
+  const isAdmin = currentUser?.role === "admin";
+  const isBranchManager = currentUser?.role === "branch";
+  const canViewInventory = isAdmin || isBranchManager;
   const [catalogLoaded, setCatalogLoaded] = useState(false);
-  const [stockLoaded, setStockLoaded] = useState(!isAdmin);
+  const [stockLoaded, setStockLoaded] = useState(false);
 
   const refresh = useCallback(async () => {
     try {
-      const [storeConfig, loadedBranches] = await Promise.all([
+      const [storeConfig, loadedBranches, branchData] = await Promise.all([
         apiRequest("/api/store-config"),
         isAdmin ? apiRequest("/api/branches") : Promise.resolve([]),
+        isBranchManager ? apiRequest("/api/staff/branch") : Promise.resolve(null),
       ]);
       setConfig(storeConfig);
       let branchId = "";
@@ -73,8 +80,13 @@ export default function MenuPage() {
         setBranches(loadedBranches);
         branchId = selectedBranchId || loadedBranches[0]?._id || "";
         setSelectedBranchId(branchId);
+      } else if (isBranchManager) {
+        const branch = branchData?.branch;
+        setBranches(branch ? [branch] : []);
+        branchId = branch?._id || "";
+        setSelectedBranchId(branchId);
       }
-      if (isAdmin && !branchId) {
+      if (canViewInventory && !branchId) {
         setItems([]);
         return;
       }
@@ -84,14 +96,14 @@ export default function MenuPage() {
       setBranchesLoading(false);
       setCatalogLoaded(true);
     }
-  }, [isAdmin, selectedBranchId]);
+  }, [canViewInventory, isAdmin, isBranchManager, selectedBranchId]);
 
   useEffect(() => {
     refresh().catch((err) => setError(err.message));
   }, [refresh]);
 
   const loadBranchStock = useCallback(async () => {
-    if (!isAdmin || !selectedBranchId) {
+    if (!canViewInventory || !selectedBranchId) {
       setStockByMenuItemId({});
       setStockDraftByMenuItemId({});
       setSupplies([]);
@@ -118,7 +130,7 @@ export default function MenuPage() {
       setStockLoading(false);
       setStockLoaded(true);
     }
-  }, [isAdmin, selectedBranchId]);
+  }, [canViewInventory, selectedBranchId]);
 
   useEffect(() => {
     Promise.resolve().then(() => loadBranchStock());
@@ -139,7 +151,7 @@ export default function MenuPage() {
   }, [itemMenu]);
 
   const visibleItems = items.filter((item) => showArchived || !item.archived);
-  const loading = !catalogLoaded || (isAdmin && Boolean(selectedBranchId) && !stockLoaded);
+  const loading = !catalogLoaded || (canViewInventory && Boolean(selectedBranchId) && !stockLoaded);
 
   const saveItem = async (event) => {
     event.preventDefault();
@@ -147,14 +159,20 @@ export default function MenuPage() {
     setMessage("");
     const { stockQuantity, ...menuFields } = form;
     const quantity = Number(stockQuantity);
+    const lowStockThreshold = Number(form.lowStockThreshold || 0);
     if (selectedBranchId && (!Number.isInteger(quantity) || quantity < 0)) {
       setError("Stock must be a whole number of zero or more.");
+      return;
+    }
+    if (!Number.isInteger(lowStockThreshold) || lowStockThreshold < 0) {
+      setError("Low stock threshold must be a whole number of zero or more.");
       return;
     }
     setBusy(true);
     const payload = {
       ...menuFields,
       price: Number(form.price),
+      lowStockThreshold,
       includedFruitPortions: Number(form.includedFruitPortions || 0),
       includedToppingPortions: Number(form.includedToppingPortions || 0),
       includedSaucePortions: Number(form.includedSaucePortions || 0),
@@ -448,7 +466,7 @@ export default function MenuPage() {
       <div className="flex gap-2 border-b border-gray-200 dark:border-neutral-800">
         {[
           ["items", "Menu items"],
-          ...(isAdmin ? [["inventory", "Inventory"]] : []),
+          ...(canViewInventory ? [["inventory", "Inventory"]] : []),
           ["channels", "Channels & payments"],
         ].map(([id, label]) => (
           <button key={id} onClick={() => { setTab(id); setForm(null); }} className={`border-b-2 px-4 py-3 text-sm font-medium ${tab === id ? "border-[#0A8B8E] text-[#0A8B8E]" : "border-transparent text-gray-500 hover:text-[#0A3B3D] dark:hover:text-white"}`}>
@@ -491,7 +509,7 @@ export default function MenuPage() {
                 </article>
               ))}
             </div>
-          ) : tab === "inventory" && isAdmin ? (
+          ) : tab === "inventory" && canViewInventory ? (
             <div className="space-y-5">
               <div className="flex justify-end">
                 <Skeleton className="h-10 w-32 rounded-xl" />
@@ -580,6 +598,11 @@ export default function MenuPage() {
           ) : (
             <p className="rounded-xl bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">Create a branch first to set branch stock.</p>
           )}
+          <label className="block max-w-xs space-y-1 text-sm font-medium">
+            Low stock alert threshold
+            <input className={inputClass} type="number" min="0" step="1" value={form.lowStockThreshold ?? "0"} onChange={(event) => setForm({ ...form, lowStockThreshold: event.target.value })} required />
+            <span className="block text-xs font-normal text-gray-500">Notify the branch manager when stock crosses down to this amount.</span>
+          </label>
           {form.itemType === "product" && <div className="space-y-3 rounded-xl border border-[#0A8B8E]/15 bg-[#0A8B8E]/5 p-4">
             <div><h4 className="font-semibold">Included choices</h4><p className="mt-1 text-xs text-gray-500">Set included portions for parfait products. Extra portions use each add-on’s price.</p></div>
             <div className="grid gap-3 sm:grid-cols-3">{[["includedFruitPortions", "Fruit portions"], ["includedToppingPortions", "Topping portions"], ["includedSaucePortions", "Sauce portions"]].map(([key, label]) => <label key={key} className="space-y-1 text-sm">{label}<input className={inputClass} type="number" min="0" step="1" value={form[key] ?? 0} onChange={(event) => setForm({ ...form, [key]: event.target.value })} /></label>)}</div>
@@ -662,7 +685,7 @@ export default function MenuPage() {
                 <button disabled={index === 0 || busy} onClick={() => moveItem(item, -1)} title="Move up" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowUp size={17} /></button>
                 <button disabled={index === visibleItems.length - 1 || busy} onClick={() => moveItem(item, 1)} title="Move down" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowDown size={17} /></button>
                 {!item.archived && <button onClick={() => patchItem(item, { active: !item.active })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10">{item.active ? "Disable" : "Enable"}</button>}
-                <button type="button" disabled={stockLoading} onClick={() => setForm({ ...item, itemType: item.itemType || "product", price: String(item.price), includedFruitPortions: String(item.includedFruitPortions || 0), includedToppingPortions: String(item.includedToppingPortions || 0), includedSaucePortions: String(item.includedSaucePortions || 0), stockQuantity: String(stockByMenuItemId[item._id] ?? 0), variants: item.variants || [], addons: item.addons || [] })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Edit</button>
+                <button type="button" disabled={stockLoading} onClick={() => setForm({ ...item, itemType: item.itemType || "product", price: String(item.price), lowStockThreshold: String(item.lowStockThreshold ?? 0), includedFruitPortions: String(item.includedFruitPortions || 0), includedToppingPortions: String(item.includedToppingPortions || 0), includedSaucePortions: String(item.includedSaucePortions || 0), stockQuantity: String(stockByMenuItemId[item._id] ?? 0), variants: item.variants || [], addons: item.addons || [] })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Edit</button>
                 <button onClick={() => patchItem(item, { archived: !item.archived })} title={item.archived ? "Restore item" : "Archive item"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><Archive size={17} /></button>
               </div>}
             </article>
@@ -678,34 +701,69 @@ export default function MenuPage() {
         </div>
       )}
 
-      {tab === "inventory" && isAdmin && (
+      {tab === "inventory" && canViewInventory && (
         <div className="space-y-5">
           {!selectedBranchId ? (
-            <div className={cardClass}><p className="text-sm text-gray-500">Add a branch before managing supply inventory.</p></div>
+            <div className={cardClass}><p className="text-sm text-gray-500">{isAdmin ? "Add a branch before managing supply inventory." : "Your account is not assigned to a branch."}</p></div>
           ) : (
             <>
-              <div className="flex justify-end"><button type="button" onClick={() => setShowAddSupplyModal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#08777a]"><Plus size={17} /> Add supply</button></div>
+              {isAdmin && <div className="flex justify-end"><button type="button" onClick={() => setShowAddSupplyModal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#08777a]"><Plus size={17} /> Add supply</button></div>}
+
+              <section className={`${cardClass} overflow-hidden`}>
+                <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                  <h3 className="font-semibold">Menu item stock</h3>
+                  <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Current quantities and low-stock thresholds at {branches.find((branch) => branch._id === selectedBranchId)?.name || "your branch"}.
+                  </p>
+                </div>
+                {stockLoading ? <p className="p-5 text-sm text-gray-500">Loading menu item stock...</p> : !items.length ? <p className="p-5 text-sm text-gray-500">No menu items in this branch.</p> : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-150 text-left text-sm">
+                      <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                        <tr><th className="px-5 py-3">Menu item</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th></tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
+                        {items.map((item) => {
+                          const quantity = stockByMenuItemId[item._id] ?? 0;
+                          const isLow = quantity <= (item.lowStockThreshold ?? 0);
+                          const unit = item.itemType === "addon" ? "portions" : "items";
+                          return (
+                            <tr key={item._id} className={item.archived || !item.active ? "opacity-60" : ""}>
+                              <td className="px-5 py-4"><span className="font-medium">{item.name}</span><span className="ml-2 text-xs text-gray-500">{item.itemType === "addon" ? "Add-on" : "Product"}</span></td>
+                              <td className="px-5 py-4">{quantity} {unit}</td>
+                              <td className="px-5 py-4">{item.lowStockThreshold ?? 0}</td>
+                              <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${!item.active || item.archived ? "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-300" : isLow ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>{item.archived ? "Archived" : !item.active ? "Inactive" : isLow ? "Low stock" : "In stock"}</span></td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
 
               <section className={`${cardClass} overflow-hidden`}>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><div><h3 className="font-semibold">Supply stock</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p></div></div>
                 {stockLoading ? <p className="p-5 text-sm text-gray-500">Loading supply stock...</p> : !supplies.length ? <p className="p-5 text-sm text-gray-500">No supplies yet. Add cups, cones, or other items above.</p> : (
                   <div className="overflow-x-auto"><table className="w-full min-w-190 text-left text-sm">
-                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Supply</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead>
+                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Supply</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th>{isAdmin && <th className="px-5 py-3 text-right">Actions</th>}</tr></thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{supplies.map((supply) => {
                       const isLow = supply.quantity <= supply.lowStockThreshold;
                       return <tr key={supply._id} className={!supply.active ? "opacity-60" : ""}>
-                        <td className="px-5 py-4"><input className="w-44 rounded-lg border border-gray-200 bg-white px-3 py-2 font-medium dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} name`} value={supply.name} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, name: event.target.value } : entry))} /><div className="mt-2 flex items-center gap-2"><span className="text-xs text-gray-500">Unit</span><input className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} unit`} value={supply.unit} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, unit: event.target.value } : entry))} /></div></td>
-                        <td className="px-5 py-4"><div className="flex items-center gap-2"><input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} stock quantity`} value={supplyQuantityDrafts[supply._id] ?? 0} onChange={(event) => setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: event.target.value }))} disabled={!supply.active} /><span className="text-xs text-gray-500">{supply.unit}</span></div></td>
-                        <td className="px-5 py-4"><input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} low stock threshold`} value={supply.lowStockThreshold} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, lowStockThreshold: event.target.value } : entry))} /></td>
+                        <td className="px-5 py-4">
+                          {isAdmin ? <><input className="w-44 rounded-lg border border-gray-200 bg-white px-3 py-2 font-medium dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} name`} value={supply.name} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, name: event.target.value } : entry))} /><div className="mt-2 flex items-center gap-2"><span className="text-xs text-gray-500">Unit</span><input className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} unit`} value={supply.unit} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, unit: event.target.value } : entry))} /></div></> : <><span className="font-medium">{supply.name}</span><div className="mt-1 text-xs text-gray-500">{supply.unit}</div></>}
+                        </td>
+                        <td className="px-5 py-4">{isAdmin ? <div className="flex items-center gap-2"><input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} stock quantity`} value={supplyQuantityDrafts[supply._id] ?? 0} onChange={(event) => setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: event.target.value }))} disabled={!supply.active} /><span className="text-xs text-gray-500">{supply.unit}</span></div> : <>{supply.quantity} {supply.unit}</>}</td>
+                        <td className="px-5 py-4">{isAdmin ? <input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} low stock threshold`} value={supply.lowStockThreshold} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, lowStockThreshold: event.target.value } : entry))} /> : supply.lowStockThreshold}</td>
                         <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${!supply.active ? "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-300" : isLow ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>{!supply.active ? "Inactive" : isLow ? "Low stock" : "In stock"}</span></td>
-                        <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => saveSupplyQuantity(supply)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10">Save stock</button><button type="button" onClick={() => updateSupply(supply, { name: supply.name, unit: supply.unit, lowStockThreshold: Number(supply.lowStockThreshold) })} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10">Save details</button><button type="button" onClick={() => updateSupply(supply, { active: !supply.active })} className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800">{supply.active ? "Disable" : "Enable"}</button><button type="button" onClick={() => deleteSupply(supply)} className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">Delete</button></div></td>
+                        {isAdmin && <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => saveSupplyQuantity(supply)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10">Save stock</button><button type="button" onClick={() => updateSupply(supply, { name: supply.name, unit: supply.unit, lowStockThreshold: Number(supply.lowStockThreshold) })} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10">Save details</button><button type="button" onClick={() => updateSupply(supply, { active: !supply.active })} className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800">{supply.active ? "Disable" : "Enable"}</button><button type="button" onClick={() => deleteSupply(supply)} className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">Delete</button></div></td>}
                       </tr>;
                     })}</tbody>
                   </table></div>
                 )}
               </section>
 
-              {showAddSupplyModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddSupplyModal(false); }}>
+              {showAddSupplyModal && isAdmin && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddSupplyModal(false); }}>
                 <section role="dialog" aria-modal="true" aria-labelledby="add-supply-title" className={`${cardClass} w-full max-w-lg p-6`}>
                   <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">Branch inventory</p><h3 id="add-supply-title" className="mt-1 text-xl font-semibold">Add a supply</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">This supply will be available to track across all branches.</p></div><button type="button" onClick={() => setShowAddSupplyModal(false)} aria-label="Close add supply dialog" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><X size={18} /></button></div>
                   {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}

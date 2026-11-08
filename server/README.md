@@ -78,6 +78,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 The editor handles Google sign-in, reCAPTCHA, Gmail, Google Drive, Google Calendar, and Google Sheets. It validates Google sign-in with a test ID token, reCAPTCHA with a fresh challenge response, Gmail by sending a test email to the Super Admin, and Drive/Calendar through temporary OAuth consent and read-only API calls. Sheets validation confirms OAuth and the requested Sheets scope; a real Sheets export remains the check that the API is enabled and available. Credentials replace the active bundle only after validation. PDF export has no external credentials. Replacing Google OAuth credentials may require users to reconnect that Google service. The verification code is sent to the configured Super Admin email using the Gmail integration.
 
+### Web push notifications
+
+Set `FIREBASE_SERVICE_ACCOUNT_JSON` in the server deployment environment to the complete Firebase service-account JSON for the same Firebase project used by the web app. Keep this private credential server-side and out of source control; it is separate from the public Firebase web-app configuration managed in Settings. Push delivery also requires Firebase Cloud Messaging to be enabled in Settings. Staff and Branch Managers can opt their browser in or out from account Settings. Branch Managers can review branch-scoped item and supply stock in the read-only Inventory tab.
+
 ## Run
 
 Start the backend development server from this folder:

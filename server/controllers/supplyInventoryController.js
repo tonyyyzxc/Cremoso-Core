@@ -3,9 +3,12 @@ import Branch from "../models/branch.js";
 import MenuItem from "../models/menuItem.js";
 import Supply from "../models/supply.js";
 import SupplyInventory from "../models/supplyInventory.js";
+import { notifyLowStockTransition } from "../utils/pushNotifications.js";
 
 export async function listSupplies(req, res) {
-  const branchId = typeof req.query.branchId === "string" ? req.query.branchId : "";
+  const branchId = req.user.role === "branch"
+    ? req.user.branchId?.toString() || ""
+    : typeof req.query.branchId === "string" ? req.query.branchId : "";
   if (!mongoose.Types.ObjectId.isValid(branchId)) {
     return res.status(400).json({ error: "Select a valid branch." });
   }
@@ -121,11 +124,20 @@ export async function setBranchSupplyQuantity(req, res) {
     if (!branch) return res.status(404).json({ error: "Branch not found." });
     if (!supply) return res.status(404).json({ error: "Supply not found." });
 
-    const inventory = await SupplyInventory.findOneAndUpdate(
-      { branchId, supplyId },
+    const filter = { branchId, supplyId };
+    const previousInventory = await SupplyInventory.findOneAndUpdate(
+      filter,
       { $set: { quantity } },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
-    ).populate("supplyId");
+      { new: false, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+    ).select("quantity");
+    const inventory = await SupplyInventory.findOne(filter).populate("supplyId");
+    await notifyLowStockTransition({
+      branchId,
+      stockType: "supply",
+      stockId: supplyId,
+      previousQuantity: previousInventory?.quantity ?? 0,
+      quantity,
+    });
     return res.json(inventory);
   } catch (error) {
     console.error("Supply stock update error:", error);
