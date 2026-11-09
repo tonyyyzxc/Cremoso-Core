@@ -42,14 +42,11 @@ async function isPushEnabled() {
   return config?.firebaseMessagingEnabled !== false;
 }
 
-async function sendToUsers(userIds, { title, body, url }) {
-  if (!userIds.length || !(await isPushEnabled())) return;
-
-  const registrations = await PushRegistration.find({ userId: { $in: userIds } })
-    .select("_id token");
-  if (!registrations.length) return;
-
+async function sendToRegistrations(registrations, { title, body, url }) {
   const messaging = getAdminMessaging();
+  let sent = 0;
+  let failed = 0;
+
   for (let offset = 0; offset < registrations.length; offset += 500) {
     const batch = registrations.slice(offset, offset + 500);
     const result = await messaging.sendEachForMulticast({
@@ -59,7 +56,12 @@ async function sendToUsers(userIds, { title, body, url }) {
     });
     const invalidRegistrationIds = [];
     result.responses.forEach((response, index) => {
-      if (response.success) return;
+      if (response.success) {
+        sent += 1;
+        return;
+      }
+
+      failed += 1;
       if (
         response.error?.code === "messaging/registration-token-not-registered" ||
         response.error?.code === "messaging/invalid-registration-token"
@@ -76,6 +78,36 @@ async function sendToUsers(userIds, { title, body, url }) {
       await PushRegistration.deleteMany({ _id: { $in: invalidRegistrationIds } });
     }
   }
+
+  return { sent, failed };
+}
+
+async function sendToUsers(userIds, { title, body, url }) {
+  if (!userIds.length || !(await isPushEnabled())) return;
+
+  const registrations = await PushRegistration.find({ userId: { $in: userIds } })
+    .select("_id token");
+  if (!registrations.length) return;
+
+  await sendToRegistrations(registrations, { title, body, url });
+}
+
+export async function sendBranchTestNotification(branchId) {
+  if (!(await isPushEnabled())) {
+    return { enabled: false, registered: 0, sent: 0, failed: 0 };
+  }
+
+  const registrations = await PushRegistration.find({ branchId }).select("_id token");
+  if (!registrations.length) {
+    return { enabled: true, registered: 0, sent: 0, failed: 0 };
+  }
+
+  const result = await sendToRegistrations(registrations, {
+    title: "FCM test notification",
+    body: "Push notifications are working for this branch.",
+    url: "/settings",
+  });
+  return { enabled: true, registered: registrations.length, ...result };
 }
 
 export async function notifyNewOrder(order) {

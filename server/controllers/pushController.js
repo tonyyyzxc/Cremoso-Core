@@ -1,5 +1,6 @@
 import AuthConfig from "../models/authConfig.js";
 import PushRegistration from "../models/pushRegistration.js";
+import { sendBranchTestNotification } from "../utils/pushNotifications.js";
 
 const browserIdPattern = /^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$/i;
 
@@ -46,11 +47,6 @@ export async function createPushRegistration(req, res) {
       return res.status(403).json({ error: "Firebase Cloud Messaging is disabled." });
     }
 
-    const existing = await PushRegistration.findOne({ browserId }).select("userId");
-    if (existing && existing.userId.toString() !== req.user._id.toString()) {
-      return res.status(409).json({ error: "This browser is already registered to another account." });
-    }
-
     const registration = await PushRegistration.findOneAndUpdate(
       { browserId },
       {
@@ -87,5 +83,29 @@ export async function deletePushRegistration(req, res) {
   } catch (error) {
     console.error("Push registration removal error:", error);
     return res.status(500).json({ error: "Unable to disable push alerts." });
+  }
+}
+
+export async function sendPushTest(req, res) {
+  if (!validateBranchUser(req, res)) return;
+
+  try {
+    const result = await sendBranchTestNotification(req.user.branchId);
+    if (!result.enabled) {
+      return res.status(403).json({ error: "Firebase Cloud Messaging is disabled." });
+    }
+    if (!result.registered) {
+      return res.status(404).json({ error: "No push-enabled devices are registered for this branch." });
+    }
+    if (!result.sent) {
+      return res.status(502).json({
+        error: "Firebase could not deliver the test notification to any registered devices.",
+        ...result,
+      });
+    }
+    return res.json({ message: "Test notification sent.", ...result });
+  } catch (error) {
+    console.error("Push test notification error:", error);
+    return res.status(500).json({ error: "Unable to send a test notification." });
   }
 }

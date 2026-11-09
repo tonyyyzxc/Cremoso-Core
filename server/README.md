@@ -81,6 +81,15 @@ The editor handles Google sign-in, reCAPTCHA, Brevo, Google Drive, Google Calend
 
 Set `FIREBASE_SERVICE_ACCOUNT_JSON` in the server deployment environment to the complete Firebase service-account JSON for the same Firebase project used by the web app. Keep this private credential server-side and out of source control; it is separate from the public Firebase web-app configuration managed in Settings. Push delivery also requires Firebase Cloud Messaging to be enabled in Settings. Staff and Branch Managers can opt their browser in or out from account Settings. Branch Managers can review branch-scoped item and supply stock in the read-only Inventory tab.
 
+To send a test notification to registered devices for the signed-in user's branch, sign in to the app, enable push notifications in Settings, and run this in the app's browser console:
+
+```js
+const { apiRequest } = await import("/src/utils/api.js");
+await apiRequest("/api/push/test", { method: "POST" });
+```
+
+The response reports the number of registered, successfully notified, and failed devices. The endpoint does not change inventory.
+
 ## Run
 
 Start the backend development server from this folder:

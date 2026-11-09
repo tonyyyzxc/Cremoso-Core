@@ -4,6 +4,7 @@ import {
   createPushRegistration,
   deletePushRegistration,
   getPushRegistration,
+  sendPushTest,
 } from "../controllers/pushController.js";
 
 const router = express.Router();
@@ -12,5 +13,6 @@ router.use(requireAuth);
 router.get("/registration", getPushRegistration);
 router.post("/registration", createPushRegistration);
 router.delete("/registration", deletePushRegistration);
+router.post("/test", sendPushTest);
 
 export default router;

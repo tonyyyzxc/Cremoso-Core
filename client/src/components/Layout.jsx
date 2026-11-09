@@ -5,8 +5,6 @@ import SidebarNav from "./Sidebar";
 import TopBar from "./Topbar";
 import { apiRequest } from "../utils/api.js";
 import {
-  disablePushNotifications,
-  getPushBrowserId,
   getPushRegistrationStatus,
   initializePushMessaging,
 } from "../firebase.js";
@@ -93,17 +91,9 @@ export default function Layout() {
 
   const handleLogout = async () => {
     setLoggingOut(true);
-    let browserId = "";
-    try {
-      browserId = getPushBrowserId();
-      await disablePushNotifications();
-    } catch (error) {
-      console.error("Push registration removal during logout failed:", error);
-    }
     try {
       await apiRequest("/api/auth/logout", {
         method: "POST",
-        body: JSON.stringify({ browserId }),
       });
     } catch (error) {
       console.error("Logout request failed:", error);
