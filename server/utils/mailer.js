@@ -1,56 +1,57 @@
-import { randomUUID } from "node:crypto";
-import { google } from "googleapis";
 import { getIntegrationCredentials } from "./integrationCredentials.js";
+
+const BREVO_EMAIL_API_URL = "https://api.brevo.com/v3/smtp/email";
+
+function parseSender(sender) {
+  const formattedSender = sender.match(/^\s*(.*?)\s*<([^<>]+)>\s*$/);
+  const name = formattedSender?.[1].trim().replace(/^["']|["']$/g, "");
+  const email = formattedSender ? formattedSender[2].trim() : sender.trim();
+
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(email)) {
+    throw new Error("MAIL_FROM must contain a valid sender email address.");
+  }
+
+  return { email, ...(name ? { name } : {}) };
+}
 
 async function sendCodeEmail(email, subject, text, html, suppliedCredentials) {
   const credentials = suppliedCredentials || await getIntegrationCredentials("gmail");
-  const { clientId, clientSecret, refreshToken, sender } = credentials;
-  if (!clientId || !clientSecret || !refreshToken || !sender) {
-    throw new Error("Gmail API is not fully configured.");
+  const { apiKey, sender } = credentials;
+  if (!apiKey || !sender) {
+    throw new Error("Brevo email is not fully configured.");
   }
 
-  const encodedSubject = /^[\x00-\x7F]*$/.test(subject)
-    ? subject
-    : `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
-  const boundary = `cremoso_${randomUUID()}`;
-  const encodeBody = (body) =>
-    Buffer.from(body, "utf8").toString("base64").match(/.{1,76}/g).join("\r\n");
-  const rawMessage = [
-    `From: ${sender}`,
-    `To: ${email}`,
-    `Subject: ${encodedSubject}`,
-    "MIME-Version: 1.0",
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    encodeBody(text),
-    `--${boundary}`,
-    "Content-Type: text/html; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
-    "",
-    encodeBody(html),
-    `--${boundary}--`,
-    "",
-  ].join("\r\n");
-
-  const oauth2Client = new google.auth.OAuth2(
-    clientId,
-    clientSecret,
-  );
-  oauth2Client.setCredentials({ refresh_token: refreshToken });
-  const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-  await gmail.users.messages.send({
-    userId: "me",
-    requestBody: {
-      raw: Buffer.from(rawMessage, "utf8").toString("base64url"),
+  const response = await fetch(BREVO_EMAIL_API_URL, {
+    method: "POST",
+    headers: {
+      "api-key": apiKey,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      sender: parseSender(sender),
+      to: [{ email }],
+      subject,
+      textContent: text,
+      htmlContent: html,
+    }),
+    signal: AbortSignal.timeout(10_000),
   });
+
+  if (!response.ok) {
+    const responseText = await response.text();
+    let providerMessage = "";
+    try {
+      const result = JSON.parse(responseText);
+      providerMessage = result.message || result.code || "";
+    } catch {
+      providerMessage = responseText;
+    }
+    throw new Error(
+      `Brevo email request failed with status ${response.status}${providerMessage ? `: ${providerMessage}` : "."}`,
+    );
+  }
 }
 
-// Send password reset codes through the configured Gmail API integration.
 export async function sendPasswordResetCode(email, code) {
   const subject = "Your Cremoso password reset code";
   const text = `Your password reset code is ${code}. It expires in 10 minutes.`;
@@ -66,8 +67,8 @@ export async function sendIntegrationCredentialCode(email, code) {
 }
 
 export async function sendIntegrationCredentialTestEmail(email, credentials) {
-  const subject = "Cremoso Gmail credential test";
-  const text = "This test email confirms that the configured Gmail integration can send messages.";
-  const html = "<p>This test email confirms that the configured Gmail integration can send messages.</p>";
+  const subject = "Cremoso Brevo credential test";
+  const text = "This test email confirms that the configured Brevo integration can send messages.";
+  const html = "<p>This test email confirms that the configured Brevo integration can send messages.</p>";
   return sendCodeEmail(email, subject, text, html, credentials);
 }

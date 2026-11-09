@@ -38,7 +38,7 @@ const feedbackClassName = (message) =>
 
 const integrationLabels = {
   recaptchaEnabled: "reCAPTCHA",
-  gmailEnabled: "Gmail password reset",
+  gmailEnabled: "Brevo password-reset email",
   pdfEnabled: "PDF export",
   googleSheetsEnabled: "Google Sheets export",
   googleCalendarEnabled: "Google Calendar",
@@ -49,7 +49,7 @@ const integrationLabels = {
 const integrationDescriptions = {
   staffGoogleAuthEnabled: "Google sign-in availability for admin and staff accounts.",
   recaptchaEnabled: "reCAPTCHA verification on password sign-in.",
-  gmailEnabled: "Password-reset emails. Super Admin credential verification emails remain available.",
+  gmailEnabled: "Password-reset emails through Brevo. Super Admin credential verification emails remain available.",
   pdfEnabled: "PDF report export.",
   googleSheetsEnabled: "Google Sheets report export.",
   googleCalendarEnabled: "Google Calendar shift syncing.",
@@ -74,12 +74,10 @@ const credentialIntegrations = {
     fields: { siteKey: "Site key", secretKey: "Secret key" },
   },
   gmail: {
-    label: "Gmail password reset",
+    label: "Brevo transactional email",
     fields: {
-      clientId: "OAuth client ID",
-      clientSecret: "OAuth client secret",
-      refreshToken: "Refresh token",
-      sender: "Sender email",
+      apiKey: "Brevo API key",
+      sender: "Sender (Name <email>)",
     },
   },
   googleDrive: {
@@ -1476,7 +1474,7 @@ export default function SettingsPage() {
                 onClick={() => openCredentialEditor(integrationContextMenu.integration, "replace")}
                 className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800"
               >
-                Edit API key
+                Edit credentials
               </button>
               {credentialStatuses[integrationContextMenu.integration]?.hasOverride && (
                 <button
@@ -1485,7 +1483,7 @@ export default function SettingsPage() {
                   onClick={() => openCredentialEditor(integrationContextMenu.integration, "remove")}
                   className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 dark:text-red-300 dark:hover:bg-red-950/40"
                 >
-                  Remove key override
+                  Remove credential override
                 </button>
               )}
             </div>

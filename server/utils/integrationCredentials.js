@@ -4,7 +4,7 @@ import IntegrationCredential from "../models/integrationCredential.js";
 export const integrationCredentialFields = {
   googleAuth: ["clientId"],
   recaptcha: ["siteKey", "secretKey"],
-  gmail: ["clientId", "clientSecret", "refreshToken", "sender"],
+  gmail: ["apiKey", "sender"],
   googleDrive: ["clientId", "clientSecret", "redirectUri"],
   googleCalendar: ["clientId", "clientSecret", "redirectUri"],
   googleSheets: ["clientId", "clientSecret", "redirectUri"],
@@ -27,10 +27,8 @@ const environmentCredentials = {
     secretKey: process.env.RECAPTCHA_SECRET_KEY || "",
   }),
   gmail: () => ({
-    clientId: process.env.GMAIL_CLIENT_ID || "",
-    clientSecret: process.env.GMAIL_CLIENT_SECRET || "",
-    refreshToken: process.env.GMAIL_REFRESH_TOKEN || "",
-    sender: process.env.GMAIL_SENDER || "",
+    apiKey: process.env.BREVO_API_KEY || "",
+    sender: process.env.MAIL_FROM || "",
   }),
   googleDrive: () => ({
     clientId: process.env.DRIVE_CLIENT_ID || "",
@@ -60,6 +58,8 @@ const environmentCredentials = {
       || "",
   }),
 };
+
+const warnedLegacyMailOverrides = new Set();
 
 function getEncryptionKey() {
   const encodedKey = process.env.INTEGRATION_CREDENTIALS_ENCRYPTION_KEY || "";
@@ -108,9 +108,19 @@ export async function getIntegrationCredentials(integration) {
 
   const stored = await IntegrationCredential.findOne({ integration })
     .select("+encryptedPayload");
-  return stored
-    ? decryptIntegrationCredentialBundle(stored.encryptedPayload)
-    : fallback();
+  if (!stored) return fallback();
+
+  const credentials = decryptIntegrationCredentialBundle(stored.encryptedPayload);
+  if (integration === "gmail" && credentials.refreshToken) {
+    if (!warnedLegacyMailOverrides.has(integration)) {
+      console.warn(
+        "Legacy Gmail credentials are ignored for mail delivery; using Brevo environment credentials until the override is updated or removed.",
+      );
+      warnedLegacyMailOverrides.add(integration);
+    }
+    return fallback();
+  }
+  return credentials;
 }
 
 export async function getIntegrationCredentialStatuses() {

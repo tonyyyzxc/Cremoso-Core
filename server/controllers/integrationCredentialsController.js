@@ -106,7 +106,7 @@ export async function requestIntegrationCredentialCode(req, res) {
     return res.json({ challengeId: challenge._id, expiresInSeconds: CODE_EXPIRY_MS / 1000 });
   } catch (error) {
     console.error("Integration credential code delivery error:", error);
-    return res.status(503).json({ error: "Unable to send the verification code. Check the Gmail integration configuration." });
+    return res.status(503).json({ error: "Unable to send the verification code. Check the Brevo email configuration." });
   }
 }
 

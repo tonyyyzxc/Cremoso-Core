@@ -207,7 +207,7 @@ export async function login(req, res) {
 }
 
 export async function requestPasswordResetCode(req, res) {
-  if (!(await requireIntegration("gmailEnabled", res, "Gmail password reset"))) return;
+  if (!(await requireIntegration("gmailEnabled", res, "Brevo password-reset email"))) return;
   const email = typeof req.body.email === "string"
     ? req.body.email.trim().toLowerCase()
     : "";

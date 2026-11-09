@@ -19,7 +19,7 @@ const router = express.Router();
 router.post("/login", login);
 // Google sign-in verifies a Google ID token and creates an app session.
 router.post("/google", googleLogin);
-// Requests a password reset code sent through the Gmail API.
+// Requests a password reset code sent through Brevo.
 router.post("/forgot-password", requestPasswordResetCode);
 router.post("/verify-reset-code", verifyPasswordResetCode);
 router.post("/reset-password", resetPassword);

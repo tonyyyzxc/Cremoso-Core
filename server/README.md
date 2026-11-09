@@ -36,14 +36,13 @@ Create or update the backend environment file in this folder with the connection
 
 Set `SUPER_ADMIN_EMAIL` to the email address of the designated active Admin account. That account keeps the Admin role and permissions, and receives Super Admin-only account management access. Regular Admins can create Branch Manager and Staff accounts; only the Super Admin can create or manage Admin accounts.
 
-Password reset email is sent through the Gmail API. Configure these backend environment variables:
+Password reset and Super Admin verification email are sent through Brevo's transactional email API. Configure these backend environment variables:
 
-- `GMAIL_CLIENT_ID`
-- `GMAIL_CLIENT_SECRET`
-- `GMAIL_REFRESH_TOKEN`
-- `GMAIL_SENDER`
+- `BREVO_API_KEY`
+- `MAIL_FROM` — sender in `Name <email>` format, using a sender verified in Brevo
 
-The OAuth credentials must allow Gmail API access for the sender account. Reset codes expire after 10 minutes.
+The Brevo API key must be permitted to send transactional email, and the sender address must be verified in Brevo. Reset codes expire after 10 minutes.
+Existing saved Gmail OAuth overrides are obsolete: the mailer uses the Brevo environment values until the Super Admin replaces or removes the old override.
 
 The temporary NBA scores widget on the login screen uses BALLDONTLIE. Add your API key to the local `server/.env` file:
 
@@ -76,7 +75,7 @@ The Super Admin can replace credential bundles from Settings. Overrides are encr
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-The editor handles Google sign-in, reCAPTCHA, Gmail, Google Drive, Google Calendar, and Google Sheets. It validates Google sign-in with a test ID token, reCAPTCHA with a fresh challenge response, Gmail by sending a test email to the Super Admin, and Drive/Calendar through temporary OAuth consent and read-only API calls. Sheets validation confirms OAuth and the requested Sheets scope; a real Sheets export remains the check that the API is enabled and available. Credentials replace the active bundle only after validation. PDF export has no external credentials. Replacing Google OAuth credentials may require users to reconnect that Google service. The verification code is sent to the configured Super Admin email using the Gmail integration.
+The editor handles Google sign-in, reCAPTCHA, Brevo, Google Drive, Google Calendar, and Google Sheets. It validates Google sign-in with a test ID token, reCAPTCHA with a fresh challenge response, and Brevo by sending a test email to the Super Admin. Drive/Calendar are checked through temporary OAuth consent and read-only API calls. Sheets validation confirms OAuth and the requested Sheets scope; a real Sheets export remains the check that the API is enabled and available. Credentials replace the active bundle only after validation. PDF export has no external credentials. Replacing Google OAuth credentials may require users to reconnect that Google service. Super Admin verification codes are sent through the configured Brevo integration.
 
 ### Web push notifications
 
