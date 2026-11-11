@@ -3,7 +3,7 @@ import StoreConfig from "../models/storeConfig.js";
 const getConfig = () => StoreConfig.findOneAndUpdate(
   { key: "default" },
   { $setOnInsert: { key: "default" } },
-  { new: true, upsert: true, setDefaultsOnInsert: true },
+  { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
 );
 
 export async function getStoreConfig(_req, res) {

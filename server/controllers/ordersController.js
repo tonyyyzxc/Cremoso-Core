@@ -272,8 +272,8 @@ export async function createNewOrder(req, res) {
       for (const [menuItemId, quantity] of quantitiesByMenuItem) {
         const stock = await Inventory.findOneAndUpdate(
           { branchId: branch._id, menuItemId, quantity: { $gte: quantity } },
-          { $inc: { quantity: -quantity } },
-          { new: true },
+          { $inc: { quantity: -quantity, __v: 1 } },
+          { returnDocument: "after" },
         );
         if (!stock) {
           const item = menuById.get(menuItemId);
@@ -293,8 +293,8 @@ export async function createNewOrder(req, res) {
       for (const [supplyId, quantity] of quantitiesBySupply) {
         const stock = await SupplyInventory.findOneAndUpdate(
           { branchId: branch._id, supplyId, quantity: { $gte: quantity } },
-          { $inc: { quantity: -quantity } },
-          { new: true },
+          { $inc: { quantity: -quantity, __v: 1 } },
+          { returnDocument: "after" },
         );
         if (!stock) {
           const supply = supplyById.get(supplyId);
@@ -335,13 +335,13 @@ export async function createNewOrder(req, res) {
       await Promise.all(reservedInventory.map(({ menuItemId, quantity }) =>
         Inventory.updateOne(
           { branchId: branch._id, menuItemId },
-          { $inc: { quantity } },
+          { $inc: { quantity, __v: 1 } },
         ),
       ));
       await Promise.all(reservedSupplies.map(({ supplyId, quantity }) =>
         SupplyInventory.updateOne(
           { branchId: branch._id, supplyId },
-          { $inc: { quantity } },
+          { $inc: { quantity, __v: 1 } },
         ),
       ));
       throw error;
@@ -415,7 +415,7 @@ export async function confirmOrderPayment(req, res) {
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, branchId: req.user.branchId, status: "pending" },
       { $set: { status: "completed", paymentMethod: paymentMethod.name } },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
     if (!order) {
       const existingOrder = await Order.findOne({ _id: req.params.id, branchId: req.user.branchId }).select("status");
@@ -448,7 +448,7 @@ export async function archiveOrder(req, res) {
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, archivedAt: null },
       { $set: { archivedAt: new Date(), archivedBy: req.user._id } },
-      { new: true },
+      { returnDocument: "after" },
     )
       .populate("branchId", "name")
       .populate("archivedBy", "name email");
@@ -505,7 +505,7 @@ async function recordOrderAction(req, res, action, branchId = null) {
         $set: { status: action === "void" ? "voided" : "refunded" },
         $push: { auditTrail: { action, reason, performedBy: req.user._id, performedAt: new Date() } },
       },
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
     if (!updatedOrder) return res.status(409).json({ error: "This order has already been updated." });
 
@@ -531,12 +531,12 @@ async function recordOrderAction(req, res, action, branchId = null) {
         ...[...quantitiesByMenuItem].map(([menuItemId, quantity]) =>
         Inventory.updateOne(
           { branchId: updatedOrder.branchId, menuItemId },
-          { $inc: { quantity } },
+          { $inc: { quantity, __v: 1 } },
         )),
         ...[...quantitiesBySupply].map(([supplyId, quantity]) =>
           SupplyInventory.updateOne(
             { branchId: updatedOrder.branchId, supplyId },
-            { $inc: { quantity } },
+            { $inc: { quantity, __v: 1 } },
           )),
       ]);
     }

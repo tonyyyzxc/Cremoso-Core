@@ -16,7 +16,8 @@ const inventorySchema = new mongoose.Schema(
     },
     quantity: { type: Number, required: true, min: 0, validate: Number.isInteger, default: 0 },
   },
-  { timestamps: true },
+  // Reject document saves when another write has advanced this record's __v.
+  { timestamps: true, optimisticConcurrency: true },
 );
 
 inventorySchema.index({ branchId: 1, menuItemId: 1 }, { unique: true });

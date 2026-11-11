@@ -56,7 +56,7 @@ export async function createPushRegistration(req, res) {
           token: token.trim(),
         },
       },
-      { new: true, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+      { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true },
     );
     return res.status(201).json({ registered: true, id: registration._id });
   } catch (error) {

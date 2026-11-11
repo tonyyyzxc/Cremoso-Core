@@ -149,7 +149,7 @@ export async function saveIntegrationCredentials(integration, credentials) {
   await IntegrationCredential.findOneAndUpdate(
     { integration },
     { $set: { encryptedPayload } },
-    { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+    { upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true },
   );
 }
 

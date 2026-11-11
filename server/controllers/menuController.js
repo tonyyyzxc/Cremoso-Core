@@ -50,7 +50,7 @@ export async function updateMenuItem(req, res) {
     const item = await MenuItem.findOneAndUpdate(
       { _id: req.params.id, branchId },
       updates,
-      { new: true, runValidators: true },
+      { returnDocument: "after", runValidators: true },
     );
     if (!item) return res.status(404).json({ error: "Menu item not found in this branch." });
     return res.json(item);

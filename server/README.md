@@ -36,6 +36,8 @@ Create or update the backend environment file in this folder with the connection
 
 Set `SUPER_ADMIN_EMAIL` to the email address of the designated active Admin account. That account keeps the Admin role and permissions, and receives Super Admin-only account management access. Regular Admins can create Branch Manager and Staff accounts; only the Super Admin can create or manage Admin accounts.
 
+Set `SU_USERNAME` and `SU_PIN` in the server environment for the credential-change confirmation step in Settings. These values are checked before a verification code is sent to `SUPER_ADMIN_EMAIL`. Keep both values private and server-side.
+
 Password reset and Super Admin verification email are sent through Brevo's transactional email API. Configure these backend environment variables:
 
 - `BREVO_API_KEY`

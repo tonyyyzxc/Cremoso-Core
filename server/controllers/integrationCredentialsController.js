@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { randomInt, timingSafeEqual } from "node:crypto";
 import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import IntegrationCredentialChallenge from "../models/integrationCredentialChallenge.js";
@@ -54,26 +54,32 @@ export async function getIntegrationCredentialStatus(_req, res) {
 }
 
 export async function requestIntegrationCredentialCode(req, res) {
-  const identifier = typeof req.body?.identifier === "string"
-    ? req.body.identifier.trim().toLowerCase()
+  const username = typeof req.body?.username === "string"
+    ? req.body.username.trim().toLowerCase()
     : "";
-  const password = typeof req.body?.password === "string" ? req.body.password : "";
+  const pin = typeof req.body?.pin === "string" ? req.body.pin : "";
+  const configuredUsername = process.env.SU_USERNAME?.trim().toLowerCase() || "";
+  const configuredPin = process.env.SU_PIN || "";
   const superAdminEmail = getSuperAdminEmail();
 
-  if (!identifier || !password) {
-    return res.status(400).json({ error: "Enter your username or email and password." });
+  if (!username || !pin) {
+    return res.status(400).json({ error: "Enter the Super Admin username and PIN." });
   }
   if (!superAdminEmail || !isSuperAdminAccount(req.user)) {
     return res.status(403).json({ error: "Only the configured Super Admin can manage integration credentials." });
   }
+  if (!configuredUsername || !configuredPin) {
+    return res.status(503).json({ error: "Super Admin username and PIN are not configured." });
+  }
 
   try {
-    const user = await User.findById(req.user._id).select("username email passwordHash");
-    const validIdentifier = [user?.username, user?.email]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase() === identifier);
-    if (!user?.passwordHash || !validIdentifier || !(await comparePassword(password, user.passwordHash))) {
-      return res.status(401).json({ error: "The username/email or password is incorrect." });
+    const user = await User.findById(req.user._id).select("email");
+    const providedPin = Buffer.from(pin);
+    const expectedPin = Buffer.from(configuredPin);
+    const validPin = providedPin.length === expectedPin.length
+      && timingSafeEqual(providedPin, expectedPin);
+    if (username !== configuredUsername || !validPin) {
+      return res.status(401).json({ error: "The Super Admin username or PIN is incorrect." });
     }
 
     const latestChallenge = await IntegrationCredentialChallenge.findOne({ userId: user._id })

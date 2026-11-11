@@ -37,7 +37,7 @@ async function findPasswordResetUser(email, code) {
           },
         },
         { $inc: { passwordResetCodeAttempts: 1 } },
-        { new: true },
+        { returnDocument: "after" },
       );
       if (
         updatedUser &&
@@ -425,7 +425,7 @@ export async function resetPassword(req, res) {
           passwordResetCodeSentAt: "",
         },
       },
-      { new: true },
+      { returnDocument: "after" },
     );
     if (!updatedUser) {
       await logActivity(req, {

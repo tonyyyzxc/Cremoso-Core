@@ -51,8 +51,8 @@ function readReportDates(query) {
 async function updateStock(model, branchId, id, quantity, reserved) {
   const stock = await model.findOneAndUpdate(
     { branchId, [model === Inventory ? "menuItemId" : "supplyId"]: id, quantity: { $gte: quantity } },
-    { $inc: { quantity: -quantity } },
-    { new: true },
+    { $inc: { quantity: -quantity, __v: 1 } },
+    { returnDocument: "after" },
   );
   if (!stock) throw Object.assign(new Error("There is not enough branch stock to record this sale."), { statusCode: 409 });
   reserved.push({
@@ -67,7 +67,7 @@ async function updateStock(model, branchId, id, quantity, reserved) {
 async function restoreStock(branchId, reserved) {
   await Promise.all(reserved.map(({ model, id, quantity }) => model.updateOne(
     { branchId, [model === Inventory ? "menuItemId" : "supplyId"]: id },
-    { $inc: { quantity } },
+    { $inc: { quantity, __v: 1 } },
   )));
 }
 

@@ -7,7 +7,7 @@ async function getConfig() {
   return AuthConfig.findOneAndUpdate(
     { key: "default" },
     { $setOnInsert: { key: "default" } },
-    { new: true, upsert: true, setDefaultsOnInsert: true },
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true },
   );
 }
 

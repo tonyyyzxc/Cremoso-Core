@@ -42,17 +42,18 @@ Cremoso-Core/
 
 ### Prerequisites
 
-- Node.js installed
-- MongoDB instance (local or Atlas)
+- Git installed
+- Node.js and npm installed
+- Access to a MongoDB instance (local or MongoDB Atlas)
 
-### Installation
+### Clone the integration branch and install dependencies
 
 ```bash
-# Clone the repository
-git clone https://github.com/tonyyyzxc/Cremoso-Core.git
+# Clone only the integration branch and enter the project folder
+git clone --branch integration --single-branch https://github.com/tonyyyzxc/Cremoso-Core.git
 cd Cremoso-Core
 
-# Install root dependencies (concurrently)
+# Install root dependencies (includes concurrently, used to run both apps)
 npm install
 
 # Install backend dependencies
@@ -60,17 +61,22 @@ cd server
 npm install
 
 # Install frontend dependencies
-cd ../Client
+cd ../client
 npm install
+cd ..
 ```
 
-### Environment Variables
+Run `npm install` once in each of the three folders after cloning. Each command reads that folder's `package.json` and installs its required modules. The root package installs `concurrently`; the server package installs the Express, MongoDB/Mongoose, authentication, Google, Firebase, and upload dependencies; the client package installs React, Vite, Tailwind, and the UI and integration dependencies. Developers do not need to install those modules one by one. Repeat the install commands when dependencies change.
 
-Create a `.env` file inside `server` (and `Client` if needed). Ask a teammate for the required values. Frontend variables must be prefixed with `VITE_`.
+### Environment setup
+
+Create the required `.env` files locally; they are not part of the clone. Ask a project maintainer for the needed values rather than committing secrets. Server settings go in `server/.env`. Client settings, if required, go in `client/.env` and must use the `VITE_` prefix.
+
+Make sure the server's MongoDB connection setting points to your local or Atlas database before starting the app.
 
 ### Running the Project
 
-Run both frontend and backend together from the project root:
+From the project root, start both the frontend and backend:
 
 ```bash
 npm run dev
@@ -84,7 +90,7 @@ cd server
 npm run dev
 
 # Terminal 2 - frontend
-cd Client
+cd client
 npm run dev
 ```
 

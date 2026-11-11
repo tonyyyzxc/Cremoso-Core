@@ -40,6 +40,7 @@ export default function MenuPage() {
   const [branches, setBranches] = useState([]);
   const [selectedBranchId, setSelectedBranchId] = useState("");
   const [stockByMenuItemId, setStockByMenuItemId] = useState({});
+  const [stockVersionByMenuItemId, setStockVersionByMenuItemId] = useState({});
   const [stockDraftByMenuItemId, setStockDraftByMenuItemId] = useState({});
   const [supplies, setSupplies] = useState([]);
   const [supplyName, setSupplyName] = useState("");
@@ -105,6 +106,7 @@ export default function MenuPage() {
   const loadBranchStock = useCallback(async () => {
     if (!canViewInventory || !selectedBranchId) {
       setStockByMenuItemId({});
+      setStockVersionByMenuItemId({});
       setStockDraftByMenuItemId({});
       setSupplies([]);
       setSupplyQuantityDrafts({});
@@ -117,6 +119,9 @@ export default function MenuPage() {
       const quantities = Object.fromEntries(
         inventory.map((entry) => [entry.menuItemId?._id, entry.quantity]),
       );
+      setStockVersionByMenuItemId(Object.fromEntries(
+        inventory.map((entry) => [entry.menuItemId?._id, entry.__v]),
+      ));
       setStockByMenuItemId(quantities);
       setStockDraftByMenuItemId(quantities);
       const supplyInventory = await apiRequest(`/api/supply-inventory?branchId=${selectedBranchId}`);
@@ -196,7 +201,11 @@ export default function MenuPage() {
       if (selectedBranchId) {
         await apiRequest(`/api/inventory/${savedItem._id}`, {
           method: "PUT",
-          body: JSON.stringify({ branchId: selectedBranchId, quantity }),
+          body: JSON.stringify({
+            branchId: selectedBranchId,
+            quantity,
+            __v: stockVersionByMenuItemId[savedItem._id] ?? -1,
+          }),
         });
       }
       await refresh();
@@ -221,12 +230,17 @@ export default function MenuPage() {
     setError("");
     setMessage("");
     try {
-      await apiRequest(`/api/inventory/${item._id}`, {
+      const updatedInventory = await apiRequest(`/api/inventory/${item._id}`, {
         method: "PUT",
-        body: JSON.stringify({ branchId: selectedBranchId, quantity }),
+        body: JSON.stringify({
+          branchId: selectedBranchId,
+          quantity,
+          __v: stockVersionByMenuItemId[item._id] ?? -1,
+        }),
       });
       setStockByMenuItemId((current) => ({ ...current, [item._id]: quantity }));
       setStockDraftByMenuItemId((current) => ({ ...current, [item._id]: quantity }));
+      setStockVersionByMenuItemId((current) => ({ ...current, [item._id]: updatedInventory.__v }));
       setMessage(`Stock saved for ${item.name}.`);
     } catch (err) {
       setError(err.message);
@@ -268,11 +282,13 @@ export default function MenuPage() {
     setError("");
     setMessage("");
     try {
-      await apiRequest(`/api/supply-inventory/${supply._id}/stock`, {
+      const savedInventory = await apiRequest(`/api/supply-inventory/${supply._id}/stock`, {
         method: "PUT",
-        body: JSON.stringify({ branchId: selectedBranchId, quantity }),
+        body: JSON.stringify({ branchId: selectedBranchId, quantity, __v: supply.inventoryVersion }),
       });
-      setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, quantity } : entry));
+      setSupplies((current) => current.map((entry) => entry._id === supply._id
+        ? { ...entry, quantity, inventoryVersion: savedInventory.__v }
+        : entry));
       setMessage(`Stock saved for ${supply.name}.`);
     } catch (err) {
       setError(err.message);

@@ -18,12 +18,13 @@ export async function listSupplies(req, res) {
       Supply.find().sort({ name: 1 }),
       SupplyInventory.find({ branchId }),
     ]);
-    const quantityBySupplyId = new Map(
-      inventory.map((entry) => [entry.supplyId.toString(), entry.quantity]),
+    const inventoryBySupplyId = new Map(
+      inventory.map((entry) => [entry.supplyId.toString(), entry]),
     );
     return res.json(supplies.map((supply) => ({
       ...supply.toObject(),
-      quantity: quantityBySupplyId.get(supply._id.toString()) ?? 0,
+      quantity: inventoryBySupplyId.get(supply._id.toString())?.quantity ?? 0,
+      inventoryVersion: inventoryBySupplyId.get(supply._id.toString())?.__v ?? -1,
     })));
   } catch (error) {
     console.error("Supply inventory list error:", error);
@@ -68,7 +69,7 @@ export async function updateSupply(req, res) {
 
   try {
     const supply = await Supply.findByIdAndUpdate(req.params.supplyId, updates, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     });
     if (!supply) return res.status(404).json({ error: "Supply not found." });
@@ -115,6 +116,10 @@ export async function setBranchSupplyQuantity(req, res) {
   if (!Number.isInteger(quantity) || quantity < 0) {
     return res.status(400).json({ error: "Stock quantity must be a whole number of zero or more." });
   }
+  const expectedVersion = req.body.__v;
+  if (!Number.isInteger(expectedVersion) || expectedVersion < -1) {
+    return res.status(400).json({ error: "Reload this supply inventory record before saving it." });
+  }
 
   try {
     const [branch, supply] = await Promise.all([
@@ -124,13 +129,31 @@ export async function setBranchSupplyQuantity(req, res) {
     if (!branch) return res.status(404).json({ error: "Branch not found." });
     if (!supply) return res.status(404).json({ error: "Supply not found." });
 
-    const filter = { branchId, supplyId };
+    if (expectedVersion === -1) {
+      // Version -1 means no branch stock row existed when the client loaded the supply.
+      const createdInventory = await SupplyInventory.create({ branchId, supplyId, quantity });
+      const inventory = await SupplyInventory.findById(createdInventory._id).populate("supplyId");
+      await notifyLowStockTransition({
+        branchId,
+        stockType: "supply",
+        stockId: supplyId,
+        previousQuantity: 0,
+        quantity,
+      });
+      return res.json(inventory);
+    }
+
+    // Match the version the client read so a stale quantity cannot overwrite newer stock.
+    const filter = { branchId, supplyId, __v: expectedVersion };
     const previousInventory = await SupplyInventory.findOneAndUpdate(
       filter,
-      { $set: { quantity } },
-      { new: false, upsert: true, runValidators: true, setDefaultsOnInsert: true },
+      { $set: { quantity }, $inc: { __v: 1 } },
+      { returnDocument: "before", runValidators: true },
     ).select("quantity");
-    const inventory = await SupplyInventory.findOne(filter).populate("supplyId");
+    if (!previousInventory) {
+      return res.status(409).json({ error: "Supply inventory changed since you loaded it. Reload and try again." });
+    }
+    const inventory = await SupplyInventory.findOne({ branchId, supplyId }).populate("supplyId");
     await notifyLowStockTransition({
       branchId,
       stockType: "supply",
@@ -140,6 +163,9 @@ export async function setBranchSupplyQuantity(req, res) {
     });
     return res.json(inventory);
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(409).json({ error: "Supply inventory changed since you loaded it. Reload and try again." });
+    }
     console.error("Supply stock update error:", error);
     return res.status(400).json({ error: "Unable to save this supply quantity." });
   }

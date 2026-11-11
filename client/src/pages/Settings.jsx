@@ -156,8 +156,8 @@ export default function SettingsPage() {
   const [credentialEditor, setCredentialEditor] = useState(null);
   const [integrationContextMenu, setIntegrationContextMenu] = useState(null);
   const [credentialValues, setCredentialValues] = useState({});
-  const [credentialIdentifier, setCredentialIdentifier] = useState("");
-  const [credentialPassword, setCredentialPassword] = useState("");
+  const [credentialUsername, setCredentialUsername] = useState("");
+  const [credentialPin, setCredentialPin] = useState("");
   const [credentialCode, setCredentialCode] = useState("");
   const [credentialTestToken, setCredentialTestToken] = useState("");
   const [credentialCaptchaVersion, setCredentialCaptchaVersion] = useState(0);
@@ -553,8 +553,8 @@ export default function SettingsPage() {
     setIntegrationContextMenu(null);
     setCredentialEditor({ integration, mode, step: "account" });
     setCredentialValues(Object.fromEntries(Object.keys(fields).map((field) => [field, ""])));
-    setCredentialIdentifier(user?.username || user?.email || "");
-    setCredentialPassword("");
+    setCredentialUsername("");
+    setCredentialPin("");
     setCredentialCode("");
     setCredentialTestToken("");
     setCredentialCaptchaVersion((current) => current + 1);
@@ -566,7 +566,7 @@ export default function SettingsPage() {
     if (credentialBusy) return;
     setCredentialEditor(null);
     setCredentialValues({});
-    setCredentialPassword("");
+    setCredentialPin("");
     setCredentialCode("");
     setCredentialTestToken("");
     setCredentialCaptchaVersion((current) => current + 1);
@@ -581,12 +581,12 @@ export default function SettingsPage() {
       const result = await apiRequest("/api/integration-credentials/challenge", {
         method: "POST",
         body: JSON.stringify({
-          identifier: credentialIdentifier,
-          password: credentialPassword,
+          username: credentialUsername,
+          pin: credentialPin,
         }),
       });
       setCredentialChallengeId(result.challengeId);
-      setCredentialPassword("");
+      setCredentialPin("");
       setCredentialEditor((current) => ({ ...current, step: "otp" }));
       toast.success("Verification code sent to the Super Admin email.");
     } catch (err) {
@@ -1583,7 +1583,7 @@ export default function SettingsPage() {
                   </h3>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     {credentialEditor.step === "account"
-                      ? "Enter your Super Admin account credentials to request a verification code."
+                      ? "Enter the configured Super Admin username and PIN to request a verification code."
                       : credentialEditor.step === "otp"
                         ? "Enter the one-time code sent to the Super Admin email."
                         : credentialEditor.mode === "remove"
@@ -1595,23 +1595,23 @@ export default function SettingsPage() {
                 {credentialEditor.step === "account" ? (
                   <div className="space-y-4">
                     <label className="block space-y-1.5 text-sm font-medium">
-                      Username or email
+                      Super Admin username
                       <input
                         className={inputClassName}
-                        autoComplete="username"
-                        value={credentialIdentifier}
-                        onChange={(event) => setCredentialIdentifier(event.target.value)}
+                        autoComplete="off"
+                        value={credentialUsername}
+                        onChange={(event) => setCredentialUsername(event.target.value)}
                         required
                       />
                     </label>
                     <label className="block space-y-1.5 text-sm font-medium">
-                      Password
+                      PIN
                       <input
                         className={inputClassName}
                         type="password"
-                        autoComplete="current-password"
-                        value={credentialPassword}
-                        onChange={(event) => setCredentialPassword(event.target.value)}
+                        autoComplete="off"
+                        value={credentialPin}
+                        onChange={(event) => setCredentialPin(event.target.value)}
                         required
                       />
                     </label>
