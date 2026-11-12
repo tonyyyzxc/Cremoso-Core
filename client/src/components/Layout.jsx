@@ -32,11 +32,30 @@ export default function Layout() {
   const location = useLocation();
   const activeId = location.pathname.replace("/", "") || "dashboard";
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [viewportMode, setViewportMode] = useState("desktop");
   const [showSidebarIcons, setShowSidebarIcons] = useState(true);
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem("theme") === "dark",
   );
   const contentRef = useRef(null);
+
+  useEffect(() => {
+    const mobileQuery = window.matchMedia("(max-width: 767px)");
+    const tabletQuery = window.matchMedia("(min-width: 768px) and (max-width: 1279px)");
+    const updateViewportMode = () => {
+      setViewportMode(mobileQuery.matches ? "mobile" : tabletQuery.matches ? "tablet" : "desktop");
+    };
+
+    updateViewportMode();
+    mobileQuery.addEventListener("change", updateViewportMode);
+    tabletQuery.addEventListener("change", updateViewportMode);
+
+    return () => {
+      mobileQuery.removeEventListener("change", updateViewportMode);
+      tabletQuery.removeEventListener("change", updateViewportMode);
+    };
+  }, []);
 
   const [user] = useState(() => {
     try {
@@ -87,7 +106,21 @@ export default function Layout() {
     localStorage.setItem("theme", darkMode ? "dark" : "light");
   }, [darkMode]);
 
-  const handleSelect = (id) => navigate(`/${id}`);
+  useEffect(() => {
+    if (viewportMode !== "mobile" || !mobileSidebarOpen) return undefined;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setMobileSidebarOpen(false);
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [mobileSidebarOpen, viewportMode]);
+
+  const handleSelect = (id) => {
+    navigate(`/${id}`);
+    setMobileSidebarOpen(false);
+  };
 
   const handleLogout = async () => {
     setLoggingOut(true);
@@ -104,14 +137,23 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden">
+    <div className="flex h-dvh w-full overflow-hidden">
+      {viewportMode === "mobile" && mobileSidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileSidebarOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
       <SidebarNav
         activeId={activeId}
         onSelect={handleSelect}
         onLogout={handleLogout}
         userRole={user?.role}
-        collapsed={!sidebarOpen}
-        showIcons={showSidebarIcons}
+        collapsed={viewportMode === "tablet" || (viewportMode === "desktop" && !sidebarOpen)}
+        mobileOpen={viewportMode !== "mobile" || mobileSidebarOpen}
+        showIcons={viewportMode === "tablet" || showSidebarIcons}
       />
       <div className="flex min-w-0 flex-1 flex-col transition-[width] duration-300 ease-in-out motion-reduce:transition-none">
         <TopBar
@@ -131,11 +173,19 @@ export default function Layout() {
           userPicture={user?.picture}
           onViewProfile={() => navigate("/settings")}
           sidebarOpen={sidebarOpen}
-          onToggleSidebar={() => setSidebarOpen((v) => !v)}
+          mobileSidebarOpen={mobileSidebarOpen}
+          mobileMode={viewportMode === "mobile"}
+          onToggleSidebar={() => {
+            if (viewportMode === "mobile") {
+              setMobileSidebarOpen((open) => !open);
+            } else if (viewportMode === "desktop") {
+              setSidebarOpen((open) => !open);
+            }
+          }}
           darkMode={darkMode}
           onToggleDarkMode={() => setDarkMode((v) => !v)}
         />
-        <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-black/2 p-6 dark:bg-black">
+        <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-black/2 p-4 sm:p-5 lg:p-6 dark:bg-black">
           <Outlet context={{ showSidebarIcons, setShowSidebarIcons }} />
         </div>
       </div>

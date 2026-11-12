@@ -21,9 +21,6 @@ import supplyInventoryRouter from "./routes/supplyInventory.js";
 import usersRouter from "./routes/users.js";
 import integrationCredentialsRouter from "./routes/integrationCredentials.js";
 import pushRouter from "./routes/push.js";
-// BEGIN removable BALLDONTLIE login scores integration.
-import ballDontLieScoresRouter from "./integrations/balldontlie/scoresRoute.js";
-// END removable BALLDONTLIE login scores integration.
 
 dotenv.config();
 const app = express();
@@ -49,15 +46,14 @@ app.use("/api/staff", staffRouter);
 app.use("/api/store-config", storeConfigRouter);
 app.use("/api/supply-inventory", supplyInventoryRouter);
 app.use("/api/users", usersRouter);
-// BEGIN removable BALLDONTLIE login scores integration.
-app.use("/api/integrations/balldontlie", ballDontLieScoresRouter);
-// END removable BALLDONTLIE login scores integration.
 
 const PORT = 5000;
 const MONGODB_URL = process.env.MONGODB_URL;
 
 mongoose.connect(MONGODB_URL).then(() => {
   console.log("MONGODB ONLINE!");
+}).catch(() => {
+  console.error("MongoDB connection failed.");
 });
 
 app.listen(PORT, () => {

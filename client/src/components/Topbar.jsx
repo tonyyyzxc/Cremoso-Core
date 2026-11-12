@@ -1,4 +1,4 @@
-import { ChevronLeft, Moon, Sun } from "lucide-react";
+import { ChevronLeft, Menu, X } from "lucide-react";
 
 export default function TopBar({
   pageTitle,
@@ -8,46 +8,39 @@ export default function TopBar({
   userPicture,
   onViewProfile,
   sidebarOpen,
+  mobileSidebarOpen,
+  mobileMode,
   onToggleSidebar,
-  darkMode,
-  onToggleDarkMode,
 }) {
   const initial = (userName || "?").charAt(0).toUpperCase();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-6 dark:border-neutral-800 dark:bg-neutral-900">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 bg-white px-3 sm:px-5 lg:px-6 dark:border-neutral-800 dark:bg-neutral-900">
       {/* Left: sidebar toggle + page title */}
       <div className="flex items-center gap-3">
         <button
           type="button"
           onClick={onToggleSidebar}
-          aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-          aria-expanded={sidebarOpen}
-          className="rounded-lg p-2 text-gray-500 transition hover:bg-[#FBF6EF] hover:text-[#0A8B8E] dark:hover:bg-neutral-800"
+          aria-label={mobileMode ? mobileSidebarOpen ? "Close navigation menu" : "Open navigation menu" : sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          aria-expanded={mobileMode ? mobileSidebarOpen : sidebarOpen}
+          className="rounded-lg p-2 text-gray-500 transition hover:bg-[#FBF6EF] hover:text-[#0A8B8E] dark:hover:bg-neutral-800 md:hidden xl:inline-flex"
         >
-          <ChevronLeft
-            size={20}
-            className={`transition-transform duration-300 ease-in-out motion-reduce:transition-none ${
-              sidebarOpen ? "" : "rotate-180"
-            }`}
-          />
+          {mobileMode ? mobileSidebarOpen ? <X size={20} /> : <Menu size={20} /> : (
+            <ChevronLeft
+              size={20}
+              className={`transition-transform duration-300 ease-in-out motion-reduce:transition-none ${
+                sidebarOpen ? "" : "rotate-180"
+              }`}
+            />
+          )}
         </button>
-        <h1 className="text-lg font-semibold text-[#0A3B3D] dark:text-white">
+        <h1 className="min-w-0 truncate text-lg font-semibold text-[#0A3B3D] dark:text-white">
           {pageTitle}
         </h1>
       </div>
 
-      {/* Right: theme toggle + user */}
+      {/* Right: user profile */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onToggleDarkMode}
-          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
-          className="rounded-lg p-2 text-gray-500 transition hover:bg-[#FBF6EF] hover:text-[#0A8B8E] dark:hover:bg-neutral-800"
-        >
-          {darkMode ? <Sun size={20} /> : <Moon size={20} />}
-        </button>
-
         <button
           type="button"
           onClick={onViewProfile}

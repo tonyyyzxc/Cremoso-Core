@@ -430,11 +430,11 @@ function Login() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...fadeTransition, delay: 0.15 }}
-          className="relative z-10 w-full max-w-4xl max-h-full bg-white rounded-[2.5rem] shadow-xl shadow-[#0A8B8E]/10 overflow-hidden grid md:grid-cols-2"
+          className="relative z-10 grid max-h-full w-full max-w-4xl grid-cols-1 overflow-y-auto rounded-[2.5rem] bg-white shadow-xl shadow-[#0A8B8E]/10 md:grid-cols-2 md:overflow-hidden"
         >
           {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
           <div
-            className={`relative bg-[#0A8B8E] flex flex-col items-center justify-center px-8 overflow-hidden ${
+            className={`relative hidden flex-col items-center justify-center overflow-hidden bg-[#0A8B8E] px-8 md:flex ${
               !isSignup && !isForgotPassword
                 ? "pt-20 pb-14 md:pt-0 md:pb-0"
                 : "py-14 md:py-0"
@@ -465,8 +465,8 @@ function Login() {
 
           {/* Right panel — form side */}
           <div
-            className={`flex flex-col justify-center px-8 md:px-12 ${
-              !isSignup && !isForgotPassword ? "pt-16 pb-8" : "py-8"
+            className={`flex flex-col justify-center px-6 sm:px-8 md:px-12 ${
+              !isSignup && !isForgotPassword ? "pt-8 pb-8 md:pt-16" : "py-8"
             }`}
           >
             <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">

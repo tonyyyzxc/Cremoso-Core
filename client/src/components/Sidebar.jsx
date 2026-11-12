@@ -75,6 +75,7 @@ export default function SidebarNav({
   onLogout,
   userRole,
   collapsed,
+  mobileOpen,
   showIcons,
 }) {
   const navItems = {
@@ -85,18 +86,21 @@ export default function SidebarNav({
   const iconRail = collapsed && showIcons;
   const labelsHidden = collapsed;
   const fullyCollapsed = collapsed && !showIcons;
+  const hiddenOnMobile = !mobileOpen;
 
   return (
     <aside
-      inert={fullyCollapsed}
-      aria-hidden={fullyCollapsed || undefined}
-      className={`flex h-full shrink-0 flex-col overflow-hidden bg-white transition-[width] duration-300 ease-in-out motion-reduce:transition-none ${
+      inert={fullyCollapsed || hiddenOnMobile}
+      aria-hidden={fullyCollapsed || hiddenOnMobile || undefined}
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden bg-white shadow-[inset_-1px_0_0_#e5e7eb] transition-transform duration-300 ease-in-out motion-reduce:transition-none md:relative md:inset-auto md:z-auto md:h-full md:shrink-0 md:translate-x-0 md:transition-[width] xl:duration-300 ${
+        hiddenOnMobile ? "-translate-x-full" : "translate-x-0"
+      } ${
         collapsed
           ? showIcons
-            ? "w-18 shadow-[inset_-1px_0_0_#e5e7eb] dark:shadow-[inset_-1px_0_0_#262626]"
-            : "w-0 shadow-none"
-          : "w-64 shadow-[inset_-1px_0_0_#e5e7eb] dark:shadow-[inset_-1px_0_0_#262626]"
-      } dark:bg-neutral-900`}
+            ? "md:w-18"
+            : "md:w-0 md:shadow-none"
+          : "md:w-64"
+      } dark:bg-neutral-900 dark:shadow-[inset_-1px_0_0_#262626]`}
     >
       <div className="flex shrink-0 items-center gap-3 px-3 py-5">
         <div className="flex h-10 w-12 shrink-0 items-center justify-center">

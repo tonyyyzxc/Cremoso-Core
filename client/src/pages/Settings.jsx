@@ -665,7 +665,6 @@ export default function SettingsPage() {
       setCredentialEncryptionConfigured(status.encryptionConfigured === true);
       setCredentialEditor(null);
       setCredentialValues({});
-      setCredentialPassword("");
       setCredentialCode("");
       setCredentialTestToken("");
       setCredentialChallengeId("");
