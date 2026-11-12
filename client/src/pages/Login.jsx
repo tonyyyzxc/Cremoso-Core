@@ -69,10 +69,6 @@ function Login() {
   const recaptchaRef = useRef(null);
   const recaptchaContainerRef = useRef(null);
   const [recaptchaScale, setRecaptchaScale] = useState(1);
-  // BEGIN removable BALLDONTLIE login scores integration.
-  const [nbaGames, setNbaGames] = useState([]);
-  const [nbaScoresStatus, setNbaScoresStatus] = useState("loading");
-  // END removable BALLDONTLIE login scores integration.
 
   // Optional: prevents page scrolling while the login page is mounted.
   useEffect(() => {
@@ -85,17 +81,24 @@ function Login() {
   useEffect(() => {
     fetch(`${API_URL}/api/auth-settings/public`)
       .then((response) => {
-        if (!response.ok) throw new Error("Unable to load public sign-in settings.");
+        if (!response.ok)
+          throw new Error("Unable to load public sign-in settings.");
         return response.json();
       })
-      .then((config) => setLoginIntegrations((current) => ({
-        ...current,
-        ...config,
-        recaptchaSiteKey:
-          config.recaptchaSiteKey || import.meta.env.VITE_RECAPTCHA_SITE_KEY || "",
-        loaded: true,
-      })))
-      .catch(() => setLoginIntegrations((current) => ({ ...current, loaded: true })));
+      .then((config) =>
+        setLoginIntegrations((current) => ({
+          ...current,
+          ...config,
+          recaptchaSiteKey:
+            config.recaptchaSiteKey ||
+            import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
+            "",
+          loaded: true,
+        })),
+      )
+      .catch(() =>
+        setLoginIntegrations((current) => ({ ...current, loaded: true })),
+      );
   }, []);
 
   useEffect(() => {
@@ -112,34 +115,6 @@ function Login() {
 
     return () => observer.disconnect();
   }, [isSignup, isForgotPassword]);
-
-  // BEGIN removable BALLDONTLIE login scores integration.
-  useEffect(() => {
-    if (isSignup || isForgotPassword) return undefined;
-
-    let active = true;
-    const loadScores = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/integrations/balldontlie/scores`);
-        const data = await response.json().catch(() => ({}));
-        if (!response.ok) throw new Error(data.error || "Unable to load NBA scores.");
-        if (active) {
-          setNbaGames(data.games || []);
-          setNbaScoresStatus("loaded");
-        }
-      } catch {
-        if (active) setNbaScoresStatus("unavailable");
-      }
-    };
-
-    Promise.resolve().then(loadScores);
-    const refreshTimer = window.setInterval(loadScores, 60_000);
-    return () => {
-      active = false;
-      window.clearInterval(refreshTimer);
-    };
-  }, [isSignup, isForgotPassword]);
-  // END removable BALLDONTLIE login scores integration.
 
   const handleSignup = async (event) => {
     event.preventDefault();
@@ -246,7 +221,10 @@ function Login() {
   // Password login returns { token, user }.
   const handleSubmit = async (event) => {
     event.preventDefault();
-    if (loginIntegrations.recaptchaEnabled && !loginIntegrations.recaptchaSiteKey) {
+    if (
+      loginIntegrations.recaptchaEnabled &&
+      !loginIntegrations.recaptchaSiteKey
+    ) {
       toast.error(
         "reCAPTCHA is not configured. Please contact an administrator.",
       );
@@ -262,7 +240,13 @@ function Login() {
       const result = await fetch(`${API_URL}/api/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password, recaptchaToken: loginIntegrations.recaptchaEnabled ? recaptchaToken : "" }),
+        body: JSON.stringify({
+          identifier,
+          password,
+          recaptchaToken: loginIntegrations.recaptchaEnabled
+            ? recaptchaToken
+            : "",
+        }),
       });
       const data = await result.json().catch(() => ({}));
 
@@ -456,44 +440,6 @@ function Login() {
                 : "py-14 md:py-0"
             }`}
           >
-            {/* BEGIN removable BALLDONTLIE login scores integration. */}
-            {!isSignup && !isForgotPassword && (
-              <section
-                aria-label="Today's NBA scores (Eastern Time)"
-                aria-live="polite"
-                className="relative z-10 mb-5 w-full max-w-[270px] rounded-2xl border border-white/20 bg-[#08777a]/70 p-3 text-white shadow-sm"
-              >
-                <h2 className="mb-2 text-center text-[10px] font-semibold uppercase tracking-[0.18em] text-white/75">
-                  NBA scores · ET
-                </h2>
-                {nbaScoresStatus === "loading" && (
-                  <p className="py-2 text-center text-xs text-white/75">Loading scores...</p>
-                )}
-                {nbaScoresStatus === "unavailable" && (
-                  <p className="py-2 text-center text-xs text-white/75">Scores unavailable</p>
-                )}
-                {nbaScoresStatus === "loaded" && nbaGames.length === 0 && (
-                  <p className="py-2 text-center text-xs text-white/75">No NBA games today (ET)</p>
-                )}
-                {nbaGames.slice(0, 3).map((game) => (
-                  <div
-                    key={game.id}
-                    className="flex items-center justify-between gap-2 border-t border-white/15 py-1.5 text-xs first:border-0"
-                  >
-                    <span className="font-semibold">{game.visitorTeam}</span>
-                    <span className="tabular-nums">
-                      {game.visitorScore} - {game.homeScore}
-                    </span>
-                    <span className="font-semibold">{game.homeTeam}</span>
-                    <span className="min-w-16 text-right text-[10px] text-white/70">
-                      {game.status || "Scheduled"}
-                    </span>
-                  </div>
-                ))}
-              </section>
-            )}
-            {/* END removable BALLDONTLIE login scores integration. */}
-
             {/* Soft-serve swirl icon */}
             <img
               src="/android-chrome-512x512.png"
@@ -820,38 +766,40 @@ function Login() {
               {isForgotPassword && (
                 <FlowStepper step={resetStep} steps={passwordResetSteps} />
               )}
-              {!isSignup && !isForgotPassword && loginIntegrations.recaptchaEnabled && (
-                <div className="space-y-1">
-                  {loginIntegrations.recaptchaSiteKey ? (
-                    <div
-                      ref={recaptchaContainerRef}
-                      className="w-full overflow-hidden"
-                      style={{ height: `${78 * recaptchaScale}px` }}
-                    >
+              {!isSignup &&
+                !isForgotPassword &&
+                loginIntegrations.recaptchaEnabled && (
+                  <div className="space-y-1">
+                    {loginIntegrations.recaptchaSiteKey ? (
                       <div
-                        style={{
-                          width: 304,
-                          height: 78,
-                          transform: `scale(${recaptchaScale})`,
-                          transformOrigin: "top left",
-                        }}
+                        ref={recaptchaContainerRef}
+                        className="w-full overflow-hidden"
+                        style={{ height: `${78 * recaptchaScale}px` }}
                       >
-                        <ReCAPTCHA
-                          ref={recaptchaRef}
-                          sitekey={loginIntegrations.recaptchaSiteKey}
-                          onChange={(token) => setRecaptchaToken(token || "")}
-                          onExpired={() => setRecaptchaToken("")}
-                        />
+                        <div
+                          style={{
+                            width: 304,
+                            height: 78,
+                            transform: `scale(${recaptchaScale})`,
+                            transformOrigin: "top left",
+                          }}
+                        >
+                          <ReCAPTCHA
+                            ref={recaptchaRef}
+                            sitekey={loginIntegrations.recaptchaSiteKey}
+                            onChange={(token) => setRecaptchaToken(token || "")}
+                            onExpired={() => setRecaptchaToken("")}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-red-700" role="alert">
-                      reCAPTCHA is not configured. Please contact an
-                      administrator.
-                    </p>
-                  )}
-                </div>
-              )}
+                    ) : (
+                      <p className="text-sm text-red-700" role="alert">
+                        reCAPTCHA is not configured. Please contact an
+                        administrator.
+                      </p>
+                    )}
+                  </div>
+                )}
               <div className="flex gap-3">
                 {((isSignup && step > 0) ||
                   (isForgotPassword && resetStep > 0)) && (
@@ -897,41 +845,43 @@ function Login() {
               </div>
             </form>
 
-            {!isSignup && !isForgotPassword && loginIntegrations.staffGoogleAuthEnabled && (
-              <>
-                <div className="flex items-center gap-3 my-5">
-                  <div className="h-px flex-1 bg-gray-200" />
-                  <span className="text-xs text-gray-400">
-                    Or continue with
-                  </span>
-                  <div className="h-px flex-1 bg-gray-200" />
-                </div>
-                <button
-                  type="button"
-                  onClick={triggerGoogleLogin}
-                  className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
-                >
-                  <GoogleIcon /> Google
-                </button>
-                <div
-                  ref={hiddenGoogleBtn}
-                  style={{
-                    position: "absolute",
-                    opacity: 0,
-                    pointerEvents: "none",
-                    height: 0,
-                    overflow: "hidden",
-                  }}
-                >
-                  <GoogleLogin
-                    locale="en"
-                    text="continue_with"
-                    onSuccess={handleGoogleSuccess}
-                    onError={handleGoogleError}
-                  />
-                </div>
-              </>
-            )}
+            {!isSignup &&
+              !isForgotPassword &&
+              loginIntegrations.staffGoogleAuthEnabled && (
+                <>
+                  <div className="flex items-center gap-3 my-5">
+                    <div className="h-px flex-1 bg-gray-200" />
+                    <span className="text-xs text-gray-400">
+                      Or continue with
+                    </span>
+                    <div className="h-px flex-1 bg-gray-200" />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={triggerGoogleLogin}
+                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
+                  >
+                    <GoogleIcon /> Google
+                  </button>
+                  <div
+                    ref={hiddenGoogleBtn}
+                    style={{
+                      position: "absolute",
+                      opacity: 0,
+                      pointerEvents: "none",
+                      height: 0,
+                      overflow: "hidden",
+                    }}
+                  >
+                    <GoogleLogin
+                      locale="en"
+                      text="continue_with"
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                    />
+                  </div>
+                </>
+              )}
             <p className="text-center text-sm text-gray-500 mt-5">
               {isSignup
                 ? "Already have an account?"
