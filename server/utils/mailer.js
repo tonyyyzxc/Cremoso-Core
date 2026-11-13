@@ -15,40 +15,45 @@ function parseSender(sender) {
 }
 
 async function sendCodeEmail(email, subject, text, html, suppliedCredentials) {
-  const credentials = suppliedCredentials || await getIntegrationCredentials("gmail");
-  const { apiKey, sender } = credentials;
-  if (!apiKey || !sender) {
-    throw new Error("Brevo email is not fully configured.");
-  }
-
-  const response = await fetch(BREVO_EMAIL_API_URL, {
-    method: "POST",
-    headers: {
-      "api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sender: parseSender(sender),
-      to: [{ email }],
-      subject,
-      textContent: text,
-      htmlContent: html,
-    }),
-    signal: AbortSignal.timeout(10_000),
-  });
-
-  if (!response.ok) {
-    const responseText = await response.text();
-    let providerMessage = "";
-    try {
-      const result = JSON.parse(responseText);
-      providerMessage = result.message || result.code || "";
-    } catch {
-      providerMessage = responseText;
+  try {
+    const credentials = suppliedCredentials || await getIntegrationCredentials("gmail");
+    const { apiKey, sender } = credentials;
+    if (!apiKey || !sender) {
+      throw new Error("Brevo email is not fully configured.");
     }
-    throw new Error(
-      `Brevo email request failed with status ${response.status}${providerMessage ? `: ${providerMessage}` : "."}`,
-    );
+
+    const response = await fetch(BREVO_EMAIL_API_URL, {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: parseSender(sender),
+        to: [{ email }],
+        subject,
+        textContent: text,
+        htmlContent: html,
+      }),
+      signal: AbortSignal.timeout(10_000),
+    });
+
+    if (!response.ok) {
+      const responseText = await response.text();
+      let providerMessage = "";
+      try {
+        const result = JSON.parse(responseText);
+        providerMessage = result.message || result.code || "";
+      } catch {
+        providerMessage = responseText;
+      }
+      throw new Error(
+        `Brevo email request failed with status ${response.status}${providerMessage ? `: ${providerMessage}` : "."}`,
+      );
+    }
+  } catch (error) {
+    console.error("Brevo email send failed:", error?.message || error);
+    throw error;
   }
 }
 

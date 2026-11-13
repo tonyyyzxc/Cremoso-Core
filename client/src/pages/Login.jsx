@@ -15,6 +15,7 @@ import {
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 const signupInputClass =
   "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20";
 
@@ -64,13 +65,14 @@ function Login() {
   const [step, setStep] = useState(0);
   const [resetStep, setResetStep] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [googleButtonWidth, setGoogleButtonWidth] = useState(300);
   const toast = useToast();
-  const hiddenGoogleBtn = useRef(null);
   const recaptchaRef = useRef(null);
   const recaptchaContainerRef = useRef(null);
+  const googleContainerRef = useRef(null);
   const [recaptchaScale, setRecaptchaScale] = useState(1);
 
-  // Optional: prevents page scrolling while the login page is mounted.
+  // Prevents page scrolling while the login page is mounted.
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -96,11 +98,13 @@ function Login() {
           loaded: true,
         })),
       )
-      .catch(() =>
-        setLoginIntegrations((current) => ({ ...current, loaded: true })),
-      );
+      .catch((err) => {
+        console.error("Public sign-in settings error:", err);
+        setLoginIntegrations((current) => ({ ...current, loaded: true }));
+      });
   }, []);
 
+  // Keeps the reCAPTCHA widget scaled to the form width.
   useEffect(() => {
     const container = recaptchaContainerRef.current;
     if (!container) return undefined;
@@ -115,6 +119,22 @@ function Login() {
 
     return () => observer.disconnect();
   }, [isSignup, isForgotPassword]);
+
+  // Sets the Google button width to match the form width.
+  useEffect(() => {
+    const container = googleContainerRef.current;
+    if (!container) return undefined;
+
+    const updateWidth = () => {
+      if (!container.clientWidth) return;
+      setGoogleButtonWidth(Math.min(Math.floor(container.clientWidth), 400));
+    };
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(container);
+    updateWidth();
+
+    return () => observer.disconnect();
+  }, [loginIntegrations.loaded, loginIntegrations.staffGoogleAuthEnabled]);
 
   const handleSignup = async (event) => {
     event.preventDefault();
@@ -251,14 +271,12 @@ function Login() {
       const data = await result.json().catch(() => ({}));
 
       if (!result.ok) {
-        const message = data.error || "Email or password is incorrect.";
-        toast.error(message);
+        toast.error(data.error || "Email or password is incorrect.");
         return;
       }
 
       if (!data.token || !data.user) {
-        const message = "Login response is missing the session token or user.";
-        toast.error(message);
+        toast.error("Login response is missing the session token or user.");
         return;
       }
 
@@ -268,8 +286,7 @@ function Login() {
       window.location.href = "/dashboard";
     } catch (err) {
       console.error("Email/password login error:", err);
-      const message = "Unable to reach the server. Please try again.";
-      toast.error(message);
+      toast.error("Unable to reach the server. Please try again.");
     } finally {
       setIsSubmitting(false);
       setRecaptchaToken("");
@@ -277,8 +294,8 @@ function Login() {
     }
   };
 
-  // Google returns a signed credential; send it to our server so the server can verify it
-  // and issue the app's own session token.
+  // Google returns a signed ID token (credential). Send it to the server,
+  // which verifies it and issues the app's own session token.
   const handleGoogleSuccess = async (response) => {
     try {
       const result = await fetch(`${API_URL}/api/auth/google`, {
@@ -287,35 +304,33 @@ function Login() {
         // The server expects this exact property name: idToken.
         body: JSON.stringify({ idToken: response.credential }),
       });
-      const data = await result.json();
+      const data = await result.json().catch(() => ({}));
 
       if (!result.ok) {
-        const message = data.error || "Google sign-in failed";
-        toast.error(message);
+        toast.error(data.error || "Google sign-in failed.");
         return;
       }
 
-      // Keep the app session so later API requests can authenticate the signed-in user.
       sessionStorage.setItem("token", data.token);
       sessionStorage.setItem("user", JSON.stringify(data.user));
       toast.success("Signed in successfully");
       window.location.href = "/dashboard";
     } catch (err) {
       console.error("Google login error:", err);
-      toast.error("Something went wrong. Try again.");
+      toast.error("Unable to reach the server. Please try again.");
     }
   };
 
-  const handleGoogleError = () => {
-    const message = "Google sign-in failed. Try again.";
-    toast.error(message);
+  const handleGoogleError = (error) => {
+    console.error("Google sign-in error:", error);
+    toast.error("Google sign-in failed. Try again.");
   };
 
-  const triggerGoogleLogin = () => {
-    const realButton =
-      hiddenGoogleBtn.current?.querySelector('div[role="button"]');
-    realButton?.click();
-  };
+  const showGoogleSignIn =
+    !isSignup &&
+    !isForgotPassword &&
+    loginIntegrations.loaded &&
+    loginIntegrations.staffGoogleAuthEnabled;
 
   return (
     <MotionConfig reducedMotion="user">
@@ -432,7 +447,7 @@ function Login() {
           transition={{ ...fadeTransition, delay: 0.15 }}
           className="relative z-10 grid max-h-full w-full max-w-4xl grid-cols-1 overflow-y-auto rounded-[2.5rem] bg-white shadow-xl shadow-[#0A8B8E]/10 md:grid-cols-2 md:overflow-hidden"
         >
-          {/* Left panel — brand / illustration side, mirrors the Cremoso logo layout */}
+          {/* Left panel: brand / illustration side, mirrors the Cremoso logo layout */}
           <div
             className={`relative hidden flex-col items-center justify-center overflow-hidden bg-[#0A8B8E] px-8 md:flex ${
               !isSignup && !isForgotPassword
@@ -463,7 +478,7 @@ function Login() {
             </p>
           </div>
 
-          {/* Right panel — form side */}
+          {/* Right panel: form side */}
           <div
             className={`flex flex-col justify-center px-6 sm:px-8 md:px-12 ${
               !isSignup && !isForgotPassword ? "pt-8 pb-8 md:pt-16" : "py-8"
@@ -845,43 +860,40 @@ function Login() {
               </div>
             </form>
 
-            {!isSignup &&
-              !isForgotPassword &&
-              loginIntegrations.staffGoogleAuthEnabled && (
-                <>
-                  <div className="flex items-center gap-3 my-5">
-                    <div className="h-px flex-1 bg-gray-200" />
-                    <span className="text-xs text-gray-400">
-                      Or continue with
-                    </span>
-                    <div className="h-px flex-1 bg-gray-200" />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={triggerGoogleLogin}
-                    className="flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-neutral-400 text-sm font-medium text-black hover:bg-neutral-50"
-                  >
-                    <GoogleIcon /> Google
-                  </button>
-                  <div
-                    ref={hiddenGoogleBtn}
-                    style={{
-                      position: "absolute",
-                      opacity: 0,
-                      pointerEvents: "none",
-                      height: 0,
-                      overflow: "hidden",
-                    }}
-                  >
+            {showGoogleSignIn && (
+              <>
+                <div className="flex items-center gap-3 my-5">
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-xs text-gray-400">
+                    Or continue with
+                  </span>
+                  <div className="h-px flex-1 bg-gray-200" />
+                </div>
+                <div
+                  ref={googleContainerRef}
+                  className="flex w-full justify-center"
+                >
+                  {GOOGLE_CLIENT_ID ? (
                     <GoogleLogin
                       locale="en"
                       text="continue_with"
+                      width={googleButtonWidth}
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
                     />
-                  </div>
-                </>
-              )}
+                  ) : (
+                    <p
+                      className="text-center text-sm text-red-700"
+                      role="alert"
+                    >
+                      Google sign-in is not configured. Missing
+                      VITE_GOOGLE_CLIENT_ID.
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
+
             <p className="text-center text-sm text-gray-500 mt-5">
               {isSignup
                 ? "Already have an account?"
@@ -1003,29 +1015,6 @@ function EyeIcon({ open, ...props }) {
     >
       <path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
       <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-  );
-}
-
-function GoogleIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
-      <path
-        fill="#FFC107"
-        d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
-      />
-      <path
-        fill="#FF3D00"
-        d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
-      />
-      <path
-        fill="#4CAF50"
-        d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
-      />
-      <path
-        fill="#1976D2"
-        d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
-      />
     </svg>
   );
 }
