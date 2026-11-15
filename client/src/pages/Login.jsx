@@ -8,22 +8,14 @@ import {
   ClipboardCheck,
   LockKeyhole,
   Mail,
-  ShieldCheck,
-  Store,
-  UserRound,
 } from "lucide-react";
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-const signupInputClass =
+const inputClass =
   "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] py-3 px-4 text-[#0A3B3D] placeholder-gray-400 transition focus:border-[#0A8B8E] focus:outline-none focus:ring-2 focus:ring-[#0A8B8E]/20";
 
-const signupSteps = [
-  { label: "Branch", Icon: Store },
-  { label: "Manager", Icon: UserRound },
-  { label: "Review", Icon: ClipboardCheck },
-];
 const passwordResetSteps = [
   { label: "Email", Icon: Mail },
   { label: "Code", Icon: ClipboardCheck },
@@ -37,21 +29,13 @@ const slideVariants = {
 };
 
 function Login() {
-  const [isSignup, setIsSignup] = useState(false);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
-  const [isLoginHelpOpen, setIsLoginHelpOpen] = useState(false);
   const [identifier, setIdentifier] = useState("");
-  const [managerEmail, setManagerEmail] = useState("");
   const [password, setPassword] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
   const [resetCode, setResetCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [managerName, setManagerName] = useState("");
-  const [managerPhone, setManagerPhone] = useState("");
-  const [branchName, setBranchName] = useState("");
-  const [branchPhone, setBranchPhone] = useState("");
-  const [branchAddress, setBranchAddress] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState("");
@@ -62,7 +46,6 @@ function Login() {
     recaptchaSiteKey: import.meta.env.VITE_RECAPTCHA_SITE_KEY || "",
     loaded: false,
   });
-  const [step, setStep] = useState(0);
   const [resetStep, setResetStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [googleButtonWidth, setGoogleButtonWidth] = useState(300);
@@ -118,7 +101,7 @@ function Login() {
     updateScale();
 
     return () => observer.disconnect();
-  }, [isSignup, isForgotPassword]);
+  }, [isForgotPassword]);
 
   // Sets the Google button width to match the form width.
   useEffect(() => {
@@ -135,51 +118,6 @@ function Login() {
 
     return () => observer.disconnect();
   }, [loginIntegrations.loaded, loginIntegrations.staffGoogleAuthEnabled]);
-
-  const handleSignup = async (event) => {
-    event.preventDefault();
-    if (step < signupSteps.length - 1) {
-      setDirection(1);
-      setStep(step + 1);
-      return;
-    }
-    setIsSubmitting(true);
-    try {
-      const result = await fetch(`${API_URL}/api/branch-applications`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          managerName,
-          managerPhone,
-          managerEmail,
-          password,
-          branchName,
-          branchPhone,
-          branchAddress,
-        }),
-      });
-      const data = await result.json().catch(() => ({}));
-      if (!result.ok) {
-        toast.error(data.error || "Unable to submit your application.");
-        return;
-      }
-      toast.success(data.message || "Branch application submitted.");
-      setIsSignup(false);
-      setManagerName("");
-      setManagerPhone("");
-      setBranchName("");
-      setBranchPhone("");
-      setBranchAddress("");
-      setIdentifier("");
-      setManagerEmail("");
-      setPassword("");
-    } catch (err) {
-      console.error("Branch signup error:", err);
-      toast.error("Unable to reach the server. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 
   const handlePasswordReset = async (event) => {
     event.preventDefault();
@@ -327,7 +265,6 @@ function Login() {
   };
 
   const showGoogleSignIn =
-    !isSignup &&
     !isForgotPassword &&
     loginIntegrations.loaded &&
     loginIntegrations.staffGoogleAuthEnabled;
@@ -413,34 +350,6 @@ function Login() {
         }
       `}</style>
 
-        <div className="fixed top-4 right-4 z-30 inline-flex max-w-[calc(100vw-2rem)] items-center rounded-full bg-white px-1.5 py-1 shadow-md shadow-black/15">
-          <AnimatePresence initial={false}>
-            {isLoginHelpOpen && (
-              <motion.span
-                initial={{ width: 0, opacity: 0 }}
-                animate={{ width: "auto", opacity: 1 }}
-                exit={{ width: 0, opacity: 0 }}
-                transition={{ duration: 0.35, ease: "easeOut" }}
-                className="max-w-[calc(100vw-5rem)] overflow-hidden whitespace-nowrap text-sm text-gray-500"
-              >
-                <span className="block pl-2">
-                  Having trouble logging in? Contact{" "}
-                  <span className="font-medium text-[#0A8B8E]">Admin</span>
-                </span>
-              </motion.span>
-            )}
-          </AnimatePresence>
-          <button
-            type="button"
-            aria-label="Login help"
-            aria-expanded={isLoginHelpOpen}
-            onClick={() => setIsLoginHelpOpen((open) => !open)}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-          >
-            <ShieldCheck size={20} className="text-[#0A8B8E]" />
-          </button>
-        </div>
-
         <motion.div
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -450,9 +359,7 @@ function Login() {
           {/* Left panel: brand / illustration side, mirrors the Cremoso logo layout */}
           <div
             className={`relative hidden flex-col items-center justify-center overflow-hidden bg-[#0A8B8E] px-8 md:flex ${
-              !isSignup && !isForgotPassword
-                ? "pt-20 pb-14 md:pt-0 md:pb-0"
-                : "py-14 md:py-0"
+              !isForgotPassword ? "pt-20 pb-14 md:pt-0 md:pb-0" : "py-14 md:py-0"
             }`}
           >
             {/* Soft-serve swirl icon */}
@@ -481,40 +388,28 @@ function Login() {
           {/* Right panel: form side */}
           <div
             className={`flex flex-col justify-center px-6 sm:px-8 md:px-12 ${
-              !isSignup && !isForgotPassword ? "pt-8 pb-8 md:pt-16" : "py-8"
+              !isForgotPassword ? "pt-8 pb-8 md:pt-16" : "py-8"
             }`}
           >
             <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
-              {isSignup
-                ? "Branch signup"
-                : isForgotPassword
-                  ? "Reset your password"
-                  : "Welcome!"}
+              {isForgotPassword ? "Reset your password" : "Welcome!"}
             </h2>
             <p className="text-gray-500 text-sm mb-7">
-              {isSignup
-                ? "Apply to register your branch and branch manager account."
-                : isForgotPassword
-                  ? [
-                      "Enter the email address linked to your account.",
-                      "Enter the 6-digit code sent to your email.",
-                      "Choose and confirm your new password.",
-                    ][resetStep]
-                  : "Login to your Cremoso account"}
+              {isForgotPassword
+                ? [
+                    "Enter the email address linked to your account.",
+                    "Enter the 6-digit code sent to your email.",
+                    "Choose and confirm your new password.",
+                  ][resetStep]
+                : "Login to your Cremoso account"}
             </p>
 
             <form
-              onSubmit={
-                isSignup
-                  ? handleSignup
-                  : isForgotPassword
-                    ? handlePasswordReset
-                    : handleSubmit
-              }
+              onSubmit={isForgotPassword ? handlePasswordReset : handleSubmit}
               className="space-y-3.5"
             >
               <div
-                className={`relative -mx-1 overflow-x-clip px-1 ${isSignup || isForgotPassword ? "min-h-53" : ""}`}
+                className={`relative -mx-1 overflow-x-clip px-1 ${isForgotPassword ? "min-h-53" : ""}`}
               >
                 <AnimatePresence
                   mode="popLayout"
@@ -522,13 +417,7 @@ function Login() {
                   custom={direction}
                 >
                   <motion.div
-                    key={
-                      isSignup
-                        ? `signup-${step}`
-                        : isForgotPassword
-                          ? `reset-${resetStep}`
-                          : "login"
-                    }
+                    key={isForgotPassword ? `reset-${resetStep}` : "login"}
                     custom={direction}
                     variants={slideVariants}
                     initial="enter"
@@ -537,67 +426,7 @@ function Login() {
                     transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
                     className="space-y-3.5"
                   >
-                    {isSignup && step === 0 && (
-                      <>
-                        <p className="text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">
-                          Branch details
-                        </p>
-                        <input
-                          value={branchName}
-                          onChange={(event) =>
-                            setBranchName(event.target.value)
-                          }
-                          placeholder="Branch name"
-                          autoComplete="organization"
-                          className={signupInputClass}
-                          required
-                        />
-                        <input
-                          value={branchAddress}
-                          onChange={(event) =>
-                            setBranchAddress(event.target.value)
-                          }
-                          placeholder="Branch address"
-                          autoComplete="street-address"
-                          className={signupInputClass}
-                        />
-                        <input
-                          type="tel"
-                          value={branchPhone}
-                          onChange={(event) =>
-                            setBranchPhone(event.target.value)
-                          }
-                          placeholder="Branch phone (optional)"
-                          autoComplete="tel"
-                          className={signupInputClass}
-                        />
-                      </>
-                    )}
-                    {isSignup && step === 1 && (
-                      <>
-                        <p className="pt-1 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">
-                          Branch manager account
-                        </p>
-                        <div className="relative">
-                          <UserRound
-                            size={18}
-                            aria-hidden="true"
-                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-                          />
-                          <input
-                            value={managerName}
-                            onChange={(event) =>
-                              setManagerName(event.target.value)
-                            }
-                            placeholder="Manager name"
-                            autoComplete="name"
-                            className={`${signupInputClass} pl-11`}
-                            required
-                          />
-                        </div>
-                      </>
-                    )}
-                    {!isForgotPassword && (!isSignup || step === 1) && (
+                    {!isForgotPassword && (
                       <>
                         <div className="relative">
                           <Mail
@@ -606,20 +435,12 @@ function Login() {
                             className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
                           />
                           <input
-                            type={isSignup ? "email" : "text"}
-                            placeholder={
-                              isSignup
-                                ? "Manager login email"
-                                : "Username or email"
-                            }
-                            autoComplete={isSignup ? "email" : "username"}
-                            value={isSignup ? managerEmail : identifier}
-                            onChange={(event) =>
-                              isSignup
-                                ? setManagerEmail(event.target.value)
-                                : setIdentifier(event.target.value)
-                            }
-                            className={`${signupInputClass} pl-11`}
+                            type="text"
+                            placeholder="Username or email"
+                            autoComplete="username"
+                            value={identifier}
+                            onChange={(event) => setIdentifier(event.target.value)}
+                            className={`${inputClass} pl-11`}
                             required
                           />
                         </div>
@@ -631,20 +452,13 @@ function Login() {
                           />
                           <input
                             type={showPassword ? "text" : "password"}
-                            placeholder={
-                              isSignup
-                                ? "Create password (at least 8 characters)"
-                                : "Password"
-                            }
-                            autoComplete={
-                              isSignup ? "new-password" : "current-password"
-                            }
-                            minLength={isSignup ? 8 : undefined}
+                            placeholder="Password"
+                            autoComplete="current-password"
                             value={password}
                             onChange={(event) =>
                               setPassword(event.target.value)
                             }
-                            className={`${signupInputClass} pl-11 pr-12`}
+                            className={`${inputClass} pl-11 pr-12`}
                             required
                           />
                           <button
@@ -660,7 +474,7 @@ function Login() {
                             <EyeIcon open={showPassword} />
                           </button>
                         </div>
-                        {!isSignup && loginIntegrations.gmailEnabled && (
+                        {loginIntegrations.gmailEnabled && (
                           <div className="text-right">
                             <button
                               type="button"
@@ -698,7 +512,7 @@ function Login() {
                           onChange={(event) =>
                             setForgotEmail(event.target.value)
                           }
-                          className={`${signupInputClass} pl-11`}
+                          className={`${inputClass} pl-11`}
                           required
                         />
                       </div>
@@ -719,7 +533,7 @@ function Login() {
                           onChange={(event) =>
                             setResetCode(event.target.value.replace(/\D/g, ""))
                           }
-                          className={`${signupInputClass} text-center tracking-[0.3em]`}
+                          className={`${inputClass} text-center tracking-[0.3em]`}
                           required
                         />
                       </div>
@@ -735,7 +549,7 @@ function Login() {
                           onChange={(event) =>
                             setNewPassword(event.target.value)
                           }
-                          className={signupInputClass}
+                          className={inputClass}
                           required
                         />
                         <input
@@ -747,42 +561,18 @@ function Login() {
                           onChange={(event) =>
                             setConfirmPassword(event.target.value)
                           }
-                          className={signupInputClass}
+                          className={inputClass}
                           required
                         />
                       </>
                     )}
-                    {isSignup && step === 2 && (
-                      <dl className="flex min-h-53 flex-col justify-center space-y-2 rounded-xl bg-[#FAF6F0] p-4 text-sm">
-                        {[
-                          ["Branch name", branchName],
-                          ["Branch address", branchAddress],
-                          ["Branch phone", branchPhone],
-                          ["Manager name", managerName],
-                          ["Login email", managerEmail],
-                          ["Password", "•".repeat(password.length)],
-                        ].map(([label, value]) => (
-                          <div
-                            key={label}
-                            className="flex justify-between gap-4"
-                          >
-                            <dt className="text-gray-500">{label}</dt>
-                            <dd className="wrap-break-word text-right font-medium text-[#0A3B3D]">
-                              {value || "-"}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                    )}
                   </motion.div>
                 </AnimatePresence>
               </div>
-              {isSignup && <FlowStepper step={step} steps={signupSteps} />}
               {isForgotPassword && (
                 <FlowStepper step={resetStep} steps={passwordResetSteps} />
               )}
-              {!isSignup &&
-                !isForgotPassword &&
+              {!isForgotPassword &&
                 loginIntegrations.recaptchaEnabled && (
                   <div className="space-y-1">
                     {loginIntegrations.recaptchaSiteKey ? (
@@ -816,17 +606,12 @@ function Login() {
                   </div>
                 )}
               <div className="flex gap-3">
-                {((isSignup && step > 0) ||
-                  (isForgotPassword && resetStep > 0)) && (
+                {isForgotPassword && resetStep > 0 && (
                   <button
                     type="button"
                     onClick={() => {
                       setDirection(-1);
-                      if (isSignup) {
-                        setStep((currentStep) => currentStep - 1);
-                      } else {
-                        setResetStep((currentStep) => currentStep - 1);
-                      }
+                      setResetStep((currentStep) => currentStep - 1);
                     }}
                     className="rounded-xl border border-gray-200 px-5 py-3 font-medium text-[#0A3B3D] transition hover:bg-[#FAF6F0]"
                   >
@@ -838,8 +623,7 @@ function Login() {
                   disabled={
                     isSubmitting ||
                     !loginIntegrations.loaded ||
-                    (!isSignup &&
-                      !isForgotPassword &&
+                    (!isForgotPassword &&
                       loginIntegrations.recaptchaEnabled &&
                       (!loginIntegrations.recaptchaSiteKey || !recaptchaToken))
                   }
@@ -847,15 +631,9 @@ function Login() {
                 >
                   {isSubmitting
                     ? "Please wait..."
-                    : isSignup
-                      ? step < signupSteps.length - 1
-                        ? "Next"
-                        : "Submit branch application"
-                      : isForgotPassword
-                        ? ["Send code", "Verify code", "Reset password"][
-                            resetStep
-                          ]
-                        : "Login"}
+                    : isForgotPassword
+                      ? ["Send code", "Verify code", "Reset password"][resetStep]
+                      : "Login"}
                 </button>
               </div>
             </form>
@@ -895,34 +673,29 @@ function Login() {
             )}
 
             <p className="text-center text-sm text-gray-500 mt-5">
-              {isSignup
-                ? "Already have an account?"
-                : isForgotPassword
-                  ? "Remembered your password?"
-                  : "Managing a branch?"}{" "}
-              <button
-                type="button"
-                onClick={() => {
-                  if (isForgotPassword) {
-                    setIsForgotPassword(false);
-                    setResetStep(0);
-                    setResetCode("");
-                    setNewPassword("");
-                    setConfirmPassword("");
-                    setIdentifier(forgotEmail);
-                  } else {
-                    setIsSignup((value) => !value);
-                  }
-                  setPassword("");
-                  setRecaptchaToken("");
-                  recaptchaRef.current?.reset();
-                  setStep(0);
-                  setDirection(1);
-                }}
-                className="font-semibold text-[#0A8B8E] hover:underline"
-              >
-                {isSignup || isForgotPassword ? "Back to login" : "Apply here"}
-              </button>
+              {isForgotPassword ? (
+                <>
+                  Remembered your password?{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsForgotPassword(false);
+                      setResetStep(0);
+                      setResetCode("");
+                      setNewPassword("");
+                      setConfirmPassword("");
+                      setIdentifier(forgotEmail);
+                      setPassword("");
+                      setRecaptchaToken("");
+                      recaptchaRef.current?.reset();
+                      setDirection(1);
+                    }}
+                    className="font-semibold text-[#0A8B8E] hover:underline"
+                  >
+                    Back to login
+                  </button>
+                </>
+              ) : null}
             </p>
           </div>
         </motion.div>

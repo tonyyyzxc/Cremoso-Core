@@ -43,8 +43,6 @@ export default function ManagementPage() {
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [workers, setWorkers] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [applicationView, setApplicationView] = useState("visible");
   const [currentUser] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -75,23 +73,19 @@ export default function ManagementPage() {
   const [workerBranchFilter, setWorkerBranchFilter] = useState("all");
   const [busy, setBusy] = useState(false);
   const [busyUserId, setBusyUserId] = useState("");
-  const [busyApplicationId, setBusyApplicationId] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const isSuperAdmin = currentUser?.isSuperAdmin === true;
 
   const loadData = useCallback(async () => {
-    const [loadedUsers, loadedBranches, loadedWorkers, loadedApplications] =
-      await Promise.all([
-        apiRequest("/api/users"),
-        apiRequest("/api/branches"),
-        apiRequest("/api/branches/workers"),
-        apiRequest("/api/branch-applications"),
-      ]);
+    const [loadedUsers, loadedBranches, loadedWorkers] = await Promise.all([
+      apiRequest("/api/users"),
+      apiRequest("/api/branches"),
+      apiRequest("/api/branches/workers"),
+    ]);
     setUsers(loadedUsers);
     setBranches(loadedBranches);
     setWorkers(loadedWorkers);
-    setApplications(loadedApplications);
   }, []);
 
   useEffect(() => {
@@ -136,16 +130,9 @@ export default function ManagementPage() {
     });
   }, [workers, workerSearch, workerBranchFilter]);
 
-  const filteredApplications = applications.filter((application) =>
-    applicationView === "hidden"
-      ? Boolean(application.hiddenAt)
-      : !application.hiddenAt,
-  );
-
-  const pendingCount =
-    applications.filter((application) => application.status === "pending")
-      .length +
-    staffAccounts.filter((account) => account.status === "invited").length;
+  const pendingCount = staffAccounts.filter(
+    (account) => account.status === "invited",
+  ).length;
   const activeCount = staffAccounts.filter(
     (account) => account.status === "active",
   ).length;
@@ -307,93 +294,6 @@ export default function ManagementPage() {
     }
   };
 
-  const reviewApplication = async (application, decision) => {
-    setBusyApplicationId(application._id);
-    setError("");
-    try {
-      const result = await apiRequest(
-        `/api/branch-applications/${application._id}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify({ decision }),
-        },
-      );
-      setApplications((current) =>
-        current.map((item) =>
-          item._id === application._id
-            ? { ...item, status: result.status, reviewedAt: result.reviewedAt }
-            : item,
-        ),
-      );
-      if (result.branch && result.user) {
-        setBranches((current) =>
-          [...current, result.branch].sort((a, b) =>
-            a.name.localeCompare(b.name),
-          ),
-        );
-        setUsers((current) => [
-          { ...result.user, branchId: result.branch },
-          ...current,
-        ]);
-      }
-      toast.success(
-        decision === "approved"
-          ? "Application approved and branch account created."
-          : "Application rejected.",
-      );
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyApplicationId("");
-    }
-  };
-
-  const setApplicationHidden = async (application, hidden) => {
-    setBusyApplicationId(application._id);
-    setError("");
-    try {
-      const result = await apiRequest(
-        `/api/branch-applications/${application._id}/visibility`,
-        { method: "PATCH", body: JSON.stringify({ hidden }) },
-      );
-      setApplications((current) =>
-        current.map((item) =>
-          item._id === application._id
-            ? { ...item, hiddenAt: result.hiddenAt }
-            : item,
-        ),
-      );
-      toast.success(hidden ? "Application hidden." : "Application restored.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyApplicationId("");
-    }
-  };
-
-  const deleteApplication = async (application) => {
-    const confirmed = window.confirm(
-      `Permanently delete the application for "${application.branchName}"? This will not delete any branch or account already created from it.`,
-    );
-    if (!confirmed) return;
-
-    setBusyApplicationId(application._id);
-    setError("");
-    try {
-      await apiRequest(`/api/branch-applications/${application._id}`, {
-        method: "DELETE",
-      });
-      setApplications((current) =>
-        current.filter((item) => item._id !== application._id),
-      );
-      toast.success("Application deleted.");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusyApplicationId("");
-    }
-  };
-
   const changeRole = async (account, nextRole) => {
     setAccountMenu(null);
     setBusyUserId(account._id);
@@ -545,123 +445,6 @@ export default function ManagementPage() {
             </div>
           </div>
         )}
-        <section
-          className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}
-        >
-          <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h3 className="font-semibold">Branch applications</h3>
-                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                  Review branch manager requests. Approved applications create the
-                  branch and manager account.
-                </p>
-              </div>
-              <div className="flex gap-2">
-                {["visible", "hidden"].map((view) => (
-                  <button
-                    key={view}
-                    type="button"
-                    onClick={() => setApplicationView(view)}
-                    aria-pressed={applicationView === view}
-                    className={`rounded-xl border px-3 py-2 text-sm font-semibold capitalize ${applicationView === view ? "border-[#0A8B8E] bg-[#0A8B8E]/10 text-[#087477] dark:text-teal-300" : "border-gray-200 text-gray-600 dark:border-neutral-700 dark:text-gray-300"}`}
-                  >
-                    {view} ({applications.filter((application) => Boolean(application.hiddenAt) === (view === "hidden")).length})
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-neutral-800">
-            {filteredApplications.map((application) => (
-              <article
-                key={application._id}
-                className="flex flex-wrap items-center justify-between gap-4 px-5 py-4 sm:px-6"
-              >
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <h4 className="font-semibold">{application.branchName}</h4>
-                    <span
-                      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${statusClass(application.status === "pending" ? "invited" : application.status === "approved" ? "active" : "disabled")}`}
-                    >
-                      {application.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
-                    Manager: {application.managerName} ·{" "}
-                    {application.managerEmail}
-                  </p>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    {[
-                      application.branchAddress,
-                      application.branchPhone,
-                      application.managerPhone,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ") || "No additional contact details"}
-                    {application.reviewedAt
-                      ? ` · Reviewed ${new Date(application.reviewedAt).toLocaleDateString()}`
-                      : ` · Submitted ${new Date(application.createdAt).toLocaleDateString()}`}
-                  </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {application.status === "pending" && (
-                    <>
-                      <button
-                        type="button"
-                        onClick={() => reviewApplication(application, "rejected")}
-                        disabled={Boolean(busyApplicationId)}
-                        className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
-                      >
-                        {busyApplicationId === application._id
-                          ? "Saving..."
-                          : "Reject"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => reviewApplication(application, "approved")}
-                        disabled={Boolean(busyApplicationId)}
-                        className={buttonClassName}
-                      >
-                        {busyApplicationId === application._id
-                          ? "Saving..."
-                          : "Approve"}
-                      </button>
-                    </>
-                  )}
-                  <button
-                    type="button"
-                    onClick={() => setApplicationHidden(application, !application.hiddenAt)}
-                    disabled={Boolean(busyApplicationId)}
-                    className="rounded-xl border border-gray-200 px-3.5 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
-                  >
-                    {busyApplicationId === application._id
-                      ? "Saving..."
-                    : application.hiddenAt
-                      ? "Restore"
-                      : "Hide"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteApplication(application)}
-                    disabled={Boolean(busyApplicationId)}
-                    className="rounded-xl border border-red-200 px-3.5 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </article>
-            ))}
-            {!filteredApplications.length && (
-              <p className="px-5 py-10 text-center text-sm text-gray-500 dark:text-gray-400">
-                {applicationView === "hidden"
-                  ? "No hidden branch applications."
-                  : "No visible branch applications."}
-              </p>
-            )}
-          </div>
-        </section>
-
         <motion.div
           variants={staggerContainer}
           initial="hidden"

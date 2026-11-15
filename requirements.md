@@ -22,11 +22,6 @@ This document describes functions currently available in the system, based on it
 - **FR-AUTH-08 — Account status enforcement**: disabled or otherwise inactive accounts cannot start an authenticated session.
 - **FR-AUTH-09 — Navigation preferences**: signed-in users can choose whether collapsed navigation displays icons; users can also switch the interface between light and dark themes.
 
-## Public functions
-
-- **FR-PUB-01 — Branch application submission**: a prospective Branch Manager can submit branch details, manager contact details, and initial sign-in credentials.
-- **FR-PUB-02 — Application decision**: a branch application does not create an active branch and manager account until an Admin or Super Admin approves it. Authorized administrators can approve or reject pending applications.
-
 ## Staff functions
 
 - **FR-STF-01 — Dashboard**: view the staff account's completed transaction and sales summary, with recent daily trends.
@@ -68,7 +63,6 @@ This document describes functions currently available in the system, based on it
 - **FR-ADM-11 — Store operations settings**: enable or disable available sales channels and payment methods used by order entry and payment confirmation.
 - **FR-ADM-12 — Branch management**: list branches and workers, create branch records and branch login accounts, and update branch details.
 - **FR-ADM-13 — Account administration**: view and manage non-Super-Admin accounts, including creating Branch Manager and Staff accounts; update contact details, branch assignment, role, and active/disabled status; and delete accounts. Regular Admins cannot create, view, modify, disable, or delete Super Admin accounts or create and manage Admin accounts. They cannot grant the Admin role.
-- **FR-ADM-14 — Branch applications**: review, approve, and reject applications; hide or restore their visibility in the list; and permanently delete application records.
 - **FR-ADM-15 — Integration availability**: independently enable or disable Google sign-in, reCAPTCHA, Brevo password-reset email, PDF export, Google Sheets, Google Calendar, and Google Drive. Settings apply system-wide, including to the Admin who changes them. Google sign-in cannot be disabled while an account has no password set.
 - **FR-ADM-16 — Activity logging control**: enable or pause activity recording. The setting change itself is retained in the activity log.
 - **FR-ADM-17 — Activity history**: review company activity records and filter by date range, category, status, account, or branch, with newest-first pagination. The interface displays the time, account, branch, activity summary/action, category, status, and target. Super Admin activity and identifying details are hidden from regular Admins.
