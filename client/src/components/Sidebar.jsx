@@ -122,7 +122,10 @@ export default function SidebarNav({
         </span>
       </div>
 
-      <nav className="flex-1 space-y-1 px-3 py-2" aria-label="Main navigation">
+      <nav
+        className="min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-2"
+        aria-label="Main navigation"
+      >
         {navItems.map(({ id, label, icon: Icon, available = false }) => {
           const isActive = id === activeId;
           return (
