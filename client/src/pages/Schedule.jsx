@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, CircleAlert, Pencil, Plus, RefreshCw, RotateCw, Trash2 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { Skeleton } from "../components/loading.jsx";
 
 const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass = "scheme-light dark:scheme-dark w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
@@ -455,7 +456,20 @@ export default function SchedulePage() {
       </section>
 
       <section className="space-y-3" aria-label="Scheduled shifts">
-        {loading && <p role="status" className="text-sm text-gray-500">Loading shifts...</p>}
+        {loading && (
+          <div role="status" aria-label="Loading shifts" className="space-y-3">
+            {[0, 1, 2].map((item) => (
+              <article key={item} className={`${cardClass} space-y-3 p-5`}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </div>
+                <Skeleton className="h-4 w-56 max-w-full" />
+                <Skeleton className="h-4 w-72 max-w-full" />
+              </article>
+            ))}
+          </div>
+        )}
         {!loading && shifts.length === 0 && (
           <div className={`${cardClass} p-8 text-center`}>
             <CalendarDays className="mx-auto text-[#0A8B8E]" size={28} />

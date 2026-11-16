@@ -92,7 +92,7 @@ export default function SidebarNav({
     <aside
       inert={fullyCollapsed || hiddenOnMobile}
       aria-hidden={fullyCollapsed || hiddenOnMobile || undefined}
-      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden bg-white shadow-[inset_-1px_0_0_#e5e7eb] transition-transform duration-300 ease-in-out motion-reduce:transition-none md:relative md:inset-auto md:z-auto md:h-full md:shrink-0 md:translate-x-0 md:transition-[width] xl:duration-300 ${
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col overflow-hidden bg-card shadow-[inset_-1px_0_0_var(--border)] transition-transform duration-300 ease-in-out motion-reduce:transition-none md:relative md:inset-auto md:z-auto md:h-full md:shrink-0 md:translate-x-0 md:transition-[width] xl:duration-300 ${
         hiddenOnMobile ? "-translate-x-full" : "translate-x-0"
       } ${
         collapsed
@@ -104,7 +104,7 @@ export default function SidebarNav({
     >
       <div className="flex shrink-0 items-center gap-3 px-3 py-5">
         <div className="flex h-10 w-12 shrink-0 items-center justify-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0A8B8E]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary dark:bg-[#0A8B8E]">
             <img
               src="/android-chrome-512x512.png"
               alt="Cremoso icon"
@@ -114,7 +114,7 @@ export default function SidebarNav({
         </div>
         <span
           aria-hidden={labelsHidden || undefined}
-          className={`overflow-hidden whitespace-nowrap font-serif text-xl font-bold tracking-wide text-[#0A3B3D] transition-opacity duration-200 motion-reduce:transition-none dark:text-white ${
+          className={`overflow-hidden whitespace-nowrap font-serif text-xl font-bold tracking-wide text-primary-strong transition-opacity duration-200 motion-reduce:transition-none dark:text-white ${
             labelsHidden ? "opacity-0" : "opacity-100 delay-100"
           }`}
         >
@@ -136,11 +136,11 @@ export default function SidebarNav({
               disabled={!available}
               title={iconRail ? label : undefined}
               aria-current={isActive ? "page" : undefined}
-              className={`relative grid w-full grid-cols-[30px_minmax(0,1fr)] items-center rounded-xl py-2.5 pl-3 pr-6 text-left text-sm transition ${
+              className={`relative grid w-full grid-cols-[30px_minmax(0,1fr)] items-center rounded-xl py-2.5 pl-3 pr-6 text-left text-sm ${
                 isActive
-                  ? "bg-[#0A8B8E]/10 font-medium text-[#0A8B8E]"
+                  ? "bg-primary/10 font-medium text-primary dark:bg-[#0A8B8E]/10 dark:text-[#0A8B8E]"
                   : available
-                    ? "text-gray-600 hover:bg-[#FBF6EF] hover:text-[#0A3B3D] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+                    ? "text-muted hover:bg-background hover:text-primary-strong dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
                     : "cursor-not-allowed text-gray-400 dark:text-neutral-600"
               }`}
             >
@@ -158,7 +158,7 @@ export default function SidebarNav({
               </span>
               <span
                 aria-hidden="true"
-                className={`absolute right-3 h-1.5 w-1.5 rounded-full bg-[#F2C879] transition-opacity duration-150 motion-reduce:transition-none ${
+                className={`absolute right-3 h-1.5 w-1.5 rounded-full bg-accent dark:bg-[#F2C879] transition-opacity duration-150 motion-reduce:transition-none ${
                   isActive && !iconRail ? "opacity-100" : "opacity-0"
                 }`}
               />
@@ -167,16 +167,16 @@ export default function SidebarNav({
         })}
       </nav>
 
-      <div className="shrink-0 space-y-1 px-3 py-3 shadow-[inset_0_1px_0_#e5e7eb] dark:shadow-[inset_0_1px_0_#262626]">
+      <div className="shrink-0 space-y-1 px-3 py-3 shadow-[inset_0_1px_0_var(--border)] dark:shadow-[inset_0_1px_0_#262626]">
         <button
           type="button"
           onClick={() => onSelect("settings")}
           title={iconRail ? "Settings" : undefined}
           aria-current={activeId === "settings" ? "page" : undefined}
-          className={`grid w-full grid-cols-[30px_minmax(0,1fr)] items-center rounded-xl py-2.5 pl-3 text-left text-sm transition ${
+          className={`grid w-full grid-cols-[30px_minmax(0,1fr)] items-center rounded-xl py-2.5 pl-3 text-left text-sm ${
             activeId === "settings"
-              ? "bg-[#0A8B8E]/10 font-medium text-[#0A8B8E]"
-              : "text-gray-600 hover:bg-[#FBF6EF] hover:text-[#0A3B3D] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+              ? "bg-primary/10 font-medium text-primary dark:bg-[#0A8B8E]/10 dark:text-[#0A8B8E]"
+              : "text-muted hover:bg-background hover:text-primary-strong dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
           }`}
         >
           <Settings
@@ -196,7 +196,7 @@ export default function SidebarNav({
           type="button"
           onClick={onLogout}
           title={iconRail ? "Log out" : undefined}
-          className="grid w-full grid-cols-[30px_minmax(0,1fr)] items-center rounded-xl py-2.5 pl-3 text-left text-sm text-gray-600 transition hover:bg-[#FBF6EF] hover:text-[#0A3B3D] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+          className="grid w-full grid-cols-[30px_minmax(0,1fr)] items-center rounded-xl py-2.5 pl-3 text-left text-sm text-muted hover:bg-background hover:text-primary-strong dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
         >
           <LogOut
             size={18}

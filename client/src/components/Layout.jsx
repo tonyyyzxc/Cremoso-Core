@@ -9,6 +9,7 @@ import {
   initializePushMessaging,
 } from "../firebase.js";
 import { StreakBar } from "./loading.jsx";
+import { useTheme } from "../theme/useTheme.js";
 
 const titleMap = {
   dashboard: "Dashboard",
@@ -35,9 +36,7 @@ export default function Layout() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState("desktop");
   const [showSidebarIcons, setShowSidebarIcons] = useState(true);
-  const [darkMode, setDarkMode] = useState(
-    () => localStorage.getItem("theme") === "dark",
-  );
+  const { theme, setTheme } = useTheme();
   const contentRef = useRef(null);
 
   useEffect(() => {
@@ -100,11 +99,6 @@ export default function Layout() {
   useEffect(() => {
     contentRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [activeId]);
-
-  useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("theme", darkMode ? "dark" : "light");
-  }, [darkMode]);
 
   useEffect(() => {
     if (viewportMode !== "mobile" || !mobileSidebarOpen) return undefined;
@@ -182,10 +176,10 @@ export default function Layout() {
               setSidebarOpen((open) => !open);
             }
           }}
-          darkMode={darkMode}
-          onToggleDarkMode={() => setDarkMode((v) => !v)}
+          theme={theme}
+          onThemeChange={setTheme}
         />
-        <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-black/2 p-4 sm:p-5 lg:p-6 dark:bg-black">
+        <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-background p-4 sm:p-5 lg:p-6 dark:bg-black">
           <Outlet context={{ showSidebarIcons, setShowSidebarIcons }} />
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import {
@@ -19,7 +19,7 @@ import {
 import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
 
 const cardClass =
-  "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-2xl border border-border bg-card shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 
 function getStoredUser() {
   try {
@@ -68,14 +68,14 @@ function MetricCard({ label, value, detail, icon: Icon }) {
       variants={riseIn}
       className={`${cardClass} flex items-center gap-4 p-5`}
     >
-      <span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]">
+      <span className="rounded-xl bg-icon-tile p-3 text-primary dark:bg-[#0A8B8E]/10 dark:text-[#0A8B8E]">
         <Icon size={20} />
       </span>
       <div className="min-w-0">
-        <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+        <p className="text-sm text-muted dark:text-gray-400">{label}</p>
         <p className="mt-1 truncate text-2xl font-semibold">{value}</p>
         {detail && (
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-muted dark:text-gray-400">
             {detail}
           </p>
         )}
@@ -182,7 +182,7 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
     const label = series === "staff" ? "Staff sales" : "Online orders";
     const fill = series === "staff"
       ? "linear-gradient(to top, #08777a, #1aa3a5)"
-      : "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, #f2c879)";
+      : "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, var(--accent))";
 
     return (
       <motion.div
@@ -200,7 +200,7 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
         initial={{ height: 0 }}
         animate={{ height: height ? `${height}%` : "2px" }}
         transition={{ duration: 0.45, ease: "easeOut", delay: index * 0.025 }}
-        className={`w-3 shrink-0 cursor-help rounded-t outline-none transition-[opacity,transform,filter] duration-150 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-[#0A8B8E] focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-white dark:focus-visible:ring-offset-neutral-900 ${isActive ? "z-10 scale-110" : ""} ${isDimmed ? "opacity-45" : "opacity-100"}`}
+        className={`w-3 shrink-0 cursor-help rounded-t outline-none transition-[opacity,transform,filter] duration-150 hover:brightness-110 focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card dark:focus-visible:ring-white dark:focus-visible:ring-offset-neutral-900 ${isActive ? "z-10 scale-110" : ""} ${isDimmed ? "opacity-45" : "opacity-100"}`}
         style={{ backgroundImage: fill }}
       />
     );
@@ -211,16 +211,16 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{title}</h3>
-          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-xs text-muted dark:text-gray-400">
             Last 7 days · refreshes every minute
           </p>
         </div>
-        <div className="flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+        <div className="flex gap-4 text-xs text-muted dark:text-gray-400">
           <button
             type="button"
             aria-pressed={visibleSeries.staff}
             onClick={() => toggleSeries("staff")}
-            className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[#0A8B8E] ${visibleSeries.staff ? "" : "opacity-50"}`}
+            className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-[#0A8B8E] ${visibleSeries.staff ? "" : "opacity-50"}`}
           >
             <i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "linear-gradient(to top, #08777a, #1aa3a5)" }} />
             Staff sales
@@ -229,9 +229,9 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
             type="button"
             aria-pressed={visibleSeries.online}
             onClick={() => toggleSeries("online")}
-            className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-[#F2C879] ${visibleSeries.online ? "" : "opacity-50"}`}
+            className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-accent ${visibleSeries.online ? "" : "opacity-50"}`}
           >
-            <i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, #f2c879)" }} />
+            <i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, var(--accent))" }} />
             Online orders
           </button>
         </div>
@@ -239,7 +239,7 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
 
       <div className="relative mt-5 h-48">
         <div className="flex h-full gap-2" role="group" aria-label={`${title} data`}>
-        <div className="relative h-full w-[4.5rem] shrink-0 text-right text-[10px] text-gray-500 dark:text-gray-400" aria-hidden="true">
+        <div className="relative h-full w-[4.5rem] shrink-0 text-right text-[10px] text-muted dark:text-gray-400" aria-hidden="true">
           <div className="absolute inset-x-0 top-0 bottom-6">
             {ticks.map((tick) => (
               <span key={tick} className="absolute right-1 -translate-y-1/2 whitespace-nowrap" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }}>
@@ -248,11 +248,11 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
             ))}
           </div>
         </div>
-        <div className="relative h-full min-w-0 flex-1 overflow-x-auto border-b border-gray-200 dark:border-neutral-700">
+        <div className="relative h-full min-w-0 flex-1 overflow-x-auto border-b border-border dark:border-neutral-700">
           <div className="relative h-full" style={{ minWidth: `${Math.max(chartData.length * 40, 40)}px` }}>
             <div className="absolute inset-x-0 top-0 bottom-6" aria-hidden="true">
               {ticks.map((tick) => (
-                <div key={tick} className="absolute inset-x-0 border-t border-gray-200/70 dark:border-neutral-700/70" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }} />
+                <div key={tick} className="absolute inset-x-0 border-t border-border/70 dark:border-neutral-700/70" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }} />
               ))}
             </div>
             <div className="absolute inset-0 flex items-stretch gap-2">
@@ -264,7 +264,7 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
                       {renderBar(entry, "online", Number(entry[onlineKey] || 0), index)}
                     </div>
                   </div>
-                  <span className="h-6 shrink-0 truncate pt-1 text-center text-[10px] text-gray-500 dark:text-gray-400">
+                  <span className="h-6 shrink-0 truncate pt-1 text-center text-[10px] text-muted dark:text-gray-400">
                     {entry.date.slice(5)}
                   </span>
                 </div>
@@ -274,7 +274,7 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
         </div>
         </div>
         {activeBar && (
-          <div id={tooltipId} role="tooltip" className="pointer-events-none absolute left-[calc(50%_+_2.25rem)] top-1 z-20 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs text-[#0A3B3D] shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-white">
+          <div id={tooltipId} role="tooltip" className="pointer-events-none absolute left-[calc(50%_+_2.25rem)] top-1 z-20 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-primary-strong shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-white">
             <p className="mb-1 font-semibold">{formatDate(activeBar.date)}</p>
             <p>Staff sales: {formatValue(chartData.find((entry) => entry.date === activeBar.date)?.[staffKey])}</p>
             <p>Online orders: {formatValue(chartData.find((entry) => entry.date === activeBar.date)?.[onlineKey])}</p>
@@ -284,6 +284,8 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
     </section>
   );
 }
+
+const StableTrendChart = memo(TrendChart);
 
 function getBranchPerformance(branches, sales, onlineOrders) {
   const branchSummary = new Map(
@@ -341,7 +343,7 @@ function DashboardSkeleton({ isAdmin }) {
           <div key={index} className={`${cardClass} p-5`}>
             <Skeleton className="h-6 w-32" />
             <Skeleton className="mt-1 h-4 w-48" />
-            <div className="mt-5 flex h-48 items-end gap-2 border-b border-gray-200 pb-2 dark:border-neutral-700">
+            <div className="mt-5 flex h-48 items-end gap-2 border-b border-border pb-2 dark:border-neutral-700">
               {[40, 65, 50, 80, 55, 70, 45].map((height, bar) => (
                 <Skeleton
                   key={bar}
@@ -355,7 +357,7 @@ function DashboardSkeleton({ isAdmin }) {
       </div>
       {isAdmin ? (
         <div className={`${cardClass} overflow-hidden`}>
-          <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+          <div className="border-b border-border px-5 py-4 dark:border-neutral-800">
             <Skeleton className="h-6 w-40" />
             <Skeleton className="mt-1 h-4 w-64 max-w-full" />
           </div>
@@ -493,7 +495,7 @@ function Dashboard() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <section className="mx-auto max-w-375 space-y-6 text-[#0A3B3D] dark:text-white">
+      <section className="mx-auto max-w-375 space-y-6 text-primary-strong dark:text-white">
         <motion.header
           initial={{ opacity: 0, y: -24 }}
           animate={{ opacity: 1, y: 0 }}
@@ -501,7 +503,7 @@ function Dashboard() {
           className="flex flex-wrap items-end justify-between gap-4"
         >
           <div>
-            <p className="text-sm font-semibold text-[#0A8B8E]">
+            <p className="text-sm font-semibold text-primary dark:text-[#0A8B8E]">
               {isAdmin
                 ? "Company overview"
                 : isStaff
@@ -511,7 +513,7 @@ function Dashboard() {
             <h2 className="mt-1 text-3xl font-semibold tracking-tight">
               Dashboard
             </h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+            <p className="mt-2 text-sm text-muted dark:text-gray-300">
               {isAdmin
                 ? "Today’s sales and branch performance."
                 : isStaff
@@ -520,14 +522,14 @@ function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-500 dark:text-gray-400">
+            <span className="text-sm text-muted dark:text-gray-400">
               {businessDate}
             </span>
             <button
               type="button"
               onClick={loadDashboard}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3.5 py-2.5 text-sm font-medium transition hover:bg-gray-50 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className="inline-flex items-center gap-2 rounded-xl border border-primary px-3.5 py-2.5 text-sm font-medium text-primary hover:bg-primary hover:text-white disabled:opacity-50 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:hover:text-white"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />{" "}
               Refresh
@@ -583,7 +585,7 @@ function Dashboard() {
 
             <div className="grid gap-5 xl:grid-cols-2">
               <FadeIn from="left" delay={0.15}>
-                <TrendChart
+                <StableTrendChart
                   title="Revenue trend"
                   data={dailyTrend}
                   staffKey="staffRevenue"
@@ -592,7 +594,7 @@ function Dashboard() {
                 />
               </FadeIn>
               <FadeIn from="right" delay={0.15}>
-                <TrendChart
+                <StableTrendChart
                   title="Sales trend"
                   data={dailyTrend}
                   staffKey="staffCount"
@@ -603,16 +605,16 @@ function Dashboard() {
 
             <FadeIn from="bottom" delay={0.3}>
               <section className={`${cardClass} overflow-hidden`}>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4 dark:border-neutral-800">
                   <div>
                     <h3 className="font-semibold">Branch performance</h3>
-                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    <p className="mt-1 text-xs text-muted dark:text-gray-400">
                       Ranked by today’s staff and online sales revenue
                     </p>
                   </div>
                   <Link
                     to="/reports"
-                    className="text-sm font-semibold text-[#0A8B8E] hover:underline"
+                    className="text-sm font-semibold text-primary hover:underline dark:text-[#0A8B8E]"
                   >
                     View reports
                   </Link>
@@ -625,14 +627,14 @@ function Dashboard() {
                         className="flex flex-wrap items-center justify-between gap-3 px-5 py-4"
                       >
                         <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0A8B8E]/10 text-sm font-bold text-[#0A8B8E]">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-icon-tile text-sm font-bold text-primary dark:bg-[#0A8B8E]/10 dark:text-[#0A8B8E]">
                             {index + 1}
                           </span>
                           <div className="min-w-0">
                             <p className="truncate font-medium">
                               {branch.name}
                             </p>
-                            <p className="mt-0.5 text-xs text-gray-500">
+                            <p className="mt-0.5 text-xs text-muted dark:text-gray-400">
                               {branch.staffSales} staff sales ·{" "}
                               {branch.onlineOrders} online orders
                             </p>
@@ -645,7 +647,7 @@ function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <p className="p-8 text-center text-sm text-gray-500">
+                  <p className="p-8 text-center text-sm text-muted dark:text-gray-400">
                     No branches found.
                   </p>
                 )}
@@ -685,9 +687,9 @@ function Dashboard() {
             </motion.div>
             <FadeIn from="bottom" delay={0.3}>
               <section className={`${cardClass} overflow-hidden`}>
-                <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                <div className="border-b border-border px-5 py-4 dark:border-neutral-800">
                   <h3 className="font-semibold">Your completed transactions</h3>
-                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  <p className="mt-1 text-xs text-muted dark:text-gray-400">
                     Only orders created by your account are shown.
                   </p>
                 </div>
@@ -700,7 +702,7 @@ function Dashboard() {
                       >
                         <div>
                           <p className="font-medium">{order.orderNumber}</p>
-                          <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                          <p className="mt-1 text-xs text-muted dark:text-gray-400">
                             {new Intl.DateTimeFormat("en-PH", {
                               timeZone: "Asia/Manila",
                               dateStyle: "medium",
@@ -713,7 +715,7 @@ function Dashboard() {
                     ))}
                   </div>
                 ) : (
-                  <p className="p-8 text-center text-sm text-gray-500 dark:text-gray-400">
+                  <p className="p-8 text-center text-sm text-muted dark:text-gray-400">
                     No completed orders for you today.
                   </p>
                 )}
@@ -755,7 +757,7 @@ function Dashboard() {
             </motion.div>
             <div className="grid gap-5 xl:grid-cols-2">
               <FadeIn from="left" delay={0.15}>
-                <TrendChart
+                <StableTrendChart
                   title="Revenue trend"
                   data={dailyTrend}
                   staffKey="staffRevenue"
@@ -764,7 +766,7 @@ function Dashboard() {
                 />
               </FadeIn>
               <FadeIn from="right" delay={0.15}>
-                <TrendChart
+                <StableTrendChart
                   title="Sales trend"
                   data={dailyTrend}
                   staffKey="staffCount"
@@ -776,24 +778,24 @@ function Dashboard() {
               <section className={`${cardClass} p-5`}>
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
-                    <span className="rounded-xl bg-[#0A8B8E]/10 p-3 text-[#0A8B8E]">
+                    <span className="rounded-xl bg-icon-tile p-3 text-primary dark:bg-[#0A8B8E]/10 dark:text-[#0A8B8E]">
                       <Building2 size={20} />
                     </span>
                     <div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                      <p className="text-sm text-muted dark:text-gray-400">
                         Your branch
                       </p>
                       <h3 className="mt-0.5 text-lg font-semibold">
                         {branchName || "Branch not assigned"}
                       </h3>
-                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      <p className="mt-1 text-xs text-muted dark:text-gray-400">
                         Dashboard figures refresh automatically every minute.
                       </p>
                     </div>
                   </div>
                   <Link
                     to="/reports"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a]"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#08777a] dark:bg-[#0A8B8E] dark:hover:bg-[#08777a]"
                   >
                     <BarChart3 size={17} /> Open reports
                   </Link>

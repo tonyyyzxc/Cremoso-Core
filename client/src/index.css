@@ -1,4 +1,57 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --background: #FAF5EC;
+  --card: #FFFCF7;
+  --border: #EADFCF;
+  --primary: #0B8A8A;
+  --primary-strong: #0F3B3B;
+  --text-muted: #4A5A57;
+  --accent: #E9B45C;
+  --icon-tile: #E4F1EE;
+}
+
+.dark {
+  --background: #000000;
+  --card: #111A19;
+  --border: #2A3B39;
+  --primary: #0B8A8A;
+  --primary-strong: #E6F2F0;
+  --text-muted: #8FA5A2;
+  --accent: #F2C879;
+  --input: #1A2624;
+  --primary-disabled: #2F6B6B;
+  --glow: rgba(11, 138, 138, 0.15);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-card: var(--card);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-strong: var(--primary-strong);
+  --color-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-icon-tile: var(--icon-tile);
+  --color-input: var(--input);
+  --color-primary-disabled: var(--primary-disabled);
+  --color-glow: var(--glow);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html[data-magicui-theme-vt="active"]::view-transition-new(root) {
+  clip-path: var(--magicui-theme-vt-clip-from);
+}
+
+html[data-magicui-theme-vt="active"] * {
+  transition-property: none !important;
+}
 
 *::-webkit-scrollbar {
   width: 8px;

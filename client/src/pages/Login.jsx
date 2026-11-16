@@ -268,10 +268,25 @@ function Login() {
     !isForgotPassword &&
     loginIntegrations.loaded &&
     loginIntegrations.staffGoogleAuthEnabled;
+  const isLoginFormInvalid = !identifier.trim() || !password;
+  const isPasswordResetFormInvalid =
+    resetStep === 0
+      ? !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(forgotEmail.trim())
+      : resetStep === 1
+        ? !/^\d{6}$/.test(resetCode)
+        : newPassword.length < 8 || newPassword !== confirmPassword;
+  const isSubmitDisabled =
+    isSubmitting ||
+    !loginIntegrations.loaded ||
+    (isForgotPassword
+      ? isPasswordResetFormInvalid
+      : isLoginFormInvalid ||
+        (loginIntegrations.recaptchaEnabled &&
+          (!loginIntegrations.recaptchaSiteKey || !recaptchaToken)));
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative h-dvh bg-[#FBF6EF] flex items-center justify-center px-4 py-4 overflow-hidden">
+      <div className="relative h-dvh bg-[#FAF5EC] flex items-center justify-center px-4 py-4 overflow-hidden">
         {/* Animated background layer */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="blob blob-1" />
@@ -389,7 +404,7 @@ function Login() {
           <div
             className={`flex flex-col justify-center px-6 sm:px-8 md:px-12 ${
               !isForgotPassword ? "pt-8 pb-8 md:pt-16" : "py-8"
-            }`}
+            } bg-white`}
           >
             <h2 className="text-[#0A3B3D] text-2xl font-semibold mb-1">
               {isForgotPassword ? "Reset your password" : "Welcome!"}
@@ -620,13 +635,7 @@ function Login() {
                 )}
                 <button
                   type="submit"
-                  disabled={
-                    isSubmitting ||
-                    !loginIntegrations.loaded ||
-                    (!isForgotPassword &&
-                      loginIntegrations.recaptchaEnabled &&
-                      (!loginIntegrations.recaptchaSiteKey || !recaptchaToken))
-                  }
+                  disabled={isSubmitDisabled}
                   className="flex-1 bg-[#0A8B8E] text-white font-medium py-3 rounded-xl shadow-sm hover:bg-[#097578] active:scale-[0.99] transition disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {isSubmitting

@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { SkeletonBox as SkulletSkeletonBox } from "skullet/react";
 import { fadeOffsets, fadeTransition } from "./loadingVariants.js";
 
 export function StreakBar() {
@@ -29,8 +30,8 @@ export function FadeIn({ from = "bottom", delay = 0, children }) {
 
 export function Skeleton({ className = "", ...props }) {
   return (
-    <div
-      className={`animate-pulse rounded-lg bg-gray-200 dark:bg-neutral-800 ${className}`}
+    <SkulletSkeletonBox
+      className={`rounded-lg ${className}`}
       {...props}
     />
   );
