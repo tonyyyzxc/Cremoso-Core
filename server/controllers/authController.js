@@ -14,6 +14,9 @@ import { getIntegrationCredentials } from "../utils/integrationCredentials.js";
 const PASSWORD_RESET_CODE_EXPIRY_MS = 10 * 60 * 1000;
 const PASSWORD_RESET_CODE_RESEND_DELAY_MS = 60 * 1000;
 const PASSWORD_RESET_CODE_MAX_ATTEMPTS = 5;
+const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
+const LOGIN_USER_FIELDS =
+  "name username office email role status passwordHash googleId branchId";
 const PASSWORD_RESET_REQUEST_MESSAGE =
   "If an active account exists for this email, a reset code has been sent.";
 
@@ -81,12 +84,12 @@ const publicUser = (user) => ({
 
 const createSession = async (req, user, res, action) => {
   const tokenId = randomUUID();
-  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-  await Session.create({ tokenId, user: user._id, expiresAt });
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
   const token = signToken(
-    { id: user._id, email: user.email, role: user.role, sid: tokenId },
+    { id: user._id, sid: tokenId },
     "7d",
   );
+  await Session.create({ tokenId, user: user._id, expiresAt });
   await logActivity(req, {
     action,
     category: "auth",
@@ -103,8 +106,8 @@ export async function login(req, res) {
     ? req.body.identifier.trim().toLowerCase()
     : typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   try {
-    const password = typeof req.body.password === "string" ? req.body.password : "";
-    const recaptchaToken = typeof req.body.recaptchaToken === "string"
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    const recaptchaToken = typeof req.body?.recaptchaToken === "string"
       ? req.body.recaptchaToken
       : "";
 
@@ -153,6 +156,7 @@ export async function login(req, res) {
           secret: recaptchaCredentials.secretKey,
           response: recaptchaToken,
         }),
+        signal: AbortSignal.timeout(10_000),
       },
     ) : null;
     if (recaptchaResponse && !recaptchaResponse.ok) {
@@ -170,7 +174,9 @@ export async function login(req, res) {
       return res.status(401).json({ error: "reCAPTCHA verification failed. Please try again." });
     }
 
-    const user = await User.findOne({ $or: [{ email: identifier }, { username: identifier }] });
+    const user = await User.findOne({
+      $or: [{ email: identifier }, { username: identifier }],
+    }).select(LOGIN_USER_FIELDS);
     if (!user?.passwordHash || !(await comparePassword(password, user.passwordHash))) {
       await logActivity(req, {
         action: "auth.login.failed",
@@ -206,8 +212,7 @@ export async function login(req, res) {
 }
 
 export async function requestPasswordResetCode(req, res) {
-  if (!(await requireIntegration("gmailEnabled", res, "Brevo password-reset email"))) return;
-  const email = typeof req.body.email === "string"
+  const email = typeof req.body?.email === "string"
     ? req.body.email.trim().toLowerCase()
     : "";
   if (!isValidEmail(email)) {
@@ -223,6 +228,8 @@ export async function requestPasswordResetCode(req, res) {
 
   let user;
   try {
+    if (!(await requireIntegration("gmailEnabled", res, "Brevo password-reset email"))) return;
+
     user = await User.findOne({ email, status: "active" });
     if (!user) {
       await logActivity(req, {
@@ -234,6 +241,10 @@ export async function requestPasswordResetCode(req, res) {
       return res.json({ message: PASSWORD_RESET_REQUEST_MESSAGE });
     }
 
+    const now = new Date();
+    const cooldownCutoff = new Date(
+      now.getTime() - PASSWORD_RESET_CODE_RESEND_DELAY_MS,
+    );
     const lastSentAt = user.passwordResetCodeSentAt?.getTime();
     if (
       lastSentAt &&
@@ -251,13 +262,36 @@ export async function requestPasswordResetCode(req, res) {
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, "0");
     const codeHash = await hashPassword(code);
-    user.passwordResetCodeHash = codeHash;
-    user.passwordResetCodeExpiresAt = new Date(
-      Date.now() + PASSWORD_RESET_CODE_EXPIRY_MS,
+    user = await User.findOneAndUpdate(
+      {
+        _id: user._id,
+        status: "active",
+        $or: [
+          { passwordResetCodeSentAt: { $lte: cooldownCutoff } },
+          { passwordResetCodeSentAt: null },
+        ],
+      },
+      {
+        $set: {
+          passwordResetCodeHash: codeHash,
+          passwordResetCodeExpiresAt: new Date(
+            now.getTime() + PASSWORD_RESET_CODE_EXPIRY_MS,
+          ),
+          passwordResetCodeAttempts: 0,
+          passwordResetCodeSentAt: now,
+        },
+      },
+      { returnDocument: "after" },
     );
-    user.passwordResetCodeAttempts = 0;
-    user.passwordResetCodeSentAt = new Date();
-    await user.save();
+    if (!user) {
+      await logActivity(req, {
+        action: "auth.reset.requested",
+        category: "auth",
+        summary: "Password reset request received.",
+        identifier: email,
+      });
+      return res.json({ message: PASSWORD_RESET_REQUEST_MESSAGE });
+    }
 
     try {
       await sendPasswordResetCode(email, code);
@@ -315,10 +349,10 @@ export async function requestPasswordResetCode(req, res) {
 }
 
 export async function verifyPasswordResetCode(req, res) {
-  const email = typeof req.body.email === "string"
+  const email = typeof req.body?.email === "string"
     ? req.body.email.trim().toLowerCase()
     : "";
-  const code = typeof req.body.code === "string" ? req.body.code.trim() : "";
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
   if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
     await logActivity(req, {
       action: "auth.reset.verified",
@@ -366,11 +400,11 @@ export async function verifyPasswordResetCode(req, res) {
 }
 
 export async function resetPassword(req, res) {
-  const email = typeof req.body.email === "string"
+  const email = typeof req.body?.email === "string"
     ? req.body.email.trim().toLowerCase()
     : "";
-  const code = typeof req.body.code === "string" ? req.body.code.trim() : "";
-  const newPassword = typeof req.body.newPassword === "string"
+  const code = typeof req.body?.code === "string" ? req.body.code.trim() : "";
+  const newPassword = typeof req.body?.newPassword === "string"
     ? req.body.newPassword
     : "";
 
@@ -467,7 +501,9 @@ export async function googleLogin(req, res) {
   let identifier = "";
   try {
     if (!(await requireIntegration("staffGoogleAuthEnabled", res, "Google sign-in"))) return;
-    const { idToken } = req.body;
+    const idToken = typeof req.body?.idToken === "string"
+      ? req.body.idToken
+      : "";
     if (!idToken) {
       await logActivity(req, {
         action: "auth.google.rejected",
@@ -505,7 +541,7 @@ export async function googleLogin(req, res) {
 
     const email = payload.email.toLowerCase();
     identifier = email;
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select(LOGIN_USER_FIELDS);
     if (!user) {
       await logActivity(req, {
         action: "auth.google.rejected",
@@ -526,7 +562,9 @@ export async function googleLogin(req, res) {
       });
       return res.status(403).json({ error: "This account is not active." });
     }
-    const config = await AuthConfig.findOne({ key: "default" });
+    const config = await AuthConfig.findOne({ key: "default" })
+      .select("staffGoogleAuthEnabled")
+      .lean();
     if (config?.staffGoogleAuthEnabled === false) {
       await logActivity(req, {
         action: "auth.google.rejected",
@@ -549,9 +587,16 @@ export async function googleLogin(req, res) {
       });
       return res.status(401).json({ error: "This account is linked to a different Google account." });
     }
-    user.googleId = payload.sub;
-    if (!user.name && payload.name) user.name = payload.name;
-    await user.save();
+    let accountChanged = false;
+    if (!user.googleId) {
+      user.googleId = payload.sub;
+      accountChanged = true;
+    }
+    if (!user.name && payload.name) {
+      user.name = payload.name;
+      accountChanged = true;
+    }
+    if (accountChanged) await user.save();
     return await createSession(req, user, res, "auth.google.success");
   } catch (error) {
     console.error("Google auth error:", {
@@ -570,8 +615,8 @@ export async function googleLogin(req, res) {
 }
 
 export async function updatePassword(req, res) {
-  const currentPassword = typeof req.body.currentPassword === "string" ? req.body.currentPassword : "";
-  const newPassword = typeof req.body.newPassword === "string" ? req.body.newPassword : "";
+  const currentPassword = typeof req.body?.currentPassword === "string" ? req.body.currentPassword : "";
+  const newPassword = typeof req.body?.newPassword === "string" ? req.body.newPassword : "";
   if (newPassword.length < 8) {
     await logActivity(req, {
       action: "auth.password.change",
@@ -649,8 +694,8 @@ export async function getProfile(req, res) {
 }
 
 export async function updateProfile(req, res) {
-  const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
-  const phone = typeof req.body.phone === "string" ? req.body.phone.trim() : "";
+  const name = typeof req.body?.name === "string" ? req.body.name.trim() : "";
+  const phone = typeof req.body?.phone === "string" ? req.body.phone.trim() : "";
   if (!name) {
     await logActivity(req, {
       action: "auth.profile.update",

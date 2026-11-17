@@ -49,6 +49,7 @@ function Login() {
   const [resetStep, setResetStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [googleButtonWidth, setGoogleButtonWidth] = useState(300);
+  const authRequestRef = useRef(false);
   const toast = useToast();
   const recaptchaRef = useRef(null);
   const recaptchaContainerRef = useRef(null);
@@ -64,7 +65,11 @@ function Login() {
   }, []);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/auth-settings/public`)
+    const controller = new AbortController();
+    let isCancelled = false;
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    fetch(`${API_URL}/api/auth-settings/public`, { signal: controller.signal })
       .then((response) => {
         if (!response.ok)
           throw new Error("Unable to load public sign-in settings.");
@@ -82,9 +87,17 @@ function Login() {
         })),
       )
       .catch((err) => {
+        if (isCancelled) return;
         console.error("Public sign-in settings error:", err);
         setLoginIntegrations((current) => ({ ...current, loaded: true }));
-      });
+      })
+      .finally(() => clearTimeout(timeoutId));
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, []);
 
   // Keeps the reCAPTCHA widget scaled to the form width.
@@ -121,11 +134,13 @@ function Login() {
 
   const handlePasswordReset = async (event) => {
     event.preventDefault();
+    if (authRequestRef.current) return;
     if (resetStep === 2 && newPassword !== confirmPassword) {
       toast.error("Passwords do not match.");
       return;
     }
 
+    authRequestRef.current = true;
     setIsSubmitting(true);
     try {
       const endpoint = [
@@ -142,6 +157,7 @@ function Login() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(20_000),
       });
       const data = await result.json().catch(() => ({}));
 
@@ -172,6 +188,7 @@ function Login() {
       console.error("Password reset error:", err);
       toast.error("Unable to reach the server. Please try again.");
     } finally {
+      authRequestRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -179,6 +196,7 @@ function Login() {
   // Password login returns { token, user }.
   const handleSubmit = async (event) => {
     event.preventDefault();
+    if (authRequestRef.current) return;
     if (
       loginIntegrations.recaptchaEnabled &&
       !loginIntegrations.recaptchaSiteKey
@@ -192,6 +210,7 @@ function Login() {
       toast.error("Please complete the reCAPTCHA check.");
       return;
     }
+    authRequestRef.current = true;
     setIsSubmitting(true);
 
     try {
@@ -205,6 +224,7 @@ function Login() {
             ? recaptchaToken
             : "",
         }),
+        signal: AbortSignal.timeout(20_000),
       });
       const data = await result.json().catch(() => ({}));
 
@@ -213,7 +233,7 @@ function Login() {
         return;
       }
 
-      if (!data.token || !data.user) {
+      if (!data.token || !data.user?.id) {
         toast.error("Login response is missing the session token or user.");
         return;
       }
@@ -226,6 +246,7 @@ function Login() {
       console.error("Email/password login error:", err);
       toast.error("Unable to reach the server. Please try again.");
     } finally {
+      authRequestRef.current = false;
       setIsSubmitting(false);
       setRecaptchaToken("");
       recaptchaRef.current?.reset();
@@ -235,17 +256,31 @@ function Login() {
   // Google returns a signed ID token (credential). Send it to the server,
   // which verifies it and issues the app's own session token.
   const handleGoogleSuccess = async (response) => {
+    if (authRequestRef.current) return;
+    if (!response?.credential) {
+      toast.error("Google sign-in did not return a credential. Try again.");
+      return;
+    }
+
+    authRequestRef.current = true;
+    setIsSubmitting(true);
     try {
       const result = await fetch(`${API_URL}/api/auth/google`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // The server expects this exact property name: idToken.
         body: JSON.stringify({ idToken: response.credential }),
+        signal: AbortSignal.timeout(20_000),
       });
       const data = await result.json().catch(() => ({}));
 
       if (!result.ok) {
         toast.error(data.error || "Google sign-in failed.");
+        return;
+      }
+
+      if (!data.token || !data.user?.id) {
+        toast.error("Google sign-in response is missing the session token or user.");
         return;
       }
 
@@ -256,6 +291,9 @@ function Login() {
     } catch (err) {
       console.error("Google login error:", err);
       toast.error("Unable to reach the server. Please try again.");
+    } finally {
+      authRequestRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -268,6 +306,8 @@ function Login() {
     !isForgotPassword &&
     loginIntegrations.loaded &&
     loginIntegrations.staffGoogleAuthEnabled;
+  const googleClientId =
+    loginIntegrations.googleClientId || GOOGLE_CLIENT_ID;
   const isLoginFormInvalid = !identifier.trim() || !password;
   const isPasswordResetFormInvalid =
     resetStep === 0
@@ -362,6 +402,9 @@ function Login() {
           animation-name: rise;
           animation-timing-function: ease-in;
           animation-iteration-count: infinite;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .blob, .bubble { animation: none !important; }
         }
       `}</style>
 
@@ -624,6 +667,7 @@ function Login() {
                 {isForgotPassword && resetStep > 0 && (
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={() => {
                       setDirection(-1);
                       setResetStep((currentStep) => currentStep - 1);
@@ -658,12 +702,14 @@ function Login() {
                 </div>
                 <div
                   ref={googleContainerRef}
-                  className="flex w-full justify-center"
+                  aria-busy={isSubmitting}
+                  className={`flex w-full justify-center ${isSubmitting ? "pointer-events-none opacity-60" : ""}`}
                 >
-                  {GOOGLE_CLIENT_ID ? (
+                  {googleClientId ? (
                     <GoogleLogin
                       locale="en"
                       text="continue_with"
+                      use_fedcm_for_button={true}
                       width={googleButtonWidth}
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
@@ -673,8 +719,8 @@ function Login() {
                       className="text-center text-sm text-red-700"
                       role="alert"
                     >
-                      Google sign-in is not configured. Missing
-                      VITE_GOOGLE_CLIENT_ID.
+                      Google sign-in is not configured. Please contact an
+                      administrator.
                     </p>
                   )}
                 </div>
