@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import ReCAPTCHA from "react-google-recaptcha";
@@ -12,7 +11,6 @@ import {
   KeyRound,
   Mail,
   MapPin,
-  PanelLeft,
   Phone,
   ShieldCheck,
 } from "lucide-react";
@@ -121,7 +119,6 @@ const credentialIntegrations = {
 
 export default function SettingsPage() {
   const toast = useToast();
-  const { setShowSidebarIcons } = useOutletContext();
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -171,9 +168,6 @@ export default function SettingsPage() {
   const [pushStatusLoaded, setPushStatusLoaded] = useState(false);
   const [isSavingPush, setIsSavingPush] = useState(false);
   const [pushFeedback, setPushFeedback] = useState("");
-  const [showSidebarIcons, setShowSidebarIconsState] = useState(true);
-  const [isSavingSidebarSetting, setIsSavingSidebarSetting] = useState(false);
-  const [sidebarFeedback, setSidebarFeedback] = useState("");
   const [hasPassword, setHasPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [password, setPassword] = useState("");
@@ -208,7 +202,6 @@ export default function SettingsPage() {
           firebaseMessagingEnabled: config.firebaseMessagingEnabled !== false,
         });
         setActivityLoggingEnabled(config.activityLoggingEnabled !== false);
-        setShowSidebarIconsState(config.showSidebarIcons !== false);
         setAccountsWithoutPassword(config.accountsWithoutPassword || 0);
       })
       .catch((err) => setError(err.message))
@@ -680,31 +673,6 @@ export default function SettingsPage() {
       toast.error(err.message);
     } finally {
       setCredentialBusy(false);
-    }
-  };
-
-  const toggleSidebarIcons = async () => {
-    const nextValue = !showSidebarIcons;
-    setIsSavingSidebarSetting(true);
-    setSidebarFeedback("");
-    try {
-      const config = await apiRequest("/api/auth-settings/sidebar", {
-        method: "PATCH",
-        body: JSON.stringify({ showSidebarIcons: nextValue }),
-      });
-      const enabled = config.showSidebarIcons !== false;
-      setShowSidebarIconsState(enabled);
-      setShowSidebarIcons(enabled);
-      setSidebarFeedback("Sidebar preference saved.");
-      toast.success(
-        enabled
-          ? "Sidebar icons enabled for your account."
-          : "Sidebar icons hidden for your account.",
-      );
-    } catch (err) {
-      setSidebarFeedback(err.message);
-    } finally {
-      setIsSavingSidebarSetting(false);
     }
   };
 
@@ -1400,55 +1368,6 @@ export default function SettingsPage() {
                       )}
                     </section>
                   )}
-                  <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-                    <div className="mb-5 flex items-start gap-3">
-                      <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
-                        <PanelLeft size={20} />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">Sidebar</h3>
-                        <p className="mt-1 text-sm leading-5 text-gray-500 dark:text-gray-400">
-                          Choose how the sidebar looks when it is closed.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between gap-4 rounded-xl bg-[#FBF6EF] p-4 dark:bg-neutral-950">
-                      <div>
-                        <p className="text-sm font-medium">
-                          Show icons when collapsed
-                        </p>
-                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-400">
-                          Off hides the sidebar completely. On keeps a narrow
-                          icon rail. Applies only to your account.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={showSidebarIcons}
-                        aria-label="Show icons when sidebar is collapsed"
-                        onClick={toggleSidebarIcons}
-                        disabled={isSavingSidebarSetting}
-                        className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${showSidebarIcons ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
-                      >
-                        <span
-                          className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${showSidebarIcons ? "left-6" : "left-1"}`}
-                        />
-                      </button>
-                    </div>
-                    {sidebarFeedback && (
-                      <p
-                        role={
-                          sidebarFeedback.toLowerCase().includes("saved")
-                            ? "status"
-                            : "alert"
-                        }
-                        className={`mt-3 ${feedbackClassName(sidebarFeedback)}`}
-                      >
-                        {sidebarFeedback}
-                      </p>
-                    )}
-                  </section>
                 </div>
               </section>
             </div>

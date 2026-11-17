@@ -35,7 +35,6 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [viewportMode, setViewportMode] = useState("desktop");
-  const [showSidebarIcons, setShowSidebarIcons] = useState(true);
   const { theme, setTheme } = useTheme();
   const contentRef = useRef(null);
 
@@ -66,15 +65,6 @@ export default function Layout() {
 
   const [branchName, setBranchName] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    apiRequest("/api/auth-settings")
-      .then((config) => setShowSidebarIcons(config.showSidebarIcons !== false))
-      .catch((error) => {
-        console.error("Sidebar settings load error:", error);
-      });
-  }, [user]);
 
   useEffect(() => {
     if (!["branch", "staff"].includes(user?.role)) return;
@@ -147,7 +137,7 @@ export default function Layout() {
         userRole={user?.role}
         collapsed={viewportMode === "tablet" || (viewportMode === "desktop" && !sidebarOpen)}
         mobileOpen={viewportMode !== "mobile" || mobileSidebarOpen}
-        showIcons={viewportMode === "tablet" || showSidebarIcons}
+        showIcons={viewportMode === "tablet"}
       />
       <div className="flex min-w-0 flex-1 flex-col transition-[width] duration-300 ease-in-out motion-reduce:transition-none">
         <TopBar
@@ -180,7 +170,7 @@ export default function Layout() {
           onThemeChange={setTheme}
         />
         <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-background p-4 sm:p-5 lg:p-6 dark:bg-black">
-          <Outlet context={{ showSidebarIcons, setShowSidebarIcons }} />
+          <Outlet />
         </div>
       </div>
       <AnimatePresence>{loggingOut && <StreakBar />}</AnimatePresence>

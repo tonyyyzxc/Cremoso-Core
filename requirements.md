@@ -20,7 +20,7 @@ This document describes functions currently available in the system, based on it
 - **FR-AUTH-06 — Profile management**: signed-in users can update their own profile information. The login email is read-only in the profile settings.
 - **FR-AUTH-07 — Session control**: users can log out, ending and revoking the active server session.
 - **FR-AUTH-08 — Account status enforcement**: disabled or otherwise inactive accounts cannot start an authenticated session.
-- **FR-AUTH-09 — Navigation preferences**: signed-in users can choose whether collapsed navigation displays icons; users can also switch the interface between light and dark themes.
+- **FR-AUTH-09 — Interface theme**: signed-in users can switch the interface between light and dark themes.
 
 ## Staff functions
 
