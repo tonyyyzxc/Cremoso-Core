@@ -24,6 +24,8 @@ import editLocksRouter from "./routes/editLocks.js";
 
 const app = express();
 
+if (process.env.RENDER === "true") app.set("trust proxy", 1);
+
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use("/api/sheets", sheetsRouter);

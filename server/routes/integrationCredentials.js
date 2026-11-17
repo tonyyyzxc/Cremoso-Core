@@ -2,6 +2,14 @@ import express from "express";
 import { requireAuth, requireSuperAdmin } from "../middleware/authMiddleware.js";
 import { requireEditLock } from "../utils/editLock.js";
 import {
+  credentialChallengeAccountRateLimit,
+  credentialChallengeIpRateLimit,
+  credentialValidationAccountRateLimit,
+  credentialValidationIpRateLimit,
+  credentialVerifyAccountRateLimit,
+  credentialVerifyIpRateLimit,
+} from "../middleware/rateLimiters.js";
+import {
   getIntegrationCredentialStatus,
   removeIntegrationCredentials,
   validateAndSaveIntegrationCredentials,
@@ -13,10 +21,22 @@ const router = express.Router();
 
 router.use(requireAuth, requireSuperAdmin);
 router.get("/", getIntegrationCredentialStatus);
-router.post("/challenge", requestIntegrationCredentialCode);
-router.post("/challenge/verify", verifyIntegrationCredentialCode);
+router.post(
+  "/challenge",
+  credentialChallengeIpRateLimit,
+  credentialChallengeAccountRateLimit,
+  requestIntegrationCredentialCode,
+);
+router.post(
+  "/challenge/verify",
+  credentialVerifyIpRateLimit,
+  credentialVerifyAccountRateLimit,
+  verifyIntegrationCredentialCode,
+);
 router.post(
   "/:integration/validate",
+  credentialValidationIpRateLimit,
+  credentialValidationAccountRateLimit,
   requireEditLock("IntegrationCredential", (req) => req.params.integration),
   validateAndSaveIntegrationCredentials,
 );

@@ -1,5 +1,12 @@
 import express from "express";
 import { requireAuth } from "../middleware/authMiddleware.js";
+import {
+  googleLoginRateLimit,
+  loginRateLimit,
+  passwordResetCompletionRateLimit,
+  passwordResetRequestRateLimit,
+  passwordResetVerifyRateLimit,
+} from "../middleware/rateLimiters.js";
 import { requireEditLock } from "../utils/editLock.js";
 import {
   login,
@@ -17,13 +24,13 @@ import {
 const router = express.Router();
 
 // Password login performs server-side Google reCAPTCHA verification.
-router.post("/login", login);
+router.post("/login", loginRateLimit, login);
 // Google sign-in verifies a Google ID token and creates an app session.
-router.post("/google", googleLogin);
+router.post("/google", googleLoginRateLimit, googleLogin);
 // Requests a password reset code sent through Brevo.
-router.post("/forgot-password", requestPasswordResetCode);
-router.post("/verify-reset-code", verifyPasswordResetCode);
-router.post("/reset-password", resetPassword);
+router.post("/forgot-password", passwordResetRequestRateLimit, requestPasswordResetCode);
+router.post("/verify-reset-code", passwordResetVerifyRateLimit, verifyPasswordResetCode);
+router.post("/reset-password", passwordResetCompletionRateLimit, resetPassword);
 router.get("/password-status", requireAuth, getPasswordStatus);
 router.put(
   "/password",
