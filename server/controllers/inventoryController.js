@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import Inventory from "../models/inventory.js";
 import MenuItem from "../models/menuItem.js";
+import { getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { notifyLowStockTransition } from "../utils/pushNotifications.js";
 
 export async function listInventory(req, res) {
@@ -58,7 +59,9 @@ export async function setInventoryQuantity(req, res) {
 
     if (expectedVersion === -1) {
       // Version -1 means the client saw no stock row and is creating its initial quantity.
-      const createdInventory = await Inventory.create({ branchId, menuItemId, quantity });
+      const createdInventory = await Inventory.create({
+        branchId, menuItemId, quantity, ...getEditMetadata(req.user),
+      });
       const inventory = await Inventory.findById(createdInventory._id)
         .populate("menuItemId", "name active archived")
         .populate("branchId", "name");
@@ -69,6 +72,13 @@ export async function setInventoryQuantity(req, res) {
         previousQuantity: 0,
         quantity,
       });
+      await logActivity(req, {
+        action: "create",
+        category: "inventory",
+        summary: "Created an inventory stock record.",
+        target: { type: "Inventory", id: `${branchId}:${menuItemId}` },
+        details: { changedFields: ["quantity"] },
+      });
       return res.json(inventory);
     }
 
@@ -76,7 +86,7 @@ export async function setInventoryQuantity(req, res) {
     const filter = { branchId, menuItemId, __v: expectedVersion };
     const previousInventory = await Inventory.findOneAndUpdate(
       filter,
-      { $set: { quantity }, $inc: { __v: 1 } },
+      { $set: { quantity, ...getEditMetadata(req.user) }, $inc: { __v: 1 } },
       { returnDocument: "before", runValidators: true },
     ).select("quantity");
     if (!previousInventory) {
@@ -92,6 +102,15 @@ export async function setInventoryQuantity(req, res) {
       previousQuantity: previousInventory?.quantity ?? 0,
       quantity,
     });
+    if (previousInventory.quantity !== quantity) {
+      await logActivity(req, {
+        action: "update",
+        category: "inventory",
+        summary: "Updated inventory stock.",
+        target: { type: "Inventory", id: `${branchId}:${menuItemId}` },
+        details: { changedFields: ["quantity"] },
+      });
+    }
     return res.json(inventory);
   } catch (error) {
     if (error.code === 11000) {

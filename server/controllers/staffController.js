@@ -1,6 +1,7 @@
 import Branch from "../models/branch.js";
 import User from "../models/user.js";
 import Worker from "../models/Worker.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 
 export async function getStaffBranch(req, res) {
   if (!req.user.branchId) return res.json({ branch: null, manager: null, coworkers: [] });
@@ -28,11 +29,29 @@ export async function updateStaffProfile(req, res) {
   try {
     const manager = await User.findById(req.user._id);
     if (!manager) return res.status(404).json({ error: "Account not found." });
+    const before = manager.toObject();
     manager.name = name;
     manager.phone = phone;
+    Object.assign(manager, getEditMetadata(manager));
     await manager.save();
+    const changedFields = getChangedFieldNames(before, manager, ["name", "phone"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "user",
+        summary: "Updated manager profile.",
+        target: { type: "User", id: manager._id, label: manager.email },
+        details: { changedFields },
+      });
+    }
     return res.json({
-      manager: { _id: manager._id, name: manager.name, email: manager.email, phone: manager.phone },
+      manager: {
+        _id: manager._id, name: manager.name, email: manager.email, phone: manager.phone,
+        lastEditedBy: manager.lastEditedBy,
+        lastEditedByName: manager.lastEditedByName,
+        lastEditedByRole: manager.lastEditedByRole,
+        lastEditedAt: manager.lastEditedAt,
+      },
     });
   } catch (error) {
     console.error("Manager profile update error:", error);
@@ -51,13 +70,29 @@ export async function updateStaffBranch(req, res) {
   try {
     const branch = await Branch.findById(req.user.branchId);
     if (!branch) return res.status(404).json({ error: "Branch not found." });
+    const before = branch.toObject();
     branch.address = address;
     branch.phone = phone;
     branch.contactEmail = contactEmail;
+    Object.assign(branch, getEditMetadata(req.user));
     await branch.save();
+    const changedFields = getChangedFieldNames(before, branch, ["address", "phone", "contactEmail"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "branch",
+        summary: "Updated branch contact details.",
+        target: { type: "Branch", id: branch._id, label: branch.name },
+        details: { changedFields },
+      });
+    }
     return res.json({ branch: {
       _id: branch._id, name: branch.name, address: branch.address,
       phone: branch.phone, contactEmail: branch.contactEmail,
+      lastEditedBy: branch.lastEditedBy,
+      lastEditedByName: branch.lastEditedByName,
+      lastEditedByRole: branch.lastEditedByRole,
+      lastEditedAt: branch.lastEditedAt,
     } });
   } catch (error) {
     console.error("Branch info update error:", error);
@@ -88,7 +123,17 @@ export async function createStaffWorker(req, res) {
     return res.status(400).json({ error: "Enter a valid worker email." });
   }
   try {
-    const worker = await Worker.create({ name, phone, email, address, branchId: req.user.branchId });
+    const worker = await Worker.create({
+      name, phone, email, address, branchId: req.user.branchId,
+      ...getEditMetadata(req.user),
+    });
+    await logActivity(req, {
+      action: "create",
+      category: "user",
+      summary: "Created a worker record.",
+      target: { type: "Worker", id: worker._id, label: worker.name },
+      details: { changedFields: ["name", "phone", "email", "address", "branchId"] },
+    });
     return res.status(201).json(worker);
   } catch (error) {
     console.error("Worker creation error:", error);
@@ -101,6 +146,13 @@ export async function deleteStaffWorker(req, res) {
     const worker = await Worker.findOne({ _id: req.params.id, branchId: req.user.branchId });
     if (!worker) return res.status(404).json({ error: "Worker not found." });
     await worker.deleteOne();
+    await logActivity(req, {
+      action: "delete",
+      category: "user",
+      summary: "Deleted a worker record.",
+      target: { type: "Worker", id: worker._id, label: worker.name },
+      details: { changedFields: ["name", "phone", "email", "address", "branchId"] },
+    });
     return res.json({ id: worker._id, message: "Worker removed." });
   } catch (error) {
     console.error("Worker deletion error:", error);

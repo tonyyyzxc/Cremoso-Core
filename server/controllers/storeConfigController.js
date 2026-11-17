@@ -1,4 +1,5 @@
 import StoreConfig from "../models/storeConfig.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 
 const getConfig = () => StoreConfig.findOneAndUpdate(
   { key: "default" },
@@ -18,6 +19,7 @@ export async function getStoreConfig(_req, res) {
 export async function updateStoreConfig(req, res) {
   try {
     const current = await getConfig();
+    const before = current.toObject();
     const patchActive = (currentList, requestedList) => {
       if (!Array.isArray(requestedList)) return currentList;
       return currentList.map((entry) => {
@@ -29,7 +31,22 @@ export async function updateStoreConfig(req, res) {
     };
     current.channels = patchActive(current.channels, req.body.channels);
     current.paymentMethods = patchActive(current.paymentMethods, req.body.paymentMethods);
+    Object.assign(current, getEditMetadata(req.user));
     await current.save();
+    const changedFields = getChangedFieldNames(
+      before,
+      current,
+      ["channels", "paymentMethods"],
+    );
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "config",
+        summary: "Updated store configuration.",
+        target: { type: "StoreConfig", id: current.key },
+        details: { changedFields },
+      });
+    }
     return res.json(current);
   } catch (error) {
     console.error("Store config update error:", error);

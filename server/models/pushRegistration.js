@@ -6,6 +6,10 @@ const pushRegistrationSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     branchId: { type: mongoose.Schema.Types.ObjectId, ref: "Branch", required: true, index: true },
     token: { type: String, required: true, unique: true },
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lastEditedByName: { type: String, trim: true, default: "" },
+    lastEditedByRole: { type: String, trim: true, default: "" },
+    lastEditedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

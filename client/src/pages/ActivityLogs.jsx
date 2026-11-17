@@ -39,6 +39,15 @@ function humanize(value) {
   return value ? value.split(".").join(" · ").replaceAll("_", " ") : "Activity";
 }
 
+function formatChangedFields(fields) {
+  const names = Array.isArray(fields)
+    ? fields.filter((field) => typeof field === "string")
+    : [];
+  return names.length
+    ? names.map((field) => field.replace(/([a-z0-9])([A-Z])/g, "$1 $2")).join(", ")
+    : "";
+}
+
 function StatusBadge({ status }) {
   const styles =
     status === "failure"
@@ -396,6 +405,11 @@ export default function ActivityLogsPage() {
                           <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                             {humanize(log.action)}
                           </p>
+                          {formatChangedFields(log.details?.changedFields) && (
+                            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                              Changed fields: {formatChangedFields(log.details.changedFields)}
+                            </p>
+                          )}
                         </td>
                         <td className="px-5 py-4 capitalize">
                           {log.category || "—"}

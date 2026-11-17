@@ -3,6 +3,7 @@ import Branch from "../models/branch.js";
 import MenuItem from "../models/menuItem.js";
 import Supply from "../models/supply.js";
 import SupplyInventory from "../models/supplyInventory.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { notifyLowStockTransition } from "../utils/pushNotifications.js";
 
 export async function listSupplies(req, res) {
@@ -44,7 +45,17 @@ export async function createSupply(req, res) {
   }
 
   try {
-    return res.status(201).json(await Supply.create({ name, unit, lowStockThreshold }));
+    const supply = await Supply.create({
+      name, unit, lowStockThreshold, ...getEditMetadata(req.user),
+    });
+    await logActivity(req, {
+      action: "create",
+      category: "inventory",
+      summary: "Created a supply.",
+      target: { type: "Supply", id: supply._id, label: supply.name },
+      details: { changedFields: ["name", "unit", "lowStockThreshold"] },
+    });
+    return res.status(201).json(supply);
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ error: "A supply with this name already exists." });
     console.error("Supply creation error:", error);
@@ -68,11 +79,25 @@ export async function updateSupply(req, res) {
   }
 
   try {
-    const supply = await Supply.findByIdAndUpdate(req.params.supplyId, updates, {
+    const previousSupply = await Supply.findById(req.params.supplyId);
+    if (!previousSupply) return res.status(404).json({ error: "Supply not found." });
+    const supply = await Supply.findByIdAndUpdate(req.params.supplyId, {
+      $set: { ...updates, ...getEditMetadata(req.user) },
+    }, {
       returnDocument: "after",
       runValidators: true,
     });
     if (!supply) return res.status(404).json({ error: "Supply not found." });
+    const changedFields = getChangedFieldNames(previousSupply, supply, Object.keys(updates));
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "inventory",
+        summary: "Updated a supply.",
+        target: { type: "Supply", id: supply._id, label: supply.name },
+        details: { changedFields },
+      });
+    }
     return res.json(supply);
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ error: "A supply with this name already exists." });
@@ -100,6 +125,13 @@ export async function deleteSupply(req, res) {
 
     await SupplyInventory.deleteMany({ supplyId: supply._id });
     await supply.deleteOne();
+    await logActivity(req, {
+      action: "delete",
+      category: "inventory",
+      summary: "Deleted a supply.",
+      target: { type: "Supply", id: supply._id, label: supply.name },
+      details: { changedFields: Object.keys(supply.toObject()) },
+    });
     return res.json({ id: supply._id, message: "Supply deleted." });
   } catch (error) {
     console.error("Supply deletion error:", error);
@@ -131,7 +163,9 @@ export async function setBranchSupplyQuantity(req, res) {
 
     if (expectedVersion === -1) {
       // Version -1 means no branch stock row existed when the client loaded the supply.
-      const createdInventory = await SupplyInventory.create({ branchId, supplyId, quantity });
+      const createdInventory = await SupplyInventory.create({
+        branchId, supplyId, quantity, ...getEditMetadata(req.user),
+      });
       const inventory = await SupplyInventory.findById(createdInventory._id).populate("supplyId");
       await notifyLowStockTransition({
         branchId,
@@ -140,6 +174,13 @@ export async function setBranchSupplyQuantity(req, res) {
         previousQuantity: 0,
         quantity,
       });
+      await logActivity(req, {
+        action: "create",
+        category: "inventory",
+        summary: "Created a supply stock record.",
+        target: { type: "SupplyInventory", id: `${branchId}:${supplyId}` },
+        details: { changedFields: ["quantity"] },
+      });
       return res.json(inventory);
     }
 
@@ -147,7 +188,7 @@ export async function setBranchSupplyQuantity(req, res) {
     const filter = { branchId, supplyId, __v: expectedVersion };
     const previousInventory = await SupplyInventory.findOneAndUpdate(
       filter,
-      { $set: { quantity }, $inc: { __v: 1 } },
+      { $set: { quantity, ...getEditMetadata(req.user) }, $inc: { __v: 1 } },
       { returnDocument: "before", runValidators: true },
     ).select("quantity");
     if (!previousInventory) {
@@ -161,6 +202,15 @@ export async function setBranchSupplyQuantity(req, res) {
       previousQuantity: previousInventory?.quantity ?? 0,
       quantity,
     });
+    if (previousInventory.quantity !== quantity) {
+      await logActivity(req, {
+        action: "update",
+        category: "inventory",
+        summary: "Updated supply stock.",
+        target: { type: "SupplyInventory", id: `${branchId}:${supplyId}` },
+        details: { changedFields: ["quantity"] },
+      });
+    }
     return res.json(inventory);
   } catch (error) {
     if (error.code === 11000) {

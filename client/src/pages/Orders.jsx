@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
 
@@ -38,6 +39,7 @@ function OrderStatus({ status }) {
 }
 
 export default function OrdersPage() {
+  const editLock = useEditLock();
   const [orders, setOrders] = useState([]);
   const [branches, setBranches] = useState([]);
   const [filters, setFilters] = useState({ search: "", status: "all", branchId: "all", from: "", to: "" });
@@ -97,12 +99,46 @@ export default function OrdersPage() {
     }
   };
 
+  const openAction = async (type, order) => {
+    setError("");
+    try {
+      const acquired = await editLock.acquire("Order", order._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      setAction({ type, order, reason: "" });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const closeAction = async () => {
+    if (saving) return;
+    setAction(null);
+    try {
+      await editLock.release();
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const submitAction = async (event) => {
     event.preventDefault();
     if (!action) return;
     setSaving(true);
     setError("");
     try {
+      if (
+        editLock.activeResource?.resourceType !== "Order"
+        || editLock.activeResource.resourceId !== action.order._id
+      ) {
+        const acquired = await editLock.acquire("Order", action.order._id);
+        if (!acquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const updated = await apiRequest(`/api/orders/${action.order._id}/${action.type}`, {
         method: "POST",
         body: JSON.stringify({ reason: action.reason }),
@@ -110,6 +146,7 @@ export default function OrdersPage() {
       setOrders((current) => current.map((order) => order._id === updated._id ? updated : order));
       if (selectedOrder?._id === updated._id) setSelectedOrder(updated);
       setAction(null);
+      await editLock.release();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -121,12 +158,22 @@ export default function OrdersPage() {
     setBusyOrderId(order._id);
     setError("");
     try {
+      const acquired = await editLock.acquire("Order", order._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest(`/api/orders/${order._id}/archive`, { method: "POST" });
       setOrders((current) => current.filter((item) => item._id !== order._id));
     } catch (err) {
       setError(err.message);
     } finally {
       setBusyOrderId("");
+      try {
+        await editLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -136,6 +183,11 @@ export default function OrdersPage() {
     setBusyOrderId(order._id);
     setError("");
     try {
+      const acquired = await editLock.acquire("Order", order._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest(`/api/orders/${order._id}`, { method: "DELETE" });
       setOrders((current) => current.filter((item) => item._id !== order._id));
       if (selectedOrder?._id === order._id) setSelectedOrder(null);
@@ -143,6 +195,11 @@ export default function OrdersPage() {
       setError(err.message);
     } finally {
       setBusyOrderId("");
+      try {
+        await editLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -235,12 +292,12 @@ export default function OrdersPage() {
                   <td className="px-5 py-4"><OrderStatus status={order.status} />{order.archivedAt && <p className="mt-1 text-xs text-gray-500">Archived by {order.archivedBy?.name || order.archivedBy?.email || "Admin"}</p>}</td>
                   <td className="px-5 py-4"><div className="flex justify-end gap-1">
                     <button type="button" onClick={() => openOrder(order)} title="View order details" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-[#0A8B8E] dark:hover:bg-neutral-800"><Eye size={17} /></button>
-                    {!order.archivedAt && order.status === "pending" && <button type="button" onClick={() => setAction({ type: "void", order, reason: "" })} title="Void pending order" className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"><Ban size={17} /></button>}
-                    {!order.archivedAt && order.status === "completed" && <button type="button" onClick={() => setAction({ type: "refund", order, reason: "" })} title="Refund completed order" className="rounded-lg p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"><RotateCcw size={17} /></button>}
+                    {!order.archivedAt && order.status === "pending" && <button type="button" onClick={() => openAction("void", order)} disabled={editLock.isBlocked("Order", order._id)} title="Void pending order" className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/40"><Ban size={17} /></button>}
+                    {!order.archivedAt && order.status === "completed" && <button type="button" onClick={() => openAction("refund", order)} disabled={editLock.isBlocked("Order", order._id)} title="Refund completed order" className="rounded-lg p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:hover:bg-rose-950/40"><RotateCcw size={17} /></button>}
                     {order.archivedAt ? (
-                      <button type="button" onClick={() => permanentlyDeleteOrder(order)} disabled={Boolean(busyOrderId)} title="Permanently delete archived order" aria-label={`Permanently delete ${order.orderNumber}`} className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/40"><Trash2 size={17} /></button>
+                      <button type="button" onClick={() => permanentlyDeleteOrder(order)} disabled={Boolean(busyOrderId) || editLock.isBlocked("Order", order._id)} title="Permanently delete archived order" aria-label={`Permanently delete ${order.orderNumber}`} className="rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50 dark:text-red-300 dark:hover:bg-red-950/40"><Trash2 size={17} /></button>
                     ) : (
-                      <button type="button" onClick={() => archiveOrder(order)} disabled={Boolean(busyOrderId)} title="Archive order" aria-label={`Archive ${order.orderNumber}`} className="rounded-lg p-2 text-gray-500 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50 dark:hover:bg-amber-950/40"><Archive size={17} /></button>
+                      <button type="button" onClick={() => archiveOrder(order)} disabled={Boolean(busyOrderId) || editLock.isBlocked("Order", order._id)} title="Archive order" aria-label={`Archive ${order.orderNumber}`} className="rounded-lg p-2 text-gray-500 hover:bg-amber-50 hover:text-amber-700 disabled:opacity-50 dark:hover:bg-amber-950/40"><Archive size={17} /></button>
                     )}
                   </div></td>
                 </tr>
@@ -273,10 +330,10 @@ export default function OrdersPage() {
       {action && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={submitAction} className={`${cardClass} w-full max-w-md space-y-4 p-6`}>
-            <div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-semibold capitalize">{action.type} order</h3><p className="mt-1 text-sm text-gray-500">{action.order.orderNumber} · {formatCurrency(action.order.total)}</p></div><button type="button" onClick={() => setAction(null)} aria-label="Close" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><X size={18} /></button></div>
+            <div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-semibold capitalize">{action.type} order</h3><p className="mt-1 text-sm text-gray-500">{action.order.orderNumber} · {formatCurrency(action.order.total)}</p></div><button type="button" onClick={closeAction} aria-label="Close" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><X size={18} /></button></div>
             <p className="text-sm text-gray-600 dark:text-gray-300">{action.type === "void" ? "This will mark the pending order as voided." : "This will record a full refund for the completed order."} Enter a reason to keep the action in the audit history.</p>
             <label className="block space-y-1 text-sm font-medium">Reason<textarea autoFocus required minLength="3" maxLength="500" rows="3" className={`${inputClass} w-full resize-y`} value={action.reason} onChange={(event) => setAction((current) => ({ ...current, reason: event.target.value }))} placeholder="Enter the reason" /></label>
-            <div className="flex justify-end gap-2"><button type="button" onClick={() => setAction(null)} className="rounded-xl border border-gray-200 px-4 py-2 text-sm dark:border-neutral-700">Cancel</button><button disabled={saving} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{saving ? "Saving…" : `Confirm ${action.type}`}</button></div>
+            <div className="flex justify-end gap-2"><button type="button" onClick={closeAction} className="rounded-xl border border-gray-200 px-4 py-2 text-sm dark:border-neutral-700">Cancel</button><button disabled={saving || editLock.isBlocked("Order", action.order._id)} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{saving ? "Saving…" : `Confirm ${action.type}`}</button></div>
           </form>
         </div>
       )}

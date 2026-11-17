@@ -18,9 +18,11 @@ import { apiRequest } from "../utils/api.js";
 import {
   disablePushNotifications,
   enablePushNotifications,
+  getPushBrowserId,
   getPushRegistrationStatus,
 } from "../firebase.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
@@ -119,6 +121,11 @@ const credentialIntegrations = {
 
 export default function SettingsPage() {
   const toast = useToast();
+  const userLock = useEditLock();
+  const branchLock = useEditLock();
+  const configLock = useEditLock();
+  const pushLock = useEditLock();
+  const integrationLock = useEditLock({ releaseOnUnmount: false });
   const [user, setUser] = useState(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -232,6 +239,15 @@ export default function SettingsPage() {
     if (!result) return;
 
     const integration = params.get("integration");
+    if (integration) {
+      apiRequest("/api/edit-locks/release", {
+        method: "POST",
+        body: JSON.stringify({
+          resourceType: "IntegrationCredential",
+          resourceId: integration,
+        }),
+      }).catch((releaseError) => console.error("Credential edit lock release failed:", releaseError));
+    }
     const reason = params.get("reason");
     const label = credentialIntegrations[integration]?.label || "Integration";
     if (result === "success") {
@@ -300,11 +316,33 @@ export default function SettingsPage() {
     !branchLoaded ||
     !adminProfileLoaded;
 
+  const ownsEditLock = (lock, resourceType, resourceId) => (
+    lock.activeResource?.resourceType === resourceType
+    && lock.activeResource.resourceId === String(resourceId)
+  );
+
+  const beginEditing = async (lock, resourceType, resourceId, setFeedback) => {
+    if (ownsEditLock(lock, resourceType, resourceId)) return;
+    try {
+      const acquired = await lock.acquire(resourceType, resourceId);
+      if (!acquired) {
+        setFeedback("This record is currently unavailable for editing.");
+      }
+    } catch (err) {
+      setFeedback(err.message);
+    }
+  };
+
   const saveManagerInfo = async (event) => {
     event.preventDefault();
     setIsSavingManager(true);
     setManagerFeedback("");
     try {
+      const acquired = await userLock.acquire("User", user.id);
+      if (!acquired) {
+        setManagerFeedback("This record is currently unavailable for editing.");
+        return;
+      }
       const data = await apiRequest("/api/staff/profile", {
         method: "PATCH",
         body: JSON.stringify({ name: managerName, phone: managerPhone }),
@@ -325,6 +363,11 @@ export default function SettingsPage() {
       setManagerFeedback(err.message);
     } finally {
       setIsSavingManager(false);
+      try {
+        await userLock.release();
+      } catch (releaseError) {
+        setManagerFeedback(releaseError.message);
+      }
     }
   };
 
@@ -333,6 +376,11 @@ export default function SettingsPage() {
     setIsSavingAdminProfile(true);
     setAdminProfileFeedback("");
     try {
+      const acquired = await userLock.acquire("User", user.id);
+      if (!acquired) {
+        setAdminProfileFeedback("This record is currently unavailable for editing.");
+        return;
+      }
       const { profile } = await apiRequest("/api/auth/profile", {
         method: "PATCH",
         body: JSON.stringify({ name: adminName, phone: adminPhone }),
@@ -352,6 +400,11 @@ export default function SettingsPage() {
       setAdminProfileFeedback(err.message);
     } finally {
       setIsSavingAdminProfile(false);
+      try {
+        await userLock.release();
+      } catch (releaseError) {
+        setAdminProfileFeedback(releaseError.message);
+      }
     }
   };
 
@@ -370,9 +423,13 @@ export default function SettingsPage() {
       setPasswordFeedback("Passwords do not match.");
       return;
     }
-
     setIsSavingPassword(true);
     try {
+      const acquired = await userLock.acquire("User", user.id);
+      if (!acquired) {
+        setPasswordFeedback("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest("/api/auth/password", {
         method: "PUT",
         body: JSON.stringify({ currentPassword, newPassword: password }),
@@ -392,6 +449,11 @@ export default function SettingsPage() {
       setPasswordFeedback(err.message);
     } finally {
       setIsSavingPassword(false);
+      try {
+        await userLock.release();
+      } catch (releaseError) {
+        setPasswordFeedback(releaseError.message);
+      }
     }
   };
 
@@ -400,6 +462,11 @@ export default function SettingsPage() {
     setIsSavingBranch(true);
     setBranchFeedback("");
     try {
+      const acquired = await branchLock.acquire("Branch", branch._id);
+      if (!acquired) {
+        setBranchFeedback("This record is currently unavailable for editing.");
+        return;
+      }
       const data = await apiRequest("/api/staff/branch", {
         method: "PATCH",
         body: JSON.stringify({
@@ -415,10 +482,25 @@ export default function SettingsPage() {
       setBranchFeedback(err.message);
     } finally {
       setIsSavingBranch(false);
+      try {
+        await branchLock.release();
+      } catch (releaseError) {
+        setBranchFeedback(releaseError.message);
+      }
     }
   };
 
-  const toggleGoogleAuth = () => {
+  const toggleGoogleAuth = async () => {
+    try {
+      const acquired = await configLock.acquire("AuthConfig", "default");
+      if (!acquired) {
+        setGoogleFeedback("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (err) {
+      setGoogleFeedback(err.message);
+      return;
+    }
     setPendingIntegrationChange({
       setting: "staffGoogleAuthEnabled",
       enabled: !googleAuthEnabled,
@@ -431,6 +513,11 @@ export default function SettingsPage() {
     if (setting !== "staffGoogleAuthEnabled") {
       setSavingIntegration(setting);
       try {
+        const acquired = await configLock.acquire("AuthConfig", "default");
+        if (!acquired) {
+          toast.error("This record is currently unavailable for editing.");
+          return;
+        }
         const config = await apiRequest("/api/auth-settings", {
           method: "PATCH",
           body: JSON.stringify({ [setting]: nextValue }),
@@ -438,6 +525,7 @@ export default function SettingsPage() {
         setIntegrationSettings((current) => ({ ...current, [setting]: config[setting] !== false }));
         toast.success(`${integrationLabels[setting]} ${config[setting] ? "enabled" : "disabled"}.`);
         setPendingIntegrationChange(null);
+        await configLock.release();
       } catch (err) {
         toast.error(err.message);
       } finally {
@@ -449,6 +537,11 @@ export default function SettingsPage() {
     setIsSavingGoogleSetting(true);
     setGoogleFeedback("");
     try {
+      const acquired = await configLock.acquire("AuthConfig", "default");
+      if (!acquired) {
+        setGoogleFeedback("This record is currently unavailable for editing.");
+        return;
+      }
       const config = await apiRequest("/api/auth-settings", {
         method: "PATCH",
         body: JSON.stringify({ staffGoogleAuthEnabled: nextValue }),
@@ -462,6 +555,7 @@ export default function SettingsPage() {
           : "Google sign-in disabled for all accounts.",
       );
       setPendingIntegrationChange(null);
+      await configLock.release();
     } catch (err) {
       setGoogleFeedback(err.message);
       toast.error(err.message);
@@ -475,6 +569,11 @@ export default function SettingsPage() {
     setIsSavingActivityLogging(true);
     setActivityLoggingFeedback("");
     try {
+      const acquired = await configLock.acquire("AuthConfig", "default");
+      if (!acquired) {
+        setActivityLoggingFeedback("This record is currently unavailable for editing.");
+        return;
+      }
       const config = await apiRequest("/api/auth-settings", {
         method: "PATCH",
         body: JSON.stringify({ activityLoggingEnabled: nextValue }),
@@ -490,6 +589,11 @@ export default function SettingsPage() {
       setActivityLoggingFeedback(err.message);
     } finally {
       setIsSavingActivityLogging(false);
+      try {
+        await configLock.release();
+      } catch (releaseError) {
+        setActivityLoggingFeedback(releaseError.message);
+      }
     }
   };
 
@@ -498,6 +602,11 @@ export default function SettingsPage() {
     setPushFeedback("");
     try {
       if (pushRegistered) {
+        const acquired = await pushLock.acquire("PushRegistration", getPushBrowserId());
+        if (!acquired) {
+          setPushFeedback("This record is currently unavailable for editing.");
+          return;
+        }
         const { tokenRemoved } = await disablePushNotifications();
         setPushRegistered(false);
         setPushFeedback(tokenRemoved
@@ -520,14 +629,39 @@ export default function SettingsPage() {
       toast.error(err.message);
     } finally {
       setIsSavingPush(false);
+      try {
+        await pushLock.release();
+      } catch (releaseError) {
+        setPushFeedback(releaseError.message);
+      }
     }
   };
 
-  const toggleIntegration = (setting) => {
+  const toggleIntegration = async (setting) => {
+    try {
+      const acquired = await configLock.acquire("AuthConfig", "default");
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (err) {
+      setError(err.message);
+      return;
+    }
     setPendingIntegrationChange({
       setting,
       enabled: !integrationSettings[setting],
     });
+  };
+
+  const cancelIntegrationChange = async () => {
+    if (isSavingGoogleSetting || savingIntegration) return;
+    setPendingIntegrationChange(null);
+    try {
+      await configLock.release();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const showIntegrationContextMenu = (event, setting) => {
@@ -541,7 +675,17 @@ export default function SettingsPage() {
     });
   };
 
-  const openCredentialEditor = (integration, mode) => {
+  const openCredentialEditor = async (integration, mode) => {
+    try {
+      const acquired = await integrationLock.acquire("IntegrationCredential", integration);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (err) {
+      setError(err.message);
+      return;
+    }
     const fields = credentialIntegrations[integration].fields;
     setIntegrationContextMenu(null);
     setCredentialEditor({ integration, mode, step: "account" });
@@ -555,8 +699,13 @@ export default function SettingsPage() {
     setCredentialChallengeId("");
   };
 
-  const closeCredentialEditor = () => {
+  const closeCredentialEditor = async () => {
     if (credentialBusy) return;
+    try {
+      await integrationLock.release();
+    } catch (err) {
+      setError(err.message);
+    }
     setCredentialEditor(null);
     setCredentialValues({});
     setCredentialPin("");
@@ -628,6 +777,11 @@ export default function SettingsPage() {
     setCredentialBusy(true);
     try {
       const { integration, mode } = credentialEditor;
+      const acquired = await integrationLock.acquire("IntegrationCredential", integration);
+      if (!acquired) {
+        toast.error("This record is currently unavailable for editing.");
+        return;
+      }
       const request = mode === "remove"
         ? {
             method: "DELETE",
@@ -661,6 +815,7 @@ export default function SettingsPage() {
       setCredentialCode("");
       setCredentialTestToken("");
       setCredentialChallengeId("");
+      await integrationLock.release();
       toast.success(result.message);
       if (["googleAuth", "recaptcha", "firebaseMessaging"].includes(integration)) {
         window.setTimeout(() => window.location.reload(), 700);
@@ -844,6 +999,8 @@ export default function SettingsPage() {
                             type={showCurrentPassword ? "text" : "password"}
                             autoComplete="current-password"
                             value={currentPassword}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setPasswordFeedback)}
                             onChange={(event) =>
                               setCurrentPassword(event.target.value)
                             }
@@ -881,6 +1038,8 @@ export default function SettingsPage() {
                             autoComplete="new-password"
                             minLength={8}
                             value={password}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setPasswordFeedback)}
                             onChange={(event) =>
                               setPassword(event.target.value)
                             }
@@ -916,6 +1075,8 @@ export default function SettingsPage() {
                             autoComplete="new-password"
                             minLength={8}
                             value={confirmPassword}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setPasswordFeedback)}
                             onChange={(event) =>
                               setConfirmPassword(event.target.value)
                             }
@@ -956,7 +1117,7 @@ export default function SettingsPage() {
                       )}
                       <button
                         type="submit"
-                        disabled={isSavingPassword}
+                        disabled={isSavingPassword || userLock.isBlocked("User", user.id)}
                         className={buttonClassName}
                       >
                         {isSavingPassword ? "Saving..." : "Save password"}
@@ -987,6 +1148,8 @@ export default function SettingsPage() {
                           <input
                             className={inputClassName}
                             value={adminName}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setAdminProfileFeedback)}
                             onChange={(event) =>
                               setAdminName(event.target.value)
                             }
@@ -1009,6 +1172,8 @@ export default function SettingsPage() {
                             type="tel"
                             autoComplete="tel"
                             value={adminPhone}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setAdminProfileFeedback)}
                             onChange={(event) =>
                               setAdminPhone(event.target.value)
                             }
@@ -1031,7 +1196,7 @@ export default function SettingsPage() {
                         )}
                         <button
                           type="submit"
-                          disabled={isSavingAdminProfile}
+                          disabled={isSavingAdminProfile || userLock.isBlocked("User", user.id)}
                           className={buttonClassName}
                         >
                           {isSavingAdminProfile
@@ -1065,6 +1230,8 @@ export default function SettingsPage() {
                           <input
                             className={inputClassName}
                             value={managerName}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setManagerFeedback)}
                             onChange={(event) =>
                               setManagerName(event.target.value)
                             }
@@ -1087,6 +1254,8 @@ export default function SettingsPage() {
                             type="tel"
                             autoComplete="tel"
                             value={managerPhone}
+                            readOnly={!ownsEditLock(userLock, "User", user.id)}
+                            onFocus={() => beginEditing(userLock, "User", user.id, setManagerFeedback)}
                             onChange={(event) =>
                               setManagerPhone(event.target.value)
                             }
@@ -1107,7 +1276,7 @@ export default function SettingsPage() {
                         )}
                         <button
                           type="submit"
-                          disabled={isSavingManager}
+                          disabled={isSavingManager || userLock.isBlocked("User", user.id)}
                           className={buttonClassName}
                         >
                           {isSavingManager
@@ -1161,6 +1330,8 @@ export default function SettingsPage() {
                             <input
                               className={inputClassName}
                               value={branchAddress}
+                              readOnly={!ownsEditLock(branchLock, "Branch", branch._id)}
+                              onFocus={() => beginEditing(branchLock, "Branch", branch._id, setBranchFeedback)}
                               onChange={(event) =>
                                 setBranchAddress(event.target.value)
                               }
@@ -1177,6 +1348,8 @@ export default function SettingsPage() {
                               type="tel"
                               autoComplete="tel"
                               value={branchPhone}
+                              readOnly={!ownsEditLock(branchLock, "Branch", branch._id)}
+                              onFocus={() => beginEditing(branchLock, "Branch", branch._id, setBranchFeedback)}
                               onChange={(event) =>
                                 setBranchPhone(event.target.value)
                               }
@@ -1193,6 +1366,8 @@ export default function SettingsPage() {
                               type="email"
                               autoComplete="email"
                               value={branchEmail}
+                              readOnly={!ownsEditLock(branchLock, "Branch", branch._id)}
+                              onFocus={() => beginEditing(branchLock, "Branch", branch._id, setBranchFeedback)}
                               onChange={(event) =>
                                 setBranchEmail(event.target.value)
                               }
@@ -1213,7 +1388,7 @@ export default function SettingsPage() {
                           )}
                           <button
                             type="submit"
-                            disabled={isSavingBranch}
+                            disabled={isSavingBranch || branchLock.isBlocked("Branch", branch._id)}
                             className={buttonClassName}
                           >
                             {isSavingBranch
@@ -1420,7 +1595,7 @@ export default function SettingsPage() {
                   && !isSavingGoogleSetting
                   && !savingIntegration
                 ) {
-                  setPendingIntegrationChange(null);
+                  cancelIntegrationChange();
                 }
               }}
             >
@@ -1450,7 +1625,7 @@ export default function SettingsPage() {
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
-                    onClick={() => setPendingIntegrationChange(null)}
+                    onClick={cancelIntegrationChange}
                     disabled={isSavingGoogleSetting || Boolean(savingIntegration)}
                     className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200"
                   >

@@ -10,6 +10,7 @@ import {
 import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
 import { signToken, verifyToken } from "../utils/jwt.js";
 import { getSuperAdminEmail, isSuperAdminAccount } from "../utils/superAdmin.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { handleOAuthCredentialValidationCallback } from "./integrationCredentialsController.js";
 
 const CALENDAR_TIME_ZONE = "Asia/Manila";
@@ -230,10 +231,16 @@ async function hideSuperAdminShiftIdentity(shifts, requester) {
   const sanitized = records.map((shift) => {
     if (!shift) return shift;
     const record = typeof shift.toObject === "function" ? shift.toObject() : { ...shift };
-    for (const field of ["calendarCreatorId", "createdBy", "updatedBy"]) {
+    const lastEditorId = record.lastEditedBy?._id?.toString()
+      || record.lastEditedBy?.toString();
+    for (const field of ["calendarCreatorId", "createdBy", "updatedBy", "lastEditedBy"]) {
       const reference = record[field];
       const referenceId = reference?._id?.toString() || reference?.toString();
       if (referenceId === superAdmin._id.toString()) record[field] = null;
+    }
+    if (lastEditorId === superAdmin._id.toString()) {
+      record.lastEditedByName = "";
+      record.lastEditedByRole = "";
     }
     return record;
   });
@@ -364,10 +371,18 @@ export async function createShiftSchedule(req, res) {
       calendarCreatorId: req.user._id,
       createdBy: req.user._id,
       updatedBy: req.user._id,
+      ...getEditMetadata(req.user),
     });
     if (connection?.calendar) await syncCalendarEvent(shift, connection.calendar);
     else shift.calendarSyncStatus = "pending";
     await shift.save();
+    await logActivity(req, {
+      action: "create",
+      category: "branch",
+      summary: "Created a shift schedule.",
+      target: { type: "ShiftSchedule", id: shift._id },
+      details: { changedFields: ["branchId", "startsAt", "endsAt", "assignedStaffIds", "notes"] },
+    });
     const populatedShift = await hideSuperAdminShiftIdentity(
       await populateShift(ShiftSchedule.findById(shift._id)),
       req.user,
@@ -408,6 +423,7 @@ export async function updateShiftSchedule(req, res) {
     if (shift.status === "cancelled") {
       return res.status(409).json({ error: "Cancelled shifts cannot be edited." });
     }
+    const before = shift.toObject();
     const staff = await User.find({
       _id: { $in: assignedStaffIds },
       branchId,
@@ -423,8 +439,23 @@ export async function updateShiftSchedule(req, res) {
     shift.assignedStaffIds = assignedStaffIds;
     shift.notes = notes;
     shift.updatedBy = req.user._id;
+    Object.assign(shift, getEditMetadata(req.user));
     shift.calendarSyncStatus = "pending";
     await shift.save();
+    const changedFields = getChangedFieldNames(
+      before,
+      shift,
+      ["startsAt", "endsAt", "assignedStaffIds", "notes", "updatedBy", "calendarSyncStatus"],
+    );
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "branch",
+        summary: "Updated a shift schedule.",
+        target: { type: "ShiftSchedule", id: shift._id },
+        details: { changedFields },
+      });
+    }
 
     if (shift.calendarCreatorId.toString() === req.user._id.toString()
       && await isIntegrationEnabled("googleCalendarEnabled")) {
@@ -463,10 +494,24 @@ export async function cancelShiftSchedule(req, res) {
       return res.status(409).json({ error: "This shift is already cancelled." });
     }
 
+    const before = shift.toObject();
     shift.status = "cancelled";
     shift.updatedBy = req.user._id;
+    Object.assign(shift, getEditMetadata(req.user));
     shift.calendarSyncStatus = "pending";
     await shift.save();
+    const changedFields = getChangedFieldNames(
+      before,
+      shift,
+      ["status", "updatedBy", "calendarSyncStatus"],
+    );
+    await logActivity(req, {
+      action: "update",
+      category: "branch",
+      summary: "Cancelled a shift schedule.",
+      target: { type: "ShiftSchedule", id: shift._id },
+      details: { changedFields },
+    });
 
     if (shift.calendarCreatorId.toString() === req.user._id.toString()
       && await isIntegrationEnabled("googleCalendarEnabled")) {
@@ -514,7 +559,23 @@ export async function syncShiftSchedule(req, res) {
       });
     }
 
+    const before = shift.toObject();
+    Object.assign(shift, getEditMetadata(req.user));
     await syncCalendarEvent(shift, connection.calendar);
+    const changedFields = getChangedFieldNames(
+      before,
+      shift,
+      ["calendarEventId", "calendarSyncStatus"],
+    );
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "branch",
+        summary: "Synced a shift schedule to Google Calendar.",
+        target: { type: "ShiftSchedule", id: shift._id },
+        details: { changedFields },
+      });
+    }
     const populatedShift = await hideSuperAdminShiftIdentity(
       await populateShift(ShiftSchedule.findById(shift._id)),
       req.user,

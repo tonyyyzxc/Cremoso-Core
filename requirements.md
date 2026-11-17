@@ -64,7 +64,7 @@ This document describes functions currently available in the system, based on it
 - **FR-ADM-12 — Branch management**: list branches and workers, create branch records and branch login accounts, and update branch details.
 - **FR-ADM-13 — Account administration**: view and manage non-Super-Admin accounts, including creating Branch Manager and Staff accounts; update contact details, branch assignment, role, and active/disabled status; and delete accounts. Regular Admins cannot create, view, modify, disable, or delete Super Admin accounts or create and manage Admin accounts. They cannot grant the Admin role.
 - **FR-ADM-15 — Integration availability**: independently enable or disable Google sign-in, reCAPTCHA, Brevo password-reset email, PDF export, Google Sheets, Google Calendar, and Google Drive. Settings apply system-wide, including to the Admin who changes them. Google sign-in cannot be disabled while an account has no password set.
-- **FR-ADM-16 — Activity logging control**: enable or pause activity recording. The setting change itself is retained in the activity log.
+- **FR-ADM-16 — Activity logging control**: enable or pause activity recording. The setting-change event is retained even when recording is being paused; other events follow the configured setting.
 - **FR-ADM-17 — Activity history**: review company activity records and filter by date range, category, status, account, or branch, with newest-first pagination. The interface displays the time, account, branch, activity summary/action, category, status, and target. Super Admin activity and identifying details are hidden from regular Admins.
 - **FR-ADM-18 — Personal settings and Google Drive**: update the Admin's own profile and password and use the authenticated Google Drive functions available to signed-in users, subject to the integration being enabled.
 
@@ -94,11 +94,19 @@ This document describes functions currently available in the system, based on it
 
 - **FR-LOG-01 — Activity record fields**: each recorded event can include the actor's account ID, name, email and role; branch; action code; category; human-readable summary; optional target type, ID and label; outcome status; timestamp; IP address; and browser user agent.
 - **FR-LOG-02 — Activity categories and statuses**: supported categories are authentication, order, menu, user, inventory, branch, Drive, configuration, and security. Each event has a success or failure status.
-- **FR-LOG-03 — Activity log page**: the page supports refresh, date range, category and status filters, newest-first display, and pagination. Admins additionally have branch and account filters. Each page displays up to 25 records; the API accepts a maximum page size of 100.
+- **FR-LOG-03 — Activity log page**: the page supports refresh, date range, category and status filters, newest-first display, and pagination. Admins additionally have branch and account filters. Each page displays up to 25 records; the API accepts a maximum page size of 100. Audited record changes display changed field names, never field values.
 - **FR-LOG-04 — Activity scope**: Staff requests are restricted to the actor's own records; Branch Manager requests are restricted to their branch; Admin requests can cover the company. Super Admin actor records are hidden from every non-Super-Admin role.
 - **FR-LOG-05 — Activity logging control**: Admins can pause or resume recording. The setting-change event is force-recorded even when recording is being paused. Other activity recording follows the configured setting.
 - **FR-LOG-06 — Sensitive data handling**: sensitive values with names such as password, token, secret, reset code, reCAPTCHA, or authorization are redacted from recorded details. Activity records are append-only and cannot be edited or deleted through the model's normal database operations.
-- **FR-LOG-07 — Current event coverage**: the logger currently records password and Google sign-in successes/failures, password reset request/code verification/completion events, password changes, profile updates, sign-outs, activity logging setting changes, and Super Admin integration credential replacement/removal. Other categories are supported by the data model and filters, but order, menu, user, inventory, branch, and Drive operations are not currently wired to emit activity events. The system therefore does not yet provide a complete activity record for every transaction or administrative change.
+- **FR-LOG-07 — Change details**: successful record changes include the names of changed fields in the activity record. Changed field values are not recorded.
+- **FR-LOG-08 — Event coverage**: activity events are recorded for authentication and password actions, user and branch administration, menu and supply catalog changes, inventory adjustments, orders and sales, shift schedules and reconciliations, store and authentication settings, and integration credential updates. External Google Drive objects are outside the MongoDB record audit scope.
+
+## Edit locks
+
+- **FR-LOCK-01 — Exclusive editing**: only one signed-in user at a time may hold the edit lock for a given editable MongoDB record. The server verifies lock ownership on mutations; client-side disabling alone is not sufficient.
+- **FR-LOCK-02 — Lease behavior**: locks use a five-minute idle lease, renewed while the editor is active. Saving or cancelling releases the lock. Expired locks become available automatically.
+- **FR-LOCK-03 — Lock privacy and recovery**: other users receive a generic locked-record notice without the editor's identity. Clients recheck blocked records and re-enable editing when the lock clears.
+- **FR-LOCK-04 — Concurrency boundaries**: edit locks coordinate access to records; existing optimistic version checks for Inventory and SupplyInventory remain in place as a separate safeguard. External Google Drive objects are not locked as MongoDB records.
 
 ## System-wide functional requirements
 
@@ -123,4 +131,4 @@ This document describes functions currently available in the system, based on it
 - The Google sign-in setting is displayed as an account access option. If any account lacks a password, the system prevents Admins from disabling Google sign-in until passwords are set for those accounts.
 - Google Drive, Google Calendar, and Google Sheets have separate user authorization connections even when they use credentials from the same Google OAuth application.
 - CSV export is not a current system function. The NBA scores integration is excluded from the current system requirements.
-- The project overview describes a goal of comprehensive audit coverage. The present activity logger covers the event families listed in FR-LOG-07; extending it to all sales, inventory, menu, branch, user, and Drive mutations remains necessary to meet that broader audit goal.
+- MongoDB record changes are audited with actor and target metadata plus changed field names, without storing changed values. Activity recording follows the configured pause setting. Edit locks coordinate concurrent editing of MongoDB records; stock version checks remain an additional concurrency safeguard.

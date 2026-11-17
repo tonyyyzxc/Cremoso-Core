@@ -1,5 +1,6 @@
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import IntegrationCredential from "../models/integrationCredential.js";
+import { getEditMetadata } from "./activityLog.js";
 
 export const integrationCredentialFields = {
   googleAuth: ["clientId"],
@@ -144,11 +145,11 @@ export async function getIntegrationCredentialStatuses() {
   return statuses;
 }
 
-export async function saveIntegrationCredentials(integration, credentials) {
+export async function saveIntegrationCredentials(integration, credentials, actor) {
   const encryptedPayload = encryptIntegrationCredentialBundle(credentials);
   await IntegrationCredential.findOneAndUpdate(
     { integration },
-    { $set: { encryptedPayload } },
+    { $set: { encryptedPayload, ...getEditMetadata(actor) } },
     { upsert: true, returnDocument: "after", runValidators: true, setDefaultsOnInsert: true },
   );
 }

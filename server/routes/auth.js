@@ -1,5 +1,6 @@
 import express from "express";
 import { requireAuth } from "../middleware/authMiddleware.js";
+import { requireEditLock } from "../utils/editLock.js";
 import {
   login,
   googleLogin,
@@ -24,9 +25,19 @@ router.post("/forgot-password", requestPasswordResetCode);
 router.post("/verify-reset-code", verifyPasswordResetCode);
 router.post("/reset-password", resetPassword);
 router.get("/password-status", requireAuth, getPasswordStatus);
-router.put("/password", requireAuth, updatePassword);
+router.put(
+  "/password",
+  requireAuth,
+  requireEditLock("User", (req) => req.user._id.toString()),
+  updatePassword,
+);
 router.get("/profile", requireAuth, getProfile);
-router.patch("/profile", requireAuth, updateProfile);
+router.patch(
+  "/profile",
+  requireAuth,
+  requireEditLock("User", (req) => req.user._id.toString()),
+  updateProfile,
+);
 router.post("/logout", requireAuth, logout);
 
 export default router;

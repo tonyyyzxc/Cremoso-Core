@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Archive, ArrowDown, ArrowUp, Plus, Save, Trash2, X } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
@@ -33,6 +34,12 @@ function menuUrl(branchId, itemId = "") {
 }
 
 export default function MenuPage() {
+  const menuLock = useEditLock();
+  const secondaryMenuLock = useEditLock();
+  const inventoryLock = useEditLock();
+  const supplyLock = useEditLock();
+  const supplyInventoryLock = useEditLock();
+  const storeConfigLock = useEditLock();
   const [tab, setTab] = useState(() => (
     new URLSearchParams(window.location.search).get("tab") === "inventory" ? "inventory" : "items"
   ));
@@ -157,6 +164,73 @@ export default function MenuPage() {
 
   const visibleItems = items.filter((item) => showArchived || !item.archived);
   const loading = !catalogLoaded || (canViewInventory && Boolean(selectedBranchId) && !stockLoaded);
+  const hasLock = (lock, resourceType, resourceId) => (
+    lock.activeResource?.resourceType === resourceType
+    && lock.activeResource.resourceId === String(resourceId)
+  );
+
+  const beginStockEdit = async (resourceType, resourceId, lock) => {
+    if (hasLock(lock, resourceType, resourceId)) return;
+    try {
+      const acquired = await lock.acquire(resourceType, resourceId);
+      if (!acquired) setError("This record is currently unavailable for editing.");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const openItemForm = async (item) => {
+    setError("");
+    try {
+      const acquired = await menuLock.acquire("MenuItem", item._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      if ((stockVersionByMenuItemId[item._id] ?? -1) >= 0) {
+        const stockAcquired = await inventoryLock.acquire(
+          "Inventory",
+          `${selectedBranchId}:${item._id}`,
+        );
+        if (!stockAcquired) {
+          await menuLock.release();
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
+      setForm({
+        ...item,
+        itemType: item.itemType || "product",
+        price: String(item.price),
+        lowStockThreshold: String(item.lowStockThreshold ?? 0),
+        includedFruitPortions: String(item.includedFruitPortions || 0),
+        includedToppingPortions: String(item.includedToppingPortions || 0),
+        includedSaucePortions: String(item.includedSaucePortions || 0),
+        stockQuantity: String(stockByMenuItemId[item._id] ?? 0),
+        variants: item.variants || [],
+        addons: item.addons || [],
+      });
+    } catch (err) {
+      try {
+        await menuLock.release();
+      } catch (releaseError) {
+        setError(releaseError.message);
+      }
+      setError(err.message);
+    }
+  };
+
+  const closeItemForm = async () => {
+    if (busy) return;
+    setForm(null);
+    for (const lock of [inventoryLock, menuLock]) {
+      try {
+        await lock.release();
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+  };
 
   const saveItem = async (event) => {
     event.preventDefault();
@@ -193,6 +267,29 @@ export default function MenuPage() {
     try {
       let savedItem;
       if (form._id) {
+        if (
+          menuLock.activeResource?.resourceType !== "MenuItem"
+          || menuLock.activeResource.resourceId !== form._id
+        ) {
+          const acquired = await menuLock.acquire("MenuItem", form._id);
+          if (!acquired) {
+            setError("This record is currently unavailable for editing.");
+            return;
+          }
+        }
+        if ((stockVersionByMenuItemId[form._id] ?? -1) >= 0 && (
+          inventoryLock.activeResource?.resourceType !== "Inventory"
+          || inventoryLock.activeResource.resourceId !== `${selectedBranchId}:${form._id}`
+        )) {
+          const acquired = await inventoryLock.acquire(
+            "Inventory",
+            `${selectedBranchId}:${form._id}`,
+          );
+          if (!acquired) {
+            setError("This record is currently unavailable for editing.");
+            return;
+          }
+        }
         savedItem = await apiRequest(menuUrl(selectedBranchId, form._id), { method: "PATCH", body: JSON.stringify(payload) });
       } else {
         savedItem = await apiRequest(menuUrl(selectedBranchId), { method: "POST", body: JSON.stringify(payload) });
@@ -211,6 +308,8 @@ export default function MenuPage() {
       await refresh();
       await loadBranchStock();
       setForm(null);
+      await inventoryLock.release();
+      await menuLock.release();
       setMessage("Menu item saved.");
     } catch (err) {
       setError(err.message);
@@ -230,12 +329,27 @@ export default function MenuPage() {
     setError("");
     setMessage("");
     try {
+      const expectedVersion = stockVersionByMenuItemId[item._id] ?? -1;
+      if (expectedVersion >= 0 && !hasLock(
+        inventoryLock,
+        "Inventory",
+        `${selectedBranchId}:${item._id}`,
+      )) {
+        const acquired = await inventoryLock.acquire(
+          "Inventory",
+          `${selectedBranchId}:${item._id}`,
+        );
+        if (!acquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const updatedInventory = await apiRequest(`/api/inventory/${item._id}`, {
         method: "PUT",
         body: JSON.stringify({
           branchId: selectedBranchId,
           quantity,
-          __v: stockVersionByMenuItemId[item._id] ?? -1,
+          __v: expectedVersion,
         }),
       });
       setStockByMenuItemId((current) => ({ ...current, [item._id]: quantity }));
@@ -246,6 +360,11 @@ export default function MenuPage() {
       setError(err.message);
     } finally {
       setSavingStockItemId("");
+      try {
+        await inventoryLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -262,7 +381,7 @@ export default function MenuPage() {
           lowStockThreshold: Number(supplyThreshold),
         }),
       });
-      setSupplies((current) => [...current, { ...supply, quantity: 0 }].sort((a, b) => a.name.localeCompare(b.name)));
+      setSupplies((current) => [...current, { ...supply, quantity: 0, inventoryVersion: -1 }].sort((a, b) => a.name.localeCompare(b.name)));
       setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: 0 }));
       setSupplyName("");
       setSupplyThreshold("0");
@@ -282,9 +401,23 @@ export default function MenuPage() {
     setError("");
     setMessage("");
     try {
+      if ((supply.inventoryVersion ?? -1) >= 0 && !hasLock(
+        supplyInventoryLock,
+        "SupplyInventory",
+        `${selectedBranchId}:${supply._id}`,
+      )) {
+        const acquired = await supplyInventoryLock.acquire(
+          "SupplyInventory",
+          `${selectedBranchId}:${supply._id}`,
+        );
+        if (!acquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const savedInventory = await apiRequest(`/api/supply-inventory/${supply._id}/stock`, {
         method: "PUT",
-        body: JSON.stringify({ branchId: selectedBranchId, quantity, __v: supply.inventoryVersion }),
+        body: JSON.stringify({ branchId: selectedBranchId, quantity, __v: supply.inventoryVersion ?? -1 }),
       });
       setSupplies((current) => current.map((entry) => entry._id === supply._id
         ? { ...entry, quantity, inventoryVersion: savedInventory.__v }
@@ -292,12 +425,28 @@ export default function MenuPage() {
       setMessage(`Stock saved for ${supply.name}.`);
     } catch (err) {
       setError(err.message);
+    } finally {
+      try {
+        await supplyInventoryLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
   const updateSupply = async (supply, changes) => {
     setError("");
     try {
+      if (
+        supplyLock.activeResource?.resourceType !== "Supply"
+        || supplyLock.activeResource.resourceId !== supply._id
+      ) {
+        const acquired = await supplyLock.acquire("Supply", supply._id);
+        if (!acquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const saved = await apiRequest(`/api/supply-inventory/${supply._id}`, {
         method: "PATCH",
         body: JSON.stringify(changes),
@@ -305,6 +454,12 @@ export default function MenuPage() {
       setSupplies((current) => current.map((entry) => entry._id === saved._id ? { ...entry, ...saved } : entry));
     } catch (err) {
       setError(err.message);
+    } finally {
+      try {
+        await supplyLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -313,6 +468,11 @@ export default function MenuPage() {
     setError("");
     setMessage("");
     try {
+      const acquired = await supplyLock.acquire("Supply", supply._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest(`/api/supply-inventory/${supply._id}`, { method: "DELETE" });
       setSupplies((current) => current.filter((entry) => entry._id !== supply._id));
       setSupplyQuantityDrafts((current) => {
@@ -323,15 +483,33 @@ export default function MenuPage() {
       setMessage(`${supply.name} deleted.`);
     } catch (err) {
       setError(err.message);
+    } finally {
+      try {
+        await supplyLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
   const patchItem = async (item, changes) => {
     setError("");
     try {
+      const acquired = await menuLock.acquire("MenuItem", item._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest(menuUrl(selectedBranchId, item._id), { method: "PATCH", body: JSON.stringify(changes) });
       await refresh();
     } catch (err) { setError(err.message); }
+    finally {
+      try {
+        await menuLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
+    }
   };
 
   const deleteItem = async () => {
@@ -340,9 +518,21 @@ export default function MenuPage() {
     if (!item || !window.confirm(`Permanently delete "${item.name}"? This cannot be undone.`)) return;
     setError("");
     try {
+      const acquired = await menuLock.acquire("MenuItem", item._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest(menuUrl(selectedBranchId, item._id), { method: "DELETE" });
       setItems((current) => current.filter((entry) => entry._id !== item._id));
     } catch (err) { setError(err.message); }
+    finally {
+      try {
+        await menuLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
+    }
   };
 
   const moveItem = async (item, delta) => {
@@ -350,25 +540,57 @@ export default function MenuPage() {
     const index = ordered.findIndex((entry) => entry._id === item._id);
     const target = index + delta;
     if (target < 0 || target >= ordered.length) return;
-    [ordered[index], ordered[target]] = [ordered[target], ordered[index]];
+    const nextItem = ordered[target];
     setBusy(true);
     try {
-      await Promise.all(ordered.map((entry, order) => apiRequest(menuUrl(selectedBranchId, entry._id), {
-        method: "PATCH", body: JSON.stringify({ displayOrder: order }),
-      })));
+      const acquired = await menuLock.acquire("MenuItem", item._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      const secondAcquired = await secondaryMenuLock.acquire("MenuItem", nextItem._id);
+      if (!secondAcquired) {
+        await menuLock.release();
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      await Promise.all([
+        apiRequest(menuUrl(selectedBranchId, item._id), {
+          method: "PATCH",
+          body: JSON.stringify({ displayOrder: target }),
+        }),
+        apiRequest(menuUrl(selectedBranchId, nextItem._id), {
+          method: "PATCH",
+          body: JSON.stringify({ displayOrder: index }),
+        }),
+      ]);
       await refresh();
     } catch (err) { setError(err.message); }
-    finally { setBusy(false); }
+    finally {
+      setBusy(false);
+      for (const lock of [secondaryMenuLock, menuLock]) {
+        try {
+          await lock.release();
+        } catch (err) {
+          setError(err.message);
+        }
+      }
+    }
   };
 
   const toggleConfig = async (key, entryKey) => {
     if (!isAdmin) return;
-    const next = {
-      ...config,
-      [key]: config[key].map((entry) => entry.key === entryKey ? { ...entry, active: !entry.active } : entry),
-    };
-    setConfig(next);
     try {
+      const acquired = await storeConfigLock.acquire("StoreConfig", "default");
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      const next = {
+        ...config,
+        [key]: config[key].map((entry) => entry.key === entryKey ? { ...entry, active: !entry.active } : entry),
+      };
+      setConfig(next);
       const saved = await apiRequest("/api/store-config", {
         method: "PATCH", body: JSON.stringify({ [key]: next[key] }),
       });
@@ -376,6 +598,12 @@ export default function MenuPage() {
     } catch (err) {
       setError(err.message);
       refresh().catch(() => {});
+    } finally {
+      try {
+        await storeConfigLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -485,7 +713,7 @@ export default function MenuPage() {
           ...(canViewInventory ? [["inventory", "Inventory"]] : []),
           ["channels", "Channels & payments"],
         ].map(([id, label]) => (
-          <button key={id} onClick={() => { setTab(id); setForm(null); }} className={`border-b-2 px-4 py-3 text-sm font-medium ${tab === id ? "border-[#0A8B8E] text-[#0A8B8E]" : "border-transparent text-gray-500 hover:text-[#0A3B3D] dark:hover:text-white"}`}>
+          <button key={id} onClick={() => { setTab(id); closeItemForm(); }} className={`border-b-2 px-4 py-3 text-sm font-medium ${tab === id ? "border-[#0A8B8E] text-[#0A8B8E]" : "border-transparent text-gray-500 hover:text-[#0A3B3D] dark:hover:text-white"}`}>
             {label}
           </button>
         ))}
@@ -591,12 +819,12 @@ export default function MenuPage() {
       {message && <p role="status" className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">{message}</p>}
 
       {tab === "items" && form && isAdmin && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) setForm(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) closeItemForm(); }}>
         <section role="dialog" aria-modal="true" aria-labelledby="menu-form-title" className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
         <form onSubmit={saveItem} className="space-y-5">
           <div className="flex items-center justify-between">
             <div><p className="text-sm font-semibold text-[#0A8B8E]">Menu catalog</p><h3 id="menu-form-title" className="mt-1 text-lg font-semibold">{form._id ? "Edit menu item" : "New menu item"}</h3></div>
-            <button type="button" onClick={() => setForm(null)} disabled={busy} aria-label="Close form" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"><X size={18} /></button>
+            <button type="button" onClick={closeItemForm} disabled={busy} aria-label="Close form" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"><X size={18} /></button>
           </div>
           {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -660,7 +888,7 @@ export default function MenuPage() {
               ))}
             </div>
           ))}
-          <div className="flex justify-end gap-2"><button type="button" onClick={() => setForm(null)} disabled={busy} className="rounded-xl border border-gray-200 px-4 py-2 text-sm disabled:opacity-50 dark:border-neutral-700">Cancel</button><button disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Save size={16} />{busy ? "Saving…" : "Save item"}</button></div>
+          <div className="flex justify-end gap-2"><button type="button" onClick={closeItemForm} disabled={busy} className="rounded-xl border border-gray-200 px-4 py-2 text-sm disabled:opacity-50 dark:border-neutral-700">Cancel</button><button disabled={busy || Boolean(form._id && (menuLock.isBlocked("MenuItem", form._id) || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${form._id}`)))} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Save size={16} />{busy ? "Saving…" : "Save item"}</button></div>
         </form>
         </section>
         </div>
@@ -690,19 +918,22 @@ export default function MenuPage() {
                     min="0"
                     step="1"
                     value={stockDraftByMenuItemId[item._id] ?? 0}
+                    readOnly={(stockVersionByMenuItemId[item._id] ?? -1) >= 0 && !hasLock(inventoryLock, "Inventory", `${selectedBranchId}:${item._id}`)}
+                    onClick={() => (stockVersionByMenuItemId[item._id] ?? -1) >= 0 && beginStockEdit("Inventory", `${selectedBranchId}:${item._id}`, inventoryLock)}
+                    onFocus={() => (stockVersionByMenuItemId[item._id] ?? -1) >= 0 && beginStockEdit("Inventory", `${selectedBranchId}:${item._id}`, inventoryLock)}
                     onChange={(event) => setStockDraftByMenuItemId((current) => ({ ...current, [item._id]: event.target.value }))}
-                    disabled={stockLoading}
+                    disabled={stockLoading || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${item._id}`)}
                   />
                   <span className="text-xs text-gray-500">{item.itemType === "addon" ? "portions" : "items"}</span>
-                  <button type="button" onClick={() => saveStock(item)} disabled={stockLoading || savingStockItemId === item._id} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">
+                  <button type="button" onClick={() => saveStock(item)} disabled={stockLoading || savingStockItemId === item._id || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${item._id}`)} className="rounded-lg px-2 py-1.5 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">
                     {savingStockItemId === item._id ? "Saving…" : "Save"}
                   </button>
                 </div>}
-                <button disabled={index === 0 || busy} onClick={() => moveItem(item, -1)} title="Move up" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowUp size={17} /></button>
-                <button disabled={index === visibleItems.length - 1 || busy} onClick={() => moveItem(item, 1)} title="Move down" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowDown size={17} /></button>
-                {!item.archived && <button onClick={() => patchItem(item, { active: !item.active })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10">{item.active ? "Disable" : "Enable"}</button>}
-                <button type="button" disabled={stockLoading} onClick={() => setForm({ ...item, itemType: item.itemType || "product", price: String(item.price), lowStockThreshold: String(item.lowStockThreshold ?? 0), includedFruitPortions: String(item.includedFruitPortions || 0), includedToppingPortions: String(item.includedToppingPortions || 0), includedSaucePortions: String(item.includedSaucePortions || 0), stockQuantity: String(stockByMenuItemId[item._id] ?? 0), variants: item.variants || [], addons: item.addons || [] })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Edit</button>
-                <button onClick={() => patchItem(item, { archived: !item.archived })} title={item.archived ? "Restore item" : "Archive item"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><Archive size={17} /></button>
+                <button disabled={index === 0 || busy || menuLock.isBlocked("MenuItem", item._id) || secondaryMenuLock.isBlocked("MenuItem", visibleItems[index - 1]?._id)} onClick={() => moveItem(item, -1)} title="Move up" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowUp size={17} /></button>
+                <button disabled={index === visibleItems.length - 1 || busy || menuLock.isBlocked("MenuItem", item._id) || secondaryMenuLock.isBlocked("MenuItem", visibleItems[index + 1]?._id)} onClick={() => moveItem(item, 1)} title="Move down" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowDown size={17} /></button>
+                {!item.archived && <button disabled={menuLock.isBlocked("MenuItem", item._id)} onClick={() => patchItem(item, { active: !item.active })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">{item.active ? "Disable" : "Enable"}</button>}
+                <button type="button" disabled={stockLoading || menuLock.isBlocked("MenuItem", item._id) || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${item._id}`)} onClick={() => openItemForm(item)} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Edit</button>
+                <button disabled={menuLock.isBlocked("MenuItem", item._id)} onClick={() => patchItem(item, { archived: !item.archived })} title={item.archived ? "Restore item" : "Archive item"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"><Archive size={17} /></button>
               </div>}
             </article>
           ))}
@@ -711,7 +942,7 @@ export default function MenuPage() {
 
       {itemMenu && isAdmin && (
         <div className="fixed z-50 min-w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900" style={{ left: itemMenu.x, top: itemMenu.y }} onClick={(event) => event.stopPropagation()}>
-          <button type="button" onClick={deleteItem} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">
+          <button type="button" onClick={deleteItem} disabled={menuLock.isBlocked("MenuItem", itemMenu.item._id)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/40">
             <Trash2 size={16} /> Delete menu item
           </button>
         </div>
@@ -767,12 +998,12 @@ export default function MenuPage() {
                       const isLow = supply.quantity <= supply.lowStockThreshold;
                       return <tr key={supply._id} className={!supply.active ? "opacity-60" : ""}>
                         <td className="px-5 py-4">
-                          {isAdmin ? <><input className="w-44 rounded-lg border border-gray-200 bg-white px-3 py-2 font-medium dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} name`} value={supply.name} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, name: event.target.value } : entry))} /><div className="mt-2 flex items-center gap-2"><span className="text-xs text-gray-500">Unit</span><input className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} unit`} value={supply.unit} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, unit: event.target.value } : entry))} /></div></> : <><span className="font-medium">{supply.name}</span><div className="mt-1 text-xs text-gray-500">{supply.unit}</div></>}
+                          {isAdmin ? <><input className="w-44 rounded-lg border border-gray-200 bg-white px-3 py-2 font-medium dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} name`} value={supply.name} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, name: event.target.value } : entry))} /><div className="mt-2 flex items-center gap-2"><span className="text-xs text-gray-500">Unit</span><input className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} unit`} value={supply.unit} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, unit: event.target.value } : entry))} /></div></> : <><span className="font-medium">{supply.name}</span><div className="mt-1 text-xs text-gray-500">{supply.unit}</div></>}
                         </td>
-                        <td className="px-5 py-4">{isAdmin ? <div className="flex items-center gap-2"><input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} stock quantity`} value={supplyQuantityDrafts[supply._id] ?? 0} onChange={(event) => setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: event.target.value }))} disabled={!supply.active} /><span className="text-xs text-gray-500">{supply.unit}</span></div> : <>{supply.quantity} {supply.unit}</>}</td>
-                        <td className="px-5 py-4">{isAdmin ? <input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} low stock threshold`} value={supply.lowStockThreshold} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, lowStockThreshold: event.target.value } : entry))} /> : supply.lowStockThreshold}</td>
+                        <td className="px-5 py-4">{isAdmin ? <div className="flex items-center gap-2"><input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} stock quantity`} value={supplyQuantityDrafts[supply._id] ?? 0} readOnly={(supply.inventoryVersion ?? -1) >= 0 && !hasLock(supplyInventoryLock, "SupplyInventory", `${selectedBranchId}:${supply._id}`)} onClick={() => (supply.inventoryVersion ?? -1) >= 0 && beginStockEdit("SupplyInventory", `${selectedBranchId}:${supply._id}`, supplyInventoryLock)} onFocus={() => (supply.inventoryVersion ?? -1) >= 0 && beginStockEdit("SupplyInventory", `${selectedBranchId}:${supply._id}`, supplyInventoryLock)} onChange={(event) => setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: event.target.value }))} disabled={!supply.active || supplyInventoryLock.isBlocked("SupplyInventory", `${selectedBranchId}:${supply._id}`)} /><span className="text-xs text-gray-500">{supply.unit}</span></div> : <>{supply.quantity} {supply.unit}</>}</td>
+                        <td className="px-5 py-4">{isAdmin ? <input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} low stock threshold`} value={supply.lowStockThreshold} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, lowStockThreshold: event.target.value } : entry))} /> : supply.lowStockThreshold}</td>
                         <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${!supply.active ? "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-300" : isLow ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>{!supply.active ? "Inactive" : isLow ? "Low stock" : "In stock"}</span></td>
-                        {isAdmin && <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => saveSupplyQuantity(supply)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10">Save stock</button><button type="button" onClick={() => updateSupply(supply, { name: supply.name, unit: supply.unit, lowStockThreshold: Number(supply.lowStockThreshold) })} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10">Save details</button><button type="button" onClick={() => updateSupply(supply, { active: !supply.active })} className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800">{supply.active ? "Disable" : "Enable"}</button><button type="button" onClick={() => deleteSupply(supply)} className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40">Delete</button></div></td>}
+                        {isAdmin && <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => saveSupplyQuantity(supply)} disabled={supplyInventoryLock.isBlocked("SupplyInventory", `${selectedBranchId}:${supply._id}`)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Save stock</button><button type="button" onClick={() => updateSupply(supply, { name: supply.name, unit: supply.unit, lowStockThreshold: Number(supply.lowStockThreshold) })} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Save details</button><button type="button" onClick={() => updateSupply(supply, { active: !supply.active })} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800">{supply.active ? "Disable" : "Enable"}</button><button type="button" onClick={() => deleteSupply(supply)} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/40">Delete</button></div></td>}
                       </tr>;
                     })}</tbody>
                   </table></div>
@@ -801,7 +1032,7 @@ export default function MenuPage() {
           {[ ["channels", "Sales channels", "Choose where orders may be accepted."], ["paymentMethods", "Payment methods", "Choose which payment methods are available."] ].map(([key, title, description]) => (
             <section key={key} className={`${cardClass} space-y-4`}>
               <div><h3 className="text-lg font-semibold">{title}</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p></div>
-              {config[key]?.map((entry) => <label key={entry.key} className="flex cursor-pointer items-center justify-between border-t border-gray-100 pt-4 dark:border-neutral-800"><span className="font-medium">{entry.name}</span><input type="checkbox" checked={entry.active} disabled={!isAdmin} onChange={() => toggleConfig(key, entry.key)} className="h-5 w-5 accent-[#0A8B8E]" /></label>)}
+              {config[key]?.map((entry) => <label key={entry.key} className="flex cursor-pointer items-center justify-between border-t border-gray-100 pt-4 dark:border-neutral-800"><span className="font-medium">{entry.name}</span><input type="checkbox" checked={entry.active} disabled={!isAdmin || storeConfigLock.isBlocked("StoreConfig", "default")} onChange={() => toggleConfig(key, entry.key)} className="h-5 w-5 accent-[#0A8B8E]" /></label>)}
               {!isAdmin && <p className="text-xs text-gray-500">Only administrators can change availability.</p>}
             </section>
           ))}

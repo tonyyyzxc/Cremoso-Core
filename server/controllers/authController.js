@@ -6,7 +6,7 @@ import AuthConfig from "../models/authConfig.js";
 import { comparePassword, hashPassword } from "../utils/password.js";
 import { signToken } from "../utils/jwt.js";
 import { sendPasswordResetCode } from "../utils/mailer.js";
-import { logActivity } from "../utils/activityLog.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { isIntegrationEnabled, requireIntegration } from "../utils/integrationConfig.js";
 import { isSuperAdminAccount } from "../utils/superAdmin.js";
 import { getIntegrationCredentials } from "../utils/integrationCredentials.js";
@@ -418,7 +418,11 @@ export async function resetPassword(req, res) {
         passwordResetCodeAttempts: { $lt: PASSWORD_RESET_CODE_MAX_ATTEMPTS },
       },
       {
-        $set: { passwordHash, passwordResetCodeAttempts: 0 },
+        $set: {
+          passwordHash,
+          passwordResetCodeAttempts: 0,
+          ...getEditMetadata(user),
+        },
         $unset: {
           passwordResetCodeHash: "",
           passwordResetCodeExpiresAt: "",
@@ -598,11 +602,14 @@ export async function updatePassword(req, res) {
       return res.status(401).json({ error: "Current password is incorrect." });
     }
     user.passwordHash = await hashPassword(newPassword);
+    Object.assign(user, getEditMetadata(req.user));
     await user.save();
     await logActivity(req, {
       action: "auth.password.change",
       category: "auth",
       summary: "Password changed.",
+      target: { type: "User", id: user._id, label: user.email },
+      details: { changedFields: ["password"] },
     });
     return res.json({ message: "Password saved successfully." });
   } catch (error) {
@@ -630,7 +637,9 @@ export async function getPasswordStatus(req, res) {
 
 export async function getProfile(req, res) {
   try {
-    const user = await User.findById(req.user._id).select("name email phone");
+    const user = await User.findById(req.user._id).select(
+      "name email phone lastEditedBy lastEditedByName lastEditedByRole lastEditedAt",
+    );
     if (!user) return res.status(404).json({ error: "Account not found." });
     return res.json({ profile: user });
   } catch (error) {
@@ -666,16 +675,24 @@ export async function updateProfile(req, res) {
     const before = { name: user.name, phone: user.phone };
     user.name = name;
     user.phone = phone;
+    Object.assign(user, getEditMetadata(user));
     await user.save();
     await logActivity(req, {
       action: "auth.profile.update",
       category: "auth",
       summary: "Profile information updated.",
-      details: { before, after: { name: user.name, phone: user.phone } },
+      target: { type: "User", id: user._id, label: user.email },
+      details: { changedFields: getChangedFieldNames(before, user, ["name", "phone"]) },
       actor: user,
     });
     return res.json({
-      profile: { id: user._id, name: user.name, email: user.email, phone: user.phone },
+      profile: {
+        id: user._id, name: user.name, email: user.email, phone: user.phone,
+        lastEditedBy: user.lastEditedBy,
+        lastEditedByName: user.lastEditedByName,
+        lastEditedByRole: user.lastEditedByRole,
+        lastEditedAt: user.lastEditedAt,
+      },
     });
   } catch (error) {
     console.error("Profile update error:", { name: error?.name, code: error?.code });

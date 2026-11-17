@@ -61,6 +61,10 @@ const orderSchema = new mongoose.Schema(
     archivedAt: { type: Date, default: null, index: true },
     archivedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     auditTrail: { type: [orderAuditSchema], default: [] },
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lastEditedByName: { type: String, trim: true, default: "" },
+    lastEditedByRole: { type: String, trim: true, default: "" },
+    lastEditedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

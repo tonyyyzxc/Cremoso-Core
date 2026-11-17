@@ -1,5 +1,7 @@
 import express from "express";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
+import User from "../models/user.js";
+import { requireEditLock } from "../utils/editLock.js";
 import {
   createBranchStaff, createUser, listBranchStaff, listUsers, updateUserContact, updateUserBranch,
   updateUserRole, updateUserStatus, deleteUser,
@@ -13,10 +15,34 @@ router.use(requireAuth, requireRole("admin"));
 
 router.post("/", createUser);
 router.get("/", listUsers);
-router.patch("/:id/contact", updateUserContact);
-router.patch("/:id/branch", updateUserBranch);
-router.patch("/:id/role", updateUserRole);
-router.patch("/:id/status", updateUserStatus);
-router.delete("/:id", deleteUser);
+router.patch(
+  "/:id/contact",
+  requireEditLock("User", (req) => req.params.id),
+  updateUserContact,
+);
+router.patch(
+  "/:id/branch",
+  requireEditLock("User", (req) => req.params.id),
+  updateUserBranch,
+);
+router.patch(
+  "/:id/role",
+  requireEditLock("User", (req) => req.params.id),
+  updateUserRole,
+);
+router.patch(
+  "/:id/status",
+  requireEditLock("User", (req) => req.params.id),
+  updateUserStatus,
+);
+router.delete(
+  "/:id",
+  requireEditLock("User", (req) => req.params.id),
+  requireEditLock("Branch", async (req) => {
+    const target = await User.findById(req.params.id).select("branchId");
+    return target?.branchId?.toString() || null;
+  }),
+  deleteUser,
+);
 
 export default router;

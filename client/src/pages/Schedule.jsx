@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, CircleAlert, Pencil, Plus, RefreshCw, RotateCw, Trash2 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { useToast } from "../hooks/UseToast.jsx";
 import { Skeleton } from "../components/loading.jsx";
 
@@ -81,6 +82,8 @@ function emptyForm(branchId = "") {
 
 export default function SchedulePage() {
   const toast = useToast();
+  const formLock = useEditLock();
+  const actionLock = useEditLock();
   const user = useMemo(() => {
     try {
       return JSON.parse(sessionStorage.getItem("user") || "null");
@@ -199,7 +202,12 @@ export default function SchedulePage() {
     setForm((current) => ({ ...current, [field]: value }));
   };
 
-  const resetForm = () => {
+  const resetForm = async () => {
+    try {
+      await formLock.release();
+    } catch (releaseError) {
+      setError(releaseError.message);
+    }
     setEditingId("");
     setForm(emptyForm(managerBranchId));
   };
@@ -213,6 +221,16 @@ export default function SchedulePage() {
     setSaving(true);
     setError("");
     try {
+      if (editingId && (
+        formLock.activeResource?.resourceType !== "ShiftSchedule"
+        || formLock.activeResource.resourceId !== editingId
+      )) {
+        const acquired = await formLock.acquire("ShiftSchedule", editingId);
+        if (!acquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const payload = {
         branchId: form.branchId,
         startsAt: toIsoDateTime(form.startsAt),
@@ -232,7 +250,7 @@ export default function SchedulePage() {
       } else {
         toast.success(editingId ? "Shift updated and synced." : "Shift created and synced to Google Calendar.");
       }
-      resetForm();
+      await resetForm();
       await loadShifts();
       await loadCalendarStatus();
     } catch (requestError) {
@@ -244,7 +262,18 @@ export default function SchedulePage() {
     }
   };
 
-  const editShift = (shift) => {
+  const editShift = async (shift) => {
+    setError("");
+    try {
+      const acquired = await formLock.acquire("ShiftSchedule", shift._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+      return;
+    }
     setEditingId(shift._id);
     setForm(getShiftForm(shift));
     setError("");
@@ -254,6 +283,16 @@ export default function SchedulePage() {
   const cancelShift = async (shift) => {
     if (!window.confirm("Cancel this shift?")) return;
     setError("");
+    try {
+      const acquired = await actionLock.acquire("ShiftSchedule", shift._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+      return;
+    }
     try {
       const cancelledShift = await apiRequest(`/api/calendar/shifts/${shift._id}/cancel`, { method: "POST" });
       if (cancelledShift.calendarSyncStatus === "pending") {
@@ -265,17 +304,39 @@ export default function SchedulePage() {
     } catch (requestError) {
       await loadShifts();
       setError(requestError.message);
+    } finally {
+      try {
+        await actionLock.release();
+      } catch (releaseError) {
+        setError(releaseError.message);
+      }
     }
   };
 
   const syncShift = async (shift) => {
     setError("");
     try {
+      const acquired = await actionLock.acquire("ShiftSchedule", shift._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (requestError) {
+      setError(requestError.message);
+      return;
+    }
+    try {
       await apiRequest(`/api/calendar/shifts/${shift._id}/sync`, { method: "POST" });
       toast.success("Shift changes synced to Google Calendar.");
       await loadShifts();
     } catch (requestError) {
       setError(requestError.message);
+    } finally {
+      try {
+        await actionLock.release();
+      } catch (releaseError) {
+        setError(releaseError.message);
+      }
     }
   };
 
@@ -422,7 +483,7 @@ export default function SchedulePage() {
           )}
           <button
             type="submit"
-            disabled={saving || (calendarStatus?.enabled && !calendarStatus.calendarConnected) || !form.assignedStaffIds.length}
+            disabled={saving || (calendarStatus?.enabled && !calendarStatus.calendarConnected) || !form.assignedStaffIds.length || Boolean(editingId && formLock.isBlocked("ShiftSchedule", editingId))}
             className={primaryButtonClass}
           >
             {editingId ? <Pencil size={16} /> : <Plus size={16} />}
@@ -520,11 +581,11 @@ export default function SchedulePage() {
                   )}
                   {canManage && shift.status === "scheduled" && (
                     <>
-                      <button type="button" onClick={() => editShift(shift)} className={secondaryButtonClass}>
+                      <button type="button" onClick={() => editShift(shift)} disabled={formLock.isBlocked("ShiftSchedule", shift._id) || actionLock.isBlocked("ShiftSchedule", shift._id)} className={secondaryButtonClass}>
                         <Pencil size={15} />
                         Edit
                       </button>
-                      <button type="button" onClick={() => cancelShift(shift)} className={secondaryButtonClass}>
+                      <button type="button" onClick={() => cancelShift(shift)} disabled={formLock.isBlocked("ShiftSchedule", shift._id) || actionLock.isBlocked("ShiftSchedule", shift._id)} className={secondaryButtonClass}>
                         <Trash2 size={15} />
                         Cancel shift
                       </button>

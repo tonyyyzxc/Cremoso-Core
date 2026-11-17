@@ -32,6 +32,10 @@ const menuItemSchema = new mongoose.Schema(
     }], default: [] },
     variants: { type: [optionSchema], default: [] },
     addons: { type: [optionSchema], default: [] },
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lastEditedByName: { type: String, trim: true, default: "" },
+    lastEditedByRole: { type: String, trim: true, default: "" },
+    lastEditedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

@@ -8,6 +8,7 @@ import Sale from "../models/sale.js";
 import Supply from "../models/supply.js";
 import SupplyInventory from "../models/supplyInventory.js";
 import StoreConfig from "../models/storeConfig.js";
+import { getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { notifyLowStockTransition } from "../utils/pushNotifications.js";
 
 const roundMoney = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
@@ -48,10 +49,10 @@ function readReportDates(query) {
   return { from, to, ...dateRange(from, to) };
 }
 
-async function updateStock(model, branchId, id, quantity, reserved) {
+async function updateStock(model, branchId, id, quantity, reserved, actor) {
   const stock = await model.findOneAndUpdate(
     { branchId, [model === Inventory ? "menuItemId" : "supplyId"]: id, quantity: { $gte: quantity } },
-    { $inc: { quantity: -quantity, __v: 1 } },
+    { $inc: { quantity: -quantity, __v: 1 }, $set: getEditMetadata(actor) },
     { returnDocument: "after" },
   );
   if (!stock) throw Object.assign(new Error("There is not enough branch stock to record this sale."), { statusCode: 409 });
@@ -64,10 +65,10 @@ async function updateStock(model, branchId, id, quantity, reserved) {
   });
 }
 
-async function restoreStock(branchId, reserved) {
+async function restoreStock(branchId, reserved, actor) {
   await Promise.all(reserved.map(({ model, id, quantity }) => model.updateOne(
     { branchId, [model === Inventory ? "menuItemId" : "supplyId"]: id },
-    { $inc: { quantity, __v: 1 } },
+    { $inc: { quantity, __v: 1 }, $set: getEditMetadata(actor) },
   )));
 }
 
@@ -216,12 +217,31 @@ export async function createStaffSale(req, res) {
     }
 
     const subtotal = roundMoney(snapshotItems.reduce((sum, item) => sum + item.lineTotal, 0));
-    for (const [menuItemId, quantity] of quantitiesByMenuItem) await updateStock(Inventory, branchId, menuItemId, quantity, reserved);
-    for (const [supplyId, quantity] of quantitiesBySupply) await updateStock(SupplyInventory, branchId, supplyId, quantity, reserved);
+    for (const [menuItemId, quantity] of quantitiesByMenuItem) await updateStock(Inventory, branchId, menuItemId, quantity, reserved, req.user);
+    for (const [supplyId, quantity] of quantitiesBySupply) await updateStock(SupplyInventory, branchId, supplyId, quantity, reserved, req.user);
     const sale = await Sale.create({
       saleNumber: createSaleNumber(), branchId, businessDate, items: snapshotItems,
       subtotal, total: subtotal, paymentMethod: paymentMethod.name, recordedBy: req.user._id,
     });
+    await logActivity(req, {
+      action: "create",
+      category: "order",
+      summary: "Recorded a sale.",
+      target: { type: "Sale", id: sale._id, label: sale.saleNumber },
+      details: { changedFields: ["branchId", "businessDate", "items", "subtotal", "total", "paymentMethod", "recordedBy"] },
+    });
+    for (const { model, id } of reserved) {
+      await logActivity(req, {
+        action: "update",
+        category: "inventory",
+        summary: "Adjusted stock while recording a sale.",
+        target: {
+          type: model === Inventory ? "Inventory" : "SupplyInventory",
+          id: `${branchId}:${id}`,
+        },
+        details: { changedFields: ["quantity"] },
+      });
+    }
     await Promise.all(reserved.map(({ model, id, previousQuantity, updatedQuantity }) =>
       notifyLowStockTransition({
         branchId,
@@ -233,7 +253,7 @@ export async function createStaffSale(req, res) {
     ));
     return res.status(201).json(sale);
   } catch (error) {
-    await restoreStock(branchId, reserved).catch((restoreError) => console.error("Sale stock restoration error:", restoreError));
+    await restoreStock(branchId, reserved, req.user).catch((restoreError) => console.error("Sale stock restoration error:", restoreError));
     if (error.statusCode === 409) return res.status(409).json({ error: error.message });
     if (error.code === 11000) return res.status(409).json({ error: "Unable to generate a unique sale number. Please try again." });
     console.error("Sale creation error:", error);

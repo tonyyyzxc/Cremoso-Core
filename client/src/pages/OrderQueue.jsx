@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { Ban, Check, Clock3, RefreshCw } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
@@ -24,6 +25,7 @@ function formatDate(value) {
 }
 
 export default function OrderQueuePage() {
+  const editLock = useEditLock();
   const [orders, setOrders] = useState([]);
   const [paymentMethods, setPaymentMethods] = useState([]);
   const [action, setAction] = useState(null);
@@ -63,22 +65,40 @@ export default function OrderQueuePage() {
       .finally(() => setPaymentMethodsLoaded(true));
   }, []);
 
-  const openPaymentConfirmation = (order) => {
-    setAction({ type: "payment", order });
+  const openAction = async (type, order) => {
+    setError("");
+    try {
+      const acquired = await editLock.acquire("Order", order._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+    } catch (err) {
+      setError(err.message);
+      return;
+    }
+    setAction({ type, order });
     setReason("");
     setMessage("");
+  };
+
+  const openPaymentConfirmation = (order) => {
+    return openAction("payment", order);
   };
 
   const openVoidConfirmation = (order) => {
-    setAction({ type: "void", order });
-    setReason("");
-    setMessage("");
+    return openAction("void", order);
   };
 
-  const closeAction = () => {
+  const closeAction = async () => {
     if (busy) return;
     setAction(null);
     setReason("");
+    try {
+      await editLock.release();
+    } catch (err) {
+      setError(err.message);
+    }
   };
   const initialLoading = loading || !paymentMethodsLoaded;
 
@@ -89,6 +109,16 @@ export default function OrderQueuePage() {
     setError("");
     setMessage("");
     try {
+      if (
+        editLock.activeResource?.resourceType !== "Order"
+        || editLock.activeResource.resourceId !== action.order._id
+      ) {
+        const acquired = await editLock.acquire("Order", action.order._id);
+        if (!acquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const isPayment = action.type === "payment";
       const updatedOrder = await apiRequest(
         isPayment
@@ -103,6 +133,7 @@ export default function OrderQueuePage() {
       setMessage(isPayment ? "Payment confirmed." : "Pending order cancelled and stock restored.");
       setAction(null);
       setReason("");
+      await editLock.release();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -176,10 +207,10 @@ export default function OrderQueuePage() {
               <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 px-5 py-4 dark:border-neutral-800">
                 <p className="text-lg font-semibold">Total <span className="ml-2">{money(order.total)}</span></p>
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" onClick={() => openVoidConfirmation(order)} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40">
+                  <button type="button" onClick={() => openVoidConfirmation(order)} disabled={editLock.isBlocked("Order", order._id)} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40">
                     <Ban size={16} /> Cancel order
                   </button>
-                  <button type="button" onClick={() => openPaymentConfirmation(order)} disabled={!paymentMethods.length} className={primaryButtonClass}>
+                  <button type="button" onClick={() => openPaymentConfirmation(order)} disabled={!paymentMethods.length || editLock.isBlocked("Order", order._id)} className={primaryButtonClass}>
                     <Check size={16} /> Confirm payment
                   </button>
                 </div>

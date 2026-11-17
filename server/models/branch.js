@@ -24,6 +24,10 @@ const branchSchema = new mongoose.Schema(
       lowercase: true,
       default: "",
     },
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lastEditedByName: { type: String, trim: true, default: "" },
+    lastEditedByRole: { type: String, trim: true, default: "" },
+    lastEditedAt: { type: Date, default: null },
   },
   { timestamps: true },
 );

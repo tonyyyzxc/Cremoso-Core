@@ -1,6 +1,7 @@
 import Order from "../models/order.js";
 import Sale from "../models/sale.js";
 import ShiftReconciliation from "../models/shiftReconciliation.js";
+import { logActivity } from "../utils/activityLog.js";
 
 const roundMoney = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
 
@@ -79,6 +80,13 @@ export async function submitShiftReconciliation(req, res) {
       submittedBy: req.user._id,
     });
     await reconciliation.populate("submittedBy", "name email");
+    await logActivity(req, {
+      action: "create",
+      category: "branch",
+      summary: "Submitted a shift reconciliation.",
+      target: { type: "ShiftReconciliation", id: reconciliation._id },
+      details: { changedFields: ["branchId", "businessDate", "openingFloat", "cashSales", "expectedCash", "countedCash", "variance", "submittedBy"] },
+    });
     return res.status(201).json({ businessDate, cashSales, reconciliation });
   } catch (error) {
     if (error.code === 11000) {

@@ -15,6 +15,10 @@ const inventorySchema = new mongoose.Schema(
       index: true,
     },
     quantity: { type: Number, required: true, min: 0, validate: Number.isInteger, default: 0 },
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lastEditedByName: { type: String, trim: true, default: "" },
+    lastEditedByRole: { type: String, trim: true, default: "" },
+    lastEditedAt: { type: Date, default: null },
   },
   // Reject document saves when another write has advanced this record's __v.
   { timestamps: true, optimisticConcurrency: true },

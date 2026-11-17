@@ -7,6 +7,7 @@ import Order from "../models/order.js";
 import Supply from "../models/supply.js";
 import SupplyInventory from "../models/supplyInventory.js";
 import StoreConfig from "../models/storeConfig.js";
+import { getEditMetadata, logActivity } from "../utils/activityLog.js";
 import {
   notifyLowStockTransition,
   notifyNewOrder,
@@ -272,7 +273,7 @@ export async function createNewOrder(req, res) {
       for (const [menuItemId, quantity] of quantitiesByMenuItem) {
         const stock = await Inventory.findOneAndUpdate(
           { branchId: branch._id, menuItemId, quantity: { $gte: quantity } },
-          { $inc: { quantity: -quantity, __v: 1 } },
+          { $inc: { quantity: -quantity, __v: 1 }, $set: getEditMetadata(req.user) },
           { returnDocument: "after" },
         );
         if (!stock) {
@@ -293,7 +294,7 @@ export async function createNewOrder(req, res) {
       for (const [supplyId, quantity] of quantitiesBySupply) {
         const stock = await SupplyInventory.findOneAndUpdate(
           { branchId: branch._id, supplyId, quantity: { $gte: quantity } },
-          { $inc: { quantity: -quantity, __v: 1 } },
+          { $inc: { quantity: -quantity, __v: 1 }, $set: getEditMetadata(req.user) },
           { returnDocument: "after" },
         );
         if (!stock) {
@@ -313,7 +314,30 @@ export async function createNewOrder(req, res) {
 
       for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
-          const order = await Order.create({ ...orderData, orderNumber: createOrderNumber() });
+          const order = await Order.create({
+            ...orderData,
+            orderNumber: createOrderNumber(),
+            ...getEditMetadata(req.user),
+          });
+          await logActivity(req, {
+            action: "create",
+            category: "order",
+            summary: "Created an order.",
+            target: { type: "Order", id: order._id, label: order.orderNumber },
+            details: { changedFields: ["branchId", "createdBy", "customer", "channel", "items", "subtotal", "total", "status"] },
+          });
+          for (const transition of stockTransitions) {
+            await logActivity(req, {
+              action: "update",
+              category: "inventory",
+              summary: "Reserved stock for an order.",
+              target: {
+                type: transition.stockType === "menuItem" ? "Inventory" : "SupplyInventory",
+                id: `${branch._id}:${transition.stockId}`,
+              },
+              details: { changedFields: ["quantity"] },
+            });
+          }
           try {
             await order.populate("branchId", "name");
           } catch (populateError) {
@@ -335,13 +359,13 @@ export async function createNewOrder(req, res) {
       await Promise.all(reservedInventory.map(({ menuItemId, quantity }) =>
         Inventory.updateOne(
           { branchId: branch._id, menuItemId },
-          { $inc: { quantity, __v: 1 } },
+          { $inc: { quantity, __v: 1 }, $set: getEditMetadata(req.user) },
         ),
       ));
       await Promise.all(reservedSupplies.map(({ supplyId, quantity }) =>
         SupplyInventory.updateOne(
           { branchId: branch._id, supplyId },
-          { $inc: { quantity, __v: 1 } },
+          { $inc: { quantity, __v: 1 }, $set: getEditMetadata(req.user) },
         ),
       ));
       throw error;
@@ -414,7 +438,11 @@ export async function confirmOrderPayment(req, res) {
 
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, branchId: req.user.branchId, status: "pending" },
-      { $set: { status: "completed", paymentMethod: paymentMethod.name } },
+      { $set: {
+        status: "completed",
+        paymentMethod: paymentMethod.name,
+        ...getEditMetadata(req.user),
+      } },
       { returnDocument: "after", runValidators: true },
     );
     if (!order) {
@@ -422,6 +450,13 @@ export async function confirmOrderPayment(req, res) {
       if (!existingOrder) return res.status(404).json({ error: "Order not found in your branch." });
       return res.status(409).json({ error: "This order is no longer awaiting payment." });
     }
+    await logActivity(req, {
+      action: "update",
+      category: "order",
+      summary: "Confirmed an order payment.",
+      target: { type: "Order", id: order._id, label: order.orderNumber },
+      details: { changedFields: ["status", "paymentMethod"] },
+    });
     return res.json(order);
   } catch (error) {
     console.error("Payment confirmation error:", error);
@@ -447,7 +482,11 @@ export async function archiveOrder(req, res) {
   try {
     const order = await Order.findOneAndUpdate(
       { _id: req.params.id, archivedAt: null },
-      { $set: { archivedAt: new Date(), archivedBy: req.user._id } },
+      { $set: {
+        archivedAt: new Date(),
+        archivedBy: req.user._id,
+        ...getEditMetadata(req.user),
+      } },
       { returnDocument: "after" },
     )
       .populate("branchId", "name")
@@ -458,6 +497,13 @@ export async function archiveOrder(req, res) {
       }
       return res.status(409).json({ error: "This order is already archived." });
     }
+    await logActivity(req, {
+      action: "update",
+      category: "order",
+      summary: "Archived an order.",
+      target: { type: "Order", id: order._id, label: order.orderNumber },
+      details: { changedFields: ["archivedAt", "archivedBy"] },
+    });
     return res.json(order);
   } catch (error) {
     console.error("Order archive error:", error);
@@ -477,6 +523,13 @@ export async function deleteArchivedOrder(req, res) {
       }
       return res.status(409).json({ error: "Archive this order before deleting it." });
     }
+    await logActivity(req, {
+      action: "delete",
+      category: "order",
+      summary: "Deleted an archived order.",
+      target: { type: "Order", id: order._id, label: order.orderNumber },
+      details: { changedFields: ["order"] },
+    });
     return res.json({ id: order._id, orderNumber: order.orderNumber });
   } catch (error) {
     console.error("Archived order deletion error:", error);
@@ -502,12 +555,22 @@ async function recordOrderAction(req, res, action, branchId = null) {
     const updatedOrder = await Order.findOneAndUpdate(
       { ...orderFilter, status: expectedStatus },
       {
-        $set: { status: action === "void" ? "voided" : "refunded" },
+        $set: {
+          status: action === "void" ? "voided" : "refunded",
+          ...getEditMetadata(req.user),
+        },
         $push: { auditTrail: { action, reason, performedBy: req.user._id, performedAt: new Date() } },
       },
       { returnDocument: "after", runValidators: true },
     );
     if (!updatedOrder) return res.status(409).json({ error: "This order has already been updated." });
+    await logActivity(req, {
+      action: "update",
+      category: "order",
+      summary: action === "void" ? "Voided an order." : "Refunded an order.",
+      target: { type: "Order", id: updatedOrder._id, label: updatedOrder.orderNumber },
+      details: { changedFields: ["status", "auditTrail"] },
+    });
 
     if (action === "void") {
       const quantitiesByMenuItem = new Map();
@@ -531,14 +594,32 @@ async function recordOrderAction(req, res, action, branchId = null) {
         ...[...quantitiesByMenuItem].map(([menuItemId, quantity]) =>
         Inventory.updateOne(
           { branchId: updatedOrder.branchId, menuItemId },
-          { $inc: { quantity, __v: 1 } },
+          { $inc: { quantity, __v: 1 }, $set: getEditMetadata(req.user) },
         )),
         ...[...quantitiesBySupply].map(([supplyId, quantity]) =>
           SupplyInventory.updateOne(
             { branchId: updatedOrder.branchId, supplyId },
-            { $inc: { quantity, __v: 1 } },
+            { $inc: { quantity, __v: 1 }, $set: getEditMetadata(req.user) },
           )),
       ]);
+      for (const [menuItemId] of quantitiesByMenuItem) {
+        await logActivity(req, {
+          action: "update",
+          category: "inventory",
+          summary: "Restored stock for a voided order.",
+          target: { type: "Inventory", id: `${updatedOrder.branchId}:${menuItemId}` },
+          details: { changedFields: ["quantity"] },
+        });
+      }
+      for (const [supplyId] of quantitiesBySupply) {
+        await logActivity(req, {
+          action: "update",
+          category: "inventory",
+          summary: "Restored stock for a voided order.",
+          target: { type: "SupplyInventory", id: `${updatedOrder.branchId}:${supplyId}` },
+          details: { changedFields: ["quantity"] },
+        });
+      }
     }
     await updatedOrder.populate("branchId", "name");
     await updatedOrder.populate("auditTrail.performedBy", "name email");

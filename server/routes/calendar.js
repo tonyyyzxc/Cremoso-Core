@@ -1,6 +1,7 @@
 import express from "express";
 import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 import { validateObjectId } from "../middleware/validateObjectId.js";
+import { requireEditLock } from "../utils/editLock.js";
 import {
   cancelShiftSchedule,
   createShiftSchedule,
@@ -26,18 +27,21 @@ router.patch(
   "/shifts/:id",
   requireRole("branch", "admin"),
   validateObjectId("id", "Invalid shift ID."),
+  requireEditLock("ShiftSchedule", (req) => req.params.id),
   updateShiftSchedule,
 );
 router.post(
   "/shifts/:id/cancel",
   requireRole("branch", "admin"),
   validateObjectId("id", "Invalid shift ID."),
+  requireEditLock("ShiftSchedule", (req) => req.params.id),
   cancelShiftSchedule,
 );
 router.post(
   "/shifts/:id/sync",
   requireRole("branch", "admin"),
   validateObjectId("id", "Invalid shift ID."),
+  requireEditLock("ShiftSchedule", (req) => req.params.id),
   syncShiftSchedule,
 );
 

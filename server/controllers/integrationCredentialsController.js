@@ -3,6 +3,7 @@ import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";
 import IntegrationCredentialChallenge from "../models/integrationCredentialChallenge.js";
 import IntegrationCredentialValidation from "../models/integrationCredentialValidation.js";
+import EditLock from "../models/editLock.js";
 import User from "../models/user.js";
 import { comparePassword, hashPassword } from "../utils/password.js";
 import { isSuperAdminAccount, getSuperAdminEmail } from "../utils/superAdmin.js";
@@ -213,13 +214,13 @@ function validateCredentials(integration, input) {
 
 async function persistValidatedCredentials(req, res, integration, credentials) {
   if (!(await consumeVerifiedChallenge(req, res))) return false;
-  await saveIntegrationCredentials(integration, credentials);
+  await saveIntegrationCredentials(integration, credentials, req.user);
   await logActivity(req, {
-    action: "integration.credentials.replaced",
+    action: "update",
     category: "config",
-    summary: `Credentials for ${integration} were validated and replaced.`,
-    details: { integration },
-    force: true,
+    summary: "Updated integration credentials.",
+    target: { type: "IntegrationCredential", id: integration },
+    details: { changedFields: ["credentials"] },
   });
   return true;
 }
@@ -400,6 +401,15 @@ export async function handleOAuthCredentialValidationCallback(req, res, state, i
       await IntegrationCredentialValidation.findByIdAndDelete(validation._id);
       return redirectAfterOAuthValidation(res, integration, "failed", "account");
     }
+    const editLock = await EditLock.findOne({
+      resourceKey: `IntegrationCredential:${integration}`,
+      ownerUserId: user._id,
+      expiresAt: { $gt: new Date() },
+    }).select("_id");
+    if (!editLock) {
+      await IntegrationCredentialValidation.findByIdAndDelete(validation._id);
+      return redirectAfterOAuthValidation(res, integration, "failed", "lock");
+    }
 
     const credentials = decryptIntegrationCredentialBundle(validation.encryptedPayload);
     const auth = getOAuthClient(credentials);
@@ -442,15 +452,15 @@ export async function handleOAuthCredentialValidationCallback(req, res, state, i
     });
     if (!challenge) throw new Error("The verification challenge expired.");
 
-    await saveIntegrationCredentials(integration, credentials);
+    await saveIntegrationCredentials(integration, credentials, user);
     await IntegrationCredentialValidation.findByIdAndDelete(validation._id);
     await logActivity(req, {
       actor: user,
-      action: "integration.credentials.replaced",
+      action: "update",
       category: "config",
-      summary: `Credentials for ${integration} were validated and replaced.`,
-      details: { integration },
-      force: true,
+      summary: "Updated integration credentials.",
+      target: { type: "IntegrationCredential", id: integration },
+      details: { changedFields: ["credentials"] },
     });
     return redirectAfterOAuthValidation(res, integration, "success");
   } catch (error) {
@@ -474,11 +484,11 @@ export async function removeIntegrationCredentials(req, res) {
     if (!(await consumeVerifiedChallenge(req, res))) return;
     await removeIntegrationCredentialOverride(integration);
     await logActivity(req, {
-      action: "integration.credentials.override_removed",
+      action: "delete",
       category: "config",
-      summary: `The credential override for ${integration} was removed.`,
-      details: { integration },
-      force: true,
+      summary: "Removed an integration credential override.",
+      target: { type: "IntegrationCredential", id: integration },
+      details: { changedFields: ["credentials"] },
     });
     return res.json({ message: "Credential override removed. Environment credentials are active." });
   } catch (error) {

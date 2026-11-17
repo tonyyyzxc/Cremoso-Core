@@ -1,6 +1,7 @@
 import Branch from "../models/branch.js";
 import User from "../models/user.js";
 import Worker from "../models/Worker.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { hashPassword } from "../utils/password.js";
 
 const branchFields = (body) => ({
@@ -44,19 +45,38 @@ export async function createBranchAccount(req, res) {
   let branch;
   try {
     if (await User.findOne({ email })) return res.status(409).json({ error: "An account with this email address already exists." });
-    branch = await Branch.create(fields);
+    branch = await Branch.create({ ...fields, ...getEditMetadata(req.user) });
     const user = await User.create({
       email,
       passwordHash: await hashPassword(password),
       role: "branch",
       status: "active",
       branchId: branch._id,
+      ...getEditMetadata(req.user),
+    });
+    await logActivity(req, {
+      action: "create",
+      category: "branch",
+      summary: "Created a branch.",
+      target: { type: "Branch", id: branch._id, label: branch.name },
+      details: { changedFields: Object.keys(fields) },
+    });
+    await logActivity(req, {
+      action: "create",
+      category: "user",
+      summary: "Created a branch account.",
+      target: { type: "User", id: user._id, label: user.email },
+      details: { changedFields: ["email", "role", "status", "branchId"] },
     });
     return res.status(201).json({
       branch,
       user: {
         _id: user._id, name: user.name, phone: user.phone, email: user.email,
         role: user.role, status: user.status, branchId: { _id: branch._id, name: branch.name },
+        lastEditedBy: user.lastEditedBy,
+        lastEditedByName: user.lastEditedByName,
+        lastEditedByRole: user.lastEditedByRole,
+        lastEditedAt: user.lastEditedAt,
       },
     });
   } catch (error) {
@@ -74,7 +94,15 @@ export async function createBranch(req, res) {
   if (!fields.name) return res.status(400).json({ error: "Branch name is required." });
   if (!validContactEmail(fields.contactEmail)) return res.status(400).json({ error: "Enter a valid branch contact email." });
   try {
-    return res.status(201).json(await Branch.create(fields));
+    const branch = await Branch.create({ ...fields, ...getEditMetadata(req.user) });
+    await logActivity(req, {
+      action: "create",
+      category: "branch",
+      summary: "Created a branch.",
+      target: { type: "Branch", id: branch._id, label: branch.name },
+      details: { changedFields: Object.keys(fields) },
+    });
+    return res.status(201).json(branch);
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ error: "A branch with this name already exists." });
     console.error("Branch creation error:", error);
@@ -89,8 +117,20 @@ export async function updateBranch(req, res) {
   try {
     const branch = await Branch.findById(req.params.id);
     if (!branch) return res.status(404).json({ error: "Branch not found." });
+    const before = branch.toObject();
     Object.assign(branch, fields);
+    Object.assign(branch, getEditMetadata(req.user));
     await branch.save();
+    const changedFields = getChangedFieldNames(before, branch, Object.keys(fields));
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "branch",
+        summary: "Updated a branch.",
+        target: { type: "Branch", id: branch._id, label: branch.name },
+        details: { changedFields },
+      });
+    }
     return res.json(branch);
   } catch (error) {
     if (error.code === 11000) return res.status(409).json({ error: "A branch with this name already exists." });

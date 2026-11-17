@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import {
   fadeTransition,
@@ -40,6 +41,8 @@ function statusClass(status) {
 
 export default function ManagementPage() {
   const toast = useToast();
+  const accountLock = useEditLock();
+  const branchLock = useEditLock();
   const [users, setUsers] = useState([]);
   const [branches, setBranches] = useState([]);
   const [workers, setWorkers] = useState([]);
@@ -211,7 +214,31 @@ export default function ManagementPage() {
     setShowNewPassword(false);
   };
 
-  const openAccountEditor = (account) => {
+  const openAccountEditor = async (account) => {
+    setError("");
+    try {
+      const acquired = await accountLock.acquire("User", account._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      if (account.branchId?._id) {
+        const branchAcquired = await branchLock.acquire("Branch", account.branchId._id);
+        if (!branchAcquired) {
+          await accountLock.release();
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
+    } catch (err) {
+      try {
+        await accountLock.release();
+      } catch (releaseError) {
+        setError(releaseError.message);
+      }
+      setError(err.message);
+      return;
+    }
     const branch = branches.find((item) => item._id === account.branchId?._id);
     setEditingAccount(account);
     setEditName(account.name || "");
@@ -222,14 +249,34 @@ export default function ManagementPage() {
     setAccountMenu(null);
   };
 
-  const closeAccountEditor = () => setEditingAccount(null);
+  const closeAccountEditor = async () => {
+    if (busy) return;
+    setEditingAccount(null);
+    for (const lock of [branchLock, accountLock]) {
+      try {
+        await lock.release();
+      } catch (err) {
+        setError(err.message);
+      }
+    }
+  };
 
   const saveAccountDetails = async (event) => {
     event.preventDefault();
     setBusy(true);
     setError("");
     try {
+      const acquired = await accountLock.acquire("User", editingAccount._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       if (editingAccount.branchId?._id) {
+        const branchAcquired = await branchLock.acquire("Branch", editingAccount.branchId._id);
+        if (!branchAcquired) {
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
         await Promise.all([
           apiRequest(`/api/users/${editingAccount._id}/contact`, {
             method: "PATCH",
@@ -251,8 +298,9 @@ export default function ManagementPage() {
           body: JSON.stringify({ name: editName, phone: editPhone }),
         });
       }
-      await loadData();
       setEditingAccount(null);
+      for (const lock of [branchLock, accountLock]) await lock.release();
+      await loadData();
       toast.success("Account details saved.");
     } catch (err) {
       setError(err.message);
@@ -273,6 +321,11 @@ export default function ManagementPage() {
     setBusyUserId(account._id);
     setError("");
     try {
+      const acquired = await accountLock.acquire("User", account._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       const updated = await apiRequest(`/api/users/${account._id}/status`, {
         method: "PATCH",
         body: JSON.stringify({ status: nextStatus }),
@@ -291,6 +344,11 @@ export default function ManagementPage() {
       setError(err.message);
     } finally {
       setBusyUserId("");
+      try {
+        await accountLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -299,6 +357,11 @@ export default function ManagementPage() {
     setBusyUserId(account._id);
     setError("");
     try {
+      const acquired = await accountLock.acquire("User", account._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       const updated = await apiRequest(`/api/users/${account._id}/role`, {
         method: "PATCH",
         body: JSON.stringify({ role: nextRole }),
@@ -313,6 +376,11 @@ export default function ManagementPage() {
       setError(err.message);
     } finally {
       setBusyUserId("");
+      try {
+        await accountLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -325,6 +393,19 @@ export default function ManagementPage() {
     setBusyUserId(account._id);
     setError("");
     try {
+      const acquired = await accountLock.acquire("User", account._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
+      if (branchId) {
+        const branchAcquired = await branchLock.acquire("Branch", branchId);
+        if (!branchAcquired) {
+          await accountLock.release();
+          setError("This record is currently unavailable for editing.");
+          return;
+        }
+      }
       const result = await apiRequest(`/api/users/${account._id}`, {
         method: "DELETE",
       });
@@ -352,6 +433,13 @@ export default function ManagementPage() {
       setError(err.message);
     } finally {
       setBusyUserId("");
+      for (const lock of [branchLock, accountLock]) {
+        try {
+          await lock.release();
+        } catch (err) {
+          setError(err.message);
+        }
+      }
     }
   };
 
@@ -632,7 +720,8 @@ export default function ManagementPage() {
                               busyUserId === account._id ||
                               account.isSuperAdmin ||
                               (account.role === "admin" && !isSuperAdmin) ||
-                              (account.status !== "active" && !account.branchId)
+                              (account.status !== "active" && !account.branchId) ||
+                              accountLock.isBlocked("User", account._id)
                             }
                             className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[#0A3B3D] transition hover:bg-[#FBF6EF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800"
                           >
@@ -903,7 +992,8 @@ export default function ManagementPage() {
                   disabled={
                     busyUserId === accountMenu.account._id ||
                     accountMenu.account.role === role ||
-                    (role !== "admin" && !accountMenu.account.branchId)
+                    (role !== "admin" && !accountMenu.account.branchId) ||
+                    accountLock.isBlocked("User", accountMenu.account._id)
                   }
                   onClick={() => changeRole(accountMenu.account, role)}
                   className="w-full rounded-lg px-3 py-2 text-left text-sm capitalize hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-neutral-800"
@@ -922,7 +1012,9 @@ export default function ManagementPage() {
                 disabled={
                   busyUserId === accountMenu.account._id ||
                   accountMenu.account.isSuperAdmin ||
-                  (accountMenu.account.role === "admin" && !isSuperAdmin)
+                  (accountMenu.account.role === "admin" && !isSuperAdmin) ||
+                  accountLock.isBlocked("User", accountMenu.account._id) ||
+                  Boolean(accountMenu.account.branchId?._id && branchLock.isBlocked("Branch", accountMenu.account.branchId._id))
                 }
                 onClick={() => openAccountEditor(accountMenu.account)}
                 className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"
@@ -932,7 +1024,11 @@ export default function ManagementPage() {
               <button
                 type="button"
                 role="menuitem"
-                disabled={busyUserId === accountMenu.account._id}
+                disabled={
+                  busyUserId === accountMenu.account._id ||
+                  accountLock.isBlocked("User", accountMenu.account._id) ||
+                  Boolean(accountMenu.account.branchId?._id && branchLock.isBlocked("Branch", accountMenu.account.branchId._id))
+                }
                 onClick={() => {
                   const account = accountMenu.account;
                   setAccountMenu(null);
@@ -1068,7 +1164,11 @@ export default function ManagementPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={busy}
+                    disabled={
+                      busy ||
+                      accountLock.isBlocked("User", editingAccount._id) ||
+                      Boolean(editingAccount.branchId?._id && branchLock.isBlocked("Branch", editingAccount.branchId._id))
+                    }
                     className={buttonClassName}
                   >
                     {busy ? "Saving..." : "Save changes"}

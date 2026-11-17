@@ -20,6 +20,7 @@ import supplyInventoryRouter from "./routes/supplyInventory.js";
 import usersRouter from "./routes/users.js";
 import integrationCredentialsRouter from "./routes/integrationCredentials.js";
 import pushRouter from "./routes/push.js";
+import editLocksRouter from "./routes/editLocks.js";
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use("/api/auth-settings", authConfigRouter);
 app.use("/api/integration-credentials", integrationCredentialsRouter);
 app.use("/api/push", pushRouter);
 app.use("/api/activity-logs", activityLogsRouter);
+app.use("/api/edit-locks", editLocksRouter);
 app.use("/api/branches", branchesRouter);
 app.use("/api/inventory", inventoryRouter);
 app.use("/api/menu", menuRouter);

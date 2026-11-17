@@ -1,5 +1,6 @@
 import AuthConfig from "../models/authConfig.js";
 import PushRegistration from "../models/pushRegistration.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { sendBranchTestNotification } from "../utils/pushNotifications.js";
 
 const browserIdPattern = /^[\da-f]{8}-([\da-f]{4}-){3}[\da-f]{12}$/i;
@@ -47,6 +48,8 @@ export async function createPushRegistration(req, res) {
       return res.status(403).json({ error: "Firebase Cloud Messaging is disabled." });
     }
 
+    const previousRegistration = await PushRegistration.findOne({ browserId })
+      .select("userId branchId token");
     const registration = await PushRegistration.findOneAndUpdate(
       { browserId },
       {
@@ -54,10 +57,24 @@ export async function createPushRegistration(req, res) {
           userId: req.user._id,
           branchId: req.user.branchId,
           token: token.trim(),
+          ...getEditMetadata(req.user),
         },
       },
       { returnDocument: "after", upsert: true, runValidators: true, setDefaultsOnInsert: true },
     );
+    await logActivity(req, {
+      action: previousRegistration ? "update" : "create",
+      category: "user",
+      summary: previousRegistration
+        ? "Updated push alerts for this browser."
+        : "Enabled push alerts for this browser.",
+      target: { type: "PushRegistration", id: registration._id },
+      details: {
+        changedFields: previousRegistration
+          ? getChangedFieldNames(previousRegistration, registration, ["userId", "branchId", "token"])
+          : ["userId", "branchId", "token"],
+      },
+    });
     return res.status(201).json({ registered: true, id: registration._id });
   } catch (error) {
     if (error.code === 11000) {
@@ -75,11 +92,20 @@ export async function deletePushRegistration(req, res) {
   }
 
   try {
-    const result = await PushRegistration.deleteOne({
+    const registration = await PushRegistration.findOne({
       browserId,
       userId: req.user._id,
+    }).select("_id");
+    if (!registration) return res.json({ registered: false, removed: false });
+    await registration.deleteOne();
+    await logActivity(req, {
+      action: "delete",
+      category: "user",
+      summary: "Disabled push alerts for this browser.",
+      target: { type: "PushRegistration", id: registration._id },
+      details: { changedFields: ["registration"] },
     });
-    return res.json({ registered: false, removed: result.deletedCount > 0 });
+    return res.json({ registered: false, removed: true });
   } catch (error) {
     console.error("Push registration removal error:", error);
     return res.status(500).json({ error: "Unable to disable push alerts." });

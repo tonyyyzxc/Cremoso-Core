@@ -1,6 +1,11 @@
 import AuthConfig from "../models/authConfig.js";
 import User from "../models/user.js";
-import { logActivity, updateActivityLoggingCache } from "../utils/activityLog.js";
+import {
+  getChangedFieldNames,
+  getEditMetadata,
+  logActivity,
+  updateActivityLoggingCache,
+} from "../utils/activityLog.js";
 import { getIntegrationCredentials } from "../utils/integrationCredentials.js";
 
 async function getConfig() {
@@ -67,8 +72,20 @@ export async function updateSidebarPreference(req, res) {
     return res.status(400).json({ error: "A valid sidebar setting is required." });
   }
   try {
+    const before = req.user.toObject();
     req.user.showSidebarIcons = req.body.showSidebarIcons;
+    Object.assign(req.user, getEditMetadata(req.user));
     await req.user.save();
+    const changedFields = getChangedFieldNames(before, req.user, ["showSidebarIcons"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "user",
+        summary: "Updated sidebar preference.",
+        target: { type: "User", id: req.user._id, label: req.user.email },
+        details: { changedFields },
+      });
+    }
     return res.json({ showSidebarIcons: req.user.showSidebarIcons });
   } catch (error) {
     console.error("Sidebar preference update error:", error);
@@ -109,20 +126,41 @@ export async function updateAuthConfig(req, res) {
       }
     }
     const config = await getConfig();
+    const before = config.toObject();
     updates.forEach((setting) => { config[setting] = req.body[setting]; });
     if (updatesActivityLogging) {
       config.activityLoggingEnabled = req.body.activityLoggingEnabled;
     }
+    Object.assign(config, getEditMetadata(req.user));
     await config.save();
     if (updatesActivityLogging) {
       updateActivityLoggingCache(config.activityLoggingEnabled);
+    }
+    const changedFields = getChangedFieldNames(
+      before,
+      config,
+      [...updates, ...(updatesActivityLogging ? ["activityLoggingEnabled"] : [])],
+    );
+    const activityLoggingChanged = changedFields.includes("activityLoggingEnabled");
+    const otherChangedFields = changedFields.filter((field) => field !== "activityLoggingEnabled");
+    if (otherChangedFields.length) {
       await logActivity(req, {
-        action: "config.activity_logging.updated",
+        action: "update",
+        category: "config",
+        summary: "Updated authentication settings.",
+        target: { type: "AuthConfig", id: config.key },
+        details: { changedFields: otherChangedFields },
+      });
+    }
+    if (activityLoggingChanged) {
+      await logActivity(req, {
+        action: "update",
         category: "config",
         summary: config.activityLoggingEnabled
           ? "Activity logging was enabled."
           : "Activity logging was disabled.",
-        details: { activityLoggingEnabled: config.activityLoggingEnabled },
+        target: { type: "AuthConfig", id: config.key },
+        details: { changedFields: ["activityLoggingEnabled"] },
         force: true,
       });
     }

@@ -7,6 +7,27 @@ const configCacheDuration = 30_000;
 let cachedLoggingEnabled;
 let configCacheExpiresAt = 0;
 
+function comparableValue(value) {
+  const serializable = typeof value?.toObject === "function" ? value.toObject() : value;
+  return JSON.stringify(serializable);
+}
+
+export function getEditMetadata(user) {
+  return {
+    lastEditedBy: user?._id || null,
+    lastEditedByName: user?.name || "",
+    lastEditedByRole: user?.role || "",
+    lastEditedAt: new Date(),
+  };
+}
+
+export function getChangedFieldNames(before, after, fields) {
+  return [...new Set(fields)].filter((field) => (
+    typeof field === "string"
+    && comparableValue(before?.[field]) !== comparableValue(after?.[field])
+  ));
+}
+
 async function isActivityLoggingEnabled() {
   if (cachedLoggingEnabled !== undefined && Date.now() < configCacheExpiresAt) {
     return cachedLoggingEnabled;

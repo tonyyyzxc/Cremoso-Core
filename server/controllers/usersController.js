@@ -3,6 +3,7 @@ import Branch from "../models/branch.js";
 import Session from "../models/session.js";
 import User from "../models/user.js";
 import Worker from "../models/Worker.js";
+import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 import { hashPassword } from "../utils/password.js";
 import { isSuperAdminAccount } from "../utils/superAdmin.js";
 
@@ -35,11 +36,23 @@ export async function createUser(req, res) {
       role,
       status: "active",
       branchId: branchId || null,
+      ...getEditMetadata(req.user),
+    });
+    await logActivity(req, {
+      action: "create",
+      category: "user",
+      summary: "Created a user account.",
+      target: { type: "User", id: user._id, label: user.email },
+      details: { changedFields: ["name", "phone", "email", "role", "status", "branchId"] },
     });
     await user.populate("branchId", "name");
     return res.status(201).json({
       _id: user._id, name: user.name, phone: user.phone, email: user.email,
       role: user.role, isSuperAdmin: isSuperAdminAccount(user), status: user.status, branchId: user.branchId,
+      lastEditedBy: user.lastEditedBy,
+      lastEditedByName: user.lastEditedByName,
+      lastEditedByRole: user.lastEditedByRole,
+      lastEditedAt: user.lastEditedAt,
     });
   } catch (error) {
     console.error("Account creation error:", error);
@@ -54,7 +67,7 @@ export async function listBranchStaff(req, res) {
   }
   try {
     const users = await User.find({ branchId, role: "staff" })
-      .select("name username email phone role status branchId createdAt")
+      .select("name username email phone role status branchId createdAt lastEditedBy lastEditedByName lastEditedByRole lastEditedAt")
       .populate("branchId", "name")
       .sort({ createdAt: -1 });
     return res.json(users);
@@ -93,6 +106,14 @@ export async function createBranchStaff(req, res) {
       role: "staff",
       status: "active",
       branchId,
+      ...getEditMetadata(req.user),
+    });
+    await logActivity(req, {
+      action: "create",
+      category: "user",
+      summary: "Created a staff account.",
+      target: { type: "User", id: user._id, label: user.email },
+      details: { changedFields: ["name", "phone", "email", "role", "status", "branchId"] },
     });
     await user.populate("branchId", "name");
     return res.status(201).json({
@@ -103,6 +124,10 @@ export async function createBranchStaff(req, res) {
       role: user.role,
       status: user.status,
       branchId: user.branchId,
+      lastEditedBy: user.lastEditedBy,
+      lastEditedByName: user.lastEditedByName,
+      lastEditedByRole: user.lastEditedByRole,
+      lastEditedAt: user.lastEditedAt,
     });
   } catch (error) {
     console.error("Branch staff account creation error:", error);
@@ -112,7 +137,7 @@ export async function createBranchStaff(req, res) {
 
 export async function listUsers(req, res) {
   try {
-    const users = await User.find().select("name username email phone role status office branchId createdAt")
+    const users = await User.find().select("name username email phone role status office branchId createdAt lastEditedBy lastEditedByName lastEditedByRole lastEditedAt")
       .populate("branchId", "name").sort({ createdAt: -1 });
     const visibleUsers = isSuperAdminAccount(req.user)
       ? users
@@ -135,10 +160,28 @@ export async function updateUserContact(req, res) {
   try {
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found." });
+    const before = target.toObject();
     if (name !== undefined) target.name = name;
     if (phone !== undefined) target.phone = phone;
+    Object.assign(target, getEditMetadata(req.user));
     await target.save();
-    return res.json({ id: target._id, name: target.name, phone: target.phone });
+    const changedFields = getChangedFieldNames(before, target, ["name", "phone"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "user",
+        summary: "Updated account contact details.",
+        target: { type: "User", id: target._id, label: target.email },
+        details: { changedFields },
+      });
+    }
+    return res.json({
+      id: target._id, name: target.name, phone: target.phone,
+      lastEditedBy: target.lastEditedBy,
+      lastEditedByName: target.lastEditedByName,
+      lastEditedByRole: target.lastEditedByRole,
+      lastEditedAt: target.lastEditedAt,
+    });
   } catch (error) {
     console.error("User contact update error:", error);
     return res.status(400).json({ error: "Unable to update account contact details." });
@@ -153,9 +196,28 @@ export async function updateUserBranch(req, res) {
     if (!branch) return res.status(404).json({ error: "Branch not found." });
     const target = await User.findById(req.params.id);
     if (!target) return res.status(404).json({ error: "User not found." });
+    const before = target.toObject();
     target.branchId = branch._id;
+    Object.assign(target, getEditMetadata(req.user));
     await target.save();
-    return res.json({ id: target._id, branchId: { _id: branch._id, name: branch.name } });
+    const changedFields = getChangedFieldNames(before, target, ["branchId"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "user",
+        summary: "Changed a user's branch assignment.",
+        target: { type: "User", id: target._id, label: target.email },
+        details: { changedFields },
+      });
+    }
+    return res.json({
+      id: target._id,
+      branchId: { _id: branch._id, name: branch.name },
+      lastEditedBy: target.lastEditedBy,
+      lastEditedByName: target.lastEditedByName,
+      lastEditedByRole: target.lastEditedByRole,
+      lastEditedAt: target.lastEditedAt,
+    });
   } catch (error) {
     console.error("User branch update error:", error);
     return res.status(400).json({ error: "Unable to assign this branch." });
@@ -180,9 +242,27 @@ export async function updateUserRole(req, res) {
       const adminCount = await User.countDocuments({ role: "admin", status: "active" });
       if (target.status === "active" && adminCount <= 1) return res.status(400).json({ error: "At least one active admin account must remain." });
     }
+    const before = target.toObject();
     target.role = role;
+    Object.assign(target, getEditMetadata(req.user));
     await target.save();
-    return res.json({ id: target._id, name: target.name, email: target.email, role: target.role });
+    const changedFields = getChangedFieldNames(before, target, ["role"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "user",
+        summary: "Changed a user's role.",
+        target: { type: "User", id: target._id, label: target.email },
+        details: { changedFields },
+      });
+    }
+    return res.json({
+      id: target._id, name: target.name, email: target.email, role: target.role,
+      lastEditedBy: target.lastEditedBy,
+      lastEditedByName: target.lastEditedByName,
+      lastEditedByRole: target.lastEditedByRole,
+      lastEditedAt: target.lastEditedAt,
+    });
   } catch (error) {
     console.error("User role update error:", error);
     return res.status(400).json({ error: "Unable to update user role." });
@@ -206,9 +286,27 @@ export async function updateUserStatus(req, res) {
       const activeAdminCount = await User.countDocuments({ role: "admin", status: "active" });
       if (activeAdminCount <= 1) return res.status(400).json({ error: "At least one active admin account must remain." });
     }
+    const before = target.toObject();
     target.status = status;
+    Object.assign(target, getEditMetadata(req.user));
     await target.save();
-    return res.json({ id: target._id, email: target.email, role: target.role, status: target.status });
+    const changedFields = getChangedFieldNames(before, target, ["status"]);
+    if (changedFields.length) {
+      await logActivity(req, {
+        action: "update",
+        category: "user",
+        summary: "Changed a user's status.",
+        target: { type: "User", id: target._id, label: target.email },
+        details: { changedFields },
+      });
+    }
+    return res.json({
+      id: target._id, email: target.email, role: target.role, status: target.status,
+      lastEditedBy: target.lastEditedBy,
+      lastEditedByName: target.lastEditedByName,
+      lastEditedByRole: target.lastEditedByRole,
+      lastEditedAt: target.lastEditedAt,
+    });
   } catch (error) {
     console.error("User status update error:", error);
     return res.status(400).json({ error: "Unable to update user status." });
@@ -226,12 +324,13 @@ export async function deleteUser(req, res) {
       return res.status(403).json({ error: "Only the Super Admin can delete Admin accounts." });
     }
 
-    const accountIds = target.branchId
-      ? await User.find({ branchId: target.branchId }).distinct("_id")
-      : [target._id];
-    if (!accountIds.some((id) => id.equals(target._id))) {
-      accountIds.push(target._id);
+    const affectedUsers = target.branchId
+      ? await User.find({ branchId: target.branchId })
+      : [target];
+    if (!affectedUsers.some((user) => user._id.equals(target._id))) {
+      affectedUsers.push(target);
     }
+    const accountIds = affectedUsers.map((user) => user._id);
     if (accountIds.some((id) => id.equals(req.user._id))) {
       return res.status(400).json({
         error: "You cannot delete your own account or its assigned branch.",
@@ -254,6 +353,8 @@ export async function deleteUser(req, res) {
       }
     }
 
+    const branch = target.branchId ? await Branch.findById(target.branchId) : null;
+    const workers = target.branchId ? await Worker.find({ branchId: target.branchId }) : [];
     await Session.deleteMany({ user: { $in: accountIds } });
     if (target.branchId) {
       await Worker.deleteMany({ branchId: target.branchId });
@@ -261,6 +362,33 @@ export async function deleteUser(req, res) {
     await User.deleteMany({ _id: { $in: accountIds } });
     if (target.branchId) {
       await Branch.findByIdAndDelete(target.branchId);
+    }
+    for (const user of affectedUsers) {
+      await logActivity(req, {
+        action: "delete",
+        category: "user",
+        summary: "Deleted a user account.",
+        target: { type: "User", id: user._id, label: user.email },
+        details: { changedFields: ["name", "email", "phone", "role", "status", "branchId"] },
+      });
+    }
+    for (const worker of workers) {
+      await logActivity(req, {
+        action: "delete",
+        category: "user",
+        summary: "Deleted a worker record with its branch.",
+        target: { type: "Worker", id: worker._id, label: worker.name },
+        details: { changedFields: ["name", "phone", "email", "address", "branchId"] },
+      });
+    }
+    if (branch) {
+      await logActivity(req, {
+        action: "delete",
+        category: "branch",
+        summary: "Deleted a branch with its account.",
+        target: { type: "Branch", id: branch._id, label: branch.name },
+        details: { changedFields: ["name", "address", "phone", "contactEmail"] },
+      });
     }
 
     return res.json({

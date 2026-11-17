@@ -3,6 +3,7 @@ import { AnimatePresence, motion, MotionConfig } from "motion/react";
 import { KeyRound, Trash2, UserPlus, Users } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
 import { useToast } from "../hooks/UseToast.jsx";
+import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
@@ -13,6 +14,7 @@ const buttonClassName =
 
 export default function StaffPage() {
   const toast = useToast();
+  const workerLock = useEditLock();
   const [branch, setBranch] = useState(null);
   const [workers, setWorkers] = useState([]);
   const [staffAccounts, setStaffAccounts] = useState([]);
@@ -105,6 +107,11 @@ export default function StaffPage() {
     if (!window.confirm(`Remove ${worker.name} from your workers?`)) return;
     setError("");
     try {
+      const acquired = await workerLock.acquire("Worker", worker._id);
+      if (!acquired) {
+        setError("This record is currently unavailable for editing.");
+        return;
+      }
       await apiRequest(`/api/staff/workers/${worker._id}`, {
         method: "DELETE",
       });
@@ -112,6 +119,12 @@ export default function StaffPage() {
       toast.success("Worker removed.");
     } catch (err) {
       setError(err.message);
+    } finally {
+      try {
+        await workerLock.release();
+      } catch (err) {
+        setError(err.message);
+      }
     }
   };
 
@@ -341,8 +354,9 @@ export default function StaffPage() {
                       <button
                         type="button"
                         onClick={() => removeWorker(worker)}
+                        disabled={workerLock.isBlocked("Worker", worker._id)}
                         aria-label={`Remove ${worker.name}`}
-                        className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-700 dark:text-gray-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                        className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50 dark:text-gray-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                       >
                         <Trash2 size={16} />
                       </button>
