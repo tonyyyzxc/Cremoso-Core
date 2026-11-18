@@ -23,6 +23,8 @@ This installs the dependencies listed in `package.json`:
 - `cors`
 - `dotenv`
 - `express`
+- `express-rate-limit`
+- `firebase-admin`
 - `google-auth-library`
 - `googleapis`
 - `jsonwebtoken`
@@ -33,6 +35,8 @@ This installs the dependencies listed in `package.json`:
 ## Configure
 
 Create or update the backend environment file in this folder with the connection settings provided for your environment. Set `RECAPTCHA_SECRET_KEY` to the secret key that matches the Google reCAPTCHA v2 Checkbox site key configured in the client. Keep this secret on the server only; do not commit credentials or secrets.
+
+The backend requires `MONGODB_URL` to connect to MongoDB and `JWT_SECRET` to sign and verify sessions. `PORT` is optional; the server uses port `5000` when it is not set.
 
 Set `SUPER_ADMIN_EMAIL` to the email address of the designated active Admin account. That account keeps the Admin role and permissions, and receives Super Admin-only account management access. Regular Admins can create Branch Manager and Staff accounts; only the Super Admin can create or manage Admin accounts.
 
@@ -45,14 +49,6 @@ Password reset and Super Admin verification email are sent through Brevo's trans
 
 The Brevo API key must be permitted to send transactional email, and the sender address must be verified in Brevo. Reset codes expire after 10 minutes.
 Existing saved Gmail OAuth overrides are obsolete: the mailer uses the Brevo environment values until the Super Admin replaces or removes the old override.
-
-The temporary NBA scores widget on the login screen uses BALLDONTLIE. Add your API key to the local `server/.env` file:
-
-```env
-BALLDONTLIE_API_KEY=your_api_key
-```
-
-Keep the key server-side; it is not included in the frontend. The integration requests today's games and caches results for 60 seconds. See `server/integrations/balldontlie/` and the marked login widget/server route registration to remove the feature.
 
 YourDrive connects each signed-in user to their own Google Drive. Configure:
 
@@ -83,7 +79,7 @@ The editor handles Google sign-in, reCAPTCHA, Brevo, Google Drive, Google Calend
 
 Set `FIREBASE_SERVICE_ACCOUNT_JSON` in the server deployment environment to the complete Firebase service-account JSON for the same Firebase project used by the web app. Keep this private credential server-side and out of source control; it is separate from the public Firebase web-app configuration managed in Settings. Push delivery also requires Firebase Cloud Messaging to be enabled in Settings. Staff and Branch Managers can opt their browser in or out from account Settings. Branch Managers can review branch-scoped item and supply stock in the read-only Inventory tab.
 
-To send a test notification to registered devices for the signed-in user's branch, sign in to the app, enable push notifications in Settings, and run this in the app's browser console:
+For local development, open the Vite frontend at `http://localhost:5173`, sign in, and enable push notifications in Settings. Then run this in the browser console to send a test notification to registered devices for the signed-in user's branch:
 
 ```js
 const { apiRequest } = await import("/src/utils/api.js");
@@ -100,4 +96,4 @@ Start the backend development server from this folder:
 npm run dev
 ```
 
-The server listens on port `5000`.
+The server listens on port `5000` by default. If `PORT` is set in the environment, it uses that value instead.
