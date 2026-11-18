@@ -32,6 +32,5 @@ notes/*.md
 AGENTS.md
 opencode.json
 
-
-#KABOANGGGG
-server/integrations/balldontlie/
+skills-lock.json
+.agents/
