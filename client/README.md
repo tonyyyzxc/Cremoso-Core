@@ -41,11 +41,15 @@ The packages are declared in `package.json`. Run `npm install` to install them.
 
 - `@react-oauth/google`
 - `@tailwindcss/vite`
+- `firebase`
+- `jspdf`
 - `lucide-react`
+- `motion`
 - `react-google-recaptcha`
 - `react`
 - `react-dom`
 - `react-router-dom`
+- `skullet`
 - `tailwindcss`
 
 ### Development dependencies
@@ -89,8 +93,11 @@ client/
 ├── public/         # Static assets served as-is (favicon, icons)
 ├── src/
 │   ├── assets/     # Images, fonts, etc.
+│   ├── components/ # Shared interface components
 │   ├── pages/      # Page-level components
-│   ├── App.jsx     # Root component / routing
-│   └── main.jsx    # Entry point, mounts App into index.html
-└── index.html      # Vite entry HTML file
+│   ├── utils/       # Shared frontend utilities, including the API client
+│   └── main.jsx    # Entry point
+├── App.jsx         # Root component and route definitions
+├── index.html      # Vite entry HTML file
+└── vercel.json     # Vercel SPA route rewrites
 ```
