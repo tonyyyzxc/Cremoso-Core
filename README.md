@@ -4,14 +4,16 @@
   <h1>Cremoso-Core</h1>
 </div>
 
-![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
-![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
+<div align="center">
+  ![React](https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+  ![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+  ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+  ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+  ![Express](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)
+  ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)
 
-Cremoso-Core is a web application for managing sales, inventory, schedules, reports, and activity across multiple branches. It is built for Team Kondisyones and provides role- and branch-scoped access for Staff, Branch Managers, Admins, and a designated Super Admin.
+  <p>Cremoso-Core is a web application for managing sales, inventory, schedules, reports, and activity across multiple branches. It is built for Team Kondisyones and provides role- and branch-scoped access for Staff, Branch Managers, Admins, and a designated Super Admin.</p>
+</div>
 
 **Live demo:** [cremoso-core.vercel.app](https://cremoso-core.vercel.app/login)
 
