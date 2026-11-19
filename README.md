@@ -12,7 +12,7 @@
   <img src="https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white" alt="Express" />
   <img src="https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB" />
 
-  <p>Cremoso-Core is a web application for managing sales, inventory, schedules, reports, and activity across multiple branches. It is built for Team Kondisyones and provides role- and branch-scoped access for Staff, Branch Managers, Admins, and a designated Super Admin.</p>
+  <p>Cremoso-Core is a web application for managing sales, inventory, schedules, reports, and activity across multiple branches. It provides role and branch-scoped access for Staff, Branch Managers, Admins, and a designated Super Admin.</p>
 </div>
 
 **Live demo:** [cremoso-core.vercel.app](https://cremoso-core.vercel.app/login)
