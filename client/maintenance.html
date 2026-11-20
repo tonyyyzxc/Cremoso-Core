@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f5f3ef" />
+    <title>We'll be back soon</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: #f5f3ef;
+        color: #22221f;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        display: grid;
+        min-height: 100vh;
+        min-height: 100svh;
+        margin: 0;
+        padding: 24px;
+        place-items: center;
+        background: #f5f3ef;
+      }
+
+      main {
+        width: min(100%, 440px);
+        padding: clamp(32px, 8vw, 56px);
+        border: 1px solid #e6e2da;
+        border-radius: 20px;
+        background: #fffefa;
+        text-align: center;
+        box-shadow: 0 24px 70px rgb(47 40 27 / 8%);
+      }
+
+      .mark {
+        display: grid;
+        width: 52px;
+        height: 52px;
+        margin: 0 auto 24px;
+        place-items: center;
+        border-radius: 16px;
+        background: #e9efe8;
+        color: #446247;
+        font-size: 24px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: clamp(1.75rem, 7vw, 2.25rem);
+        letter-spacing: -0.045em;
+        line-height: 1.1;
+      }
+
+      p {
+        margin: 16px 0 0;
+        color: #68675f;
+        font-size: 1rem;
+        line-height: 1.65;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root { background: #171816; color: #f3f1e9; }
+        body { background: #171816; }
+        main {
+          border-color: #33352f;
+          background: #20211e;
+          box-shadow: 0 24px 70px rgb(0 0 0 / 24%);
+        }
+        .mark { background: #2d392e; color: #b5cbb2; }
+        p { color: #b5b5aa; }
+      }
+    </style>
+    <script>
+      window.setTimeout(() => window.location.reload(), 60_000);
+    </script>
+  </head>
+  <body>
+    <main>
+      <div class="mark" aria-hidden="true">✳</div>
+      <h1>We'll be back soon</h1>
+      <p>We're making a few updates. Please check back in a little while.</p>
+    </main>
+  </body>
+</html>
