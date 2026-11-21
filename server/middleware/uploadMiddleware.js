@@ -7,8 +7,7 @@ const upload = multer({
 
 export function handleUpload(req, res, next) {
   upload.single("file")(req, res, (error) => {
-    if (!error) return;
-    next();
+    if (!error) return next();
     if (
       error instanceof multer.MulterError &&
       error.code === "LIMIT_FILE_SIZE"

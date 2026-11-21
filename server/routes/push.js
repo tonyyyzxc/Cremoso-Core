@@ -2,6 +2,10 @@ import express from "express";
 import { requireAuth } from "../middleware/authMiddleware.js";
 import { requireEditLock } from "../utils/editLock.js";
 import {
+  externalActionAccountRateLimit,
+  externalActionIpRateLimit,
+} from "../middleware/rateLimiters.js";
+import {
   createPushRegistration,
   deletePushRegistration,
   getPushRegistration,
@@ -18,6 +22,11 @@ router.delete(
   requireEditLock("PushRegistration", (req) => req.body?.browserId),
   deletePushRegistration,
 );
-router.post("/test", sendPushTest);
+router.post(
+  "/test",
+  externalActionIpRateLimit,
+  externalActionAccountRateLimit,
+  sendPushTest,
+);
 
 export default router;

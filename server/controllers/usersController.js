@@ -69,7 +69,8 @@ export async function listBranchStaff(req, res) {
     const users = await User.find({ branchId, role: "staff" })
       .select("name username email phone role status branchId createdAt lastEditedBy lastEditedByName lastEditedByRole lastEditedAt")
       .populate("branchId", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(500);
     return res.json(users);
   } catch (error) {
     console.error("Branch staff account list error:", error);
@@ -138,7 +139,7 @@ export async function createBranchStaff(req, res) {
 export async function listUsers(req, res) {
   try {
     const users = await User.find().select("name username email phone role status office branchId createdAt lastEditedBy lastEditedByName lastEditedByRole lastEditedAt")
-      .populate("branchId", "name").sort({ createdAt: -1 });
+      .populate("branchId", "name").sort({ createdAt: -1 }).limit(500);
     const visibleUsers = isSuperAdminAccount(req.user)
       ? users
       : users.filter((user) => !isSuperAdminAccount(user));

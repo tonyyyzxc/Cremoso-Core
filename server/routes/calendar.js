@@ -3,6 +3,10 @@ import { requireAuth, requireRole } from "../middleware/authMiddleware.js";
 import { validateObjectId } from "../middleware/validateObjectId.js";
 import { requireEditLock } from "../utils/editLock.js";
 import {
+  externalActionAccountRateLimit,
+  externalActionIpRateLimit,
+} from "../middleware/rateLimiters.js";
+import {
   cancelShiftSchedule,
   createShiftSchedule,
   getCalendarConnectUrl,
@@ -41,6 +45,8 @@ router.post(
   "/shifts/:id/sync",
   requireRole("branch", "admin"),
   validateObjectId("id", "Invalid shift ID."),
+  externalActionIpRateLimit,
+  externalActionAccountRateLimit,
   requireEditLock("ShiftSchedule", (req) => req.params.id),
   syncShiftSchedule,
 );

@@ -5,12 +5,21 @@ import {
   getShiftReconciliation,
   submitShiftReconciliation,
 } from "../controllers/reconciliationController.js";
+import {
+  refreshAccountRateLimit,
+  refreshIpRateLimit,
+} from "../middleware/rateLimiters.js";
 
 const router = express.Router();
 router.use(requireAuth, requireRole("branch"));
 router.use(requireBranch);
 
-router.get("/", getShiftReconciliation);
+router.get(
+  "/",
+  refreshIpRateLimit,
+  refreshAccountRateLimit,
+  getShiftReconciliation,
+);
 router.post("/", submitShiftReconciliation);
 
 export default router;

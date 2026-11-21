@@ -103,7 +103,7 @@ export async function updateStaffBranch(req, res) {
 export async function listStaffWorkers(req, res) {
   if (!req.user.branchId) return res.json([]);
   try {
-    return res.json(await Worker.find({ branchId: req.user.branchId }).sort({ name: 1 }));
+    return res.json(await Worker.find({ branchId: req.user.branchId }).sort({ name: 1 }).limit(500));
   } catch (error) {
     console.error("Worker list error:", error);
     return res.status(500).json({ error: "Unable to load your workers." });

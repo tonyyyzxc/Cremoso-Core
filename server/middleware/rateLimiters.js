@@ -2,6 +2,7 @@ import { rateLimit } from "express-rate-limit";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_MINUTE_MS = 60 * 1000;
 
 function createLimiter({
   windowMs,
@@ -102,4 +103,46 @@ export const credentialValidationAccountRateLimit = createAccountLimiter({
   windowMs: FIFTEEN_MINUTES_MS,
   limit: 5,
   message: "Too many credential validation attempts for this account. Try again later.",
+});
+
+export const refreshIpRateLimit = createIpLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 120,
+  message: "Too many refresh requests. Try again shortly.",
+});
+
+export const refreshAccountRateLimit = createAccountLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 60,
+  message: "Too many refresh requests for this account. Try again shortly.",
+});
+
+export const externalActionIpRateLimit = createIpLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 30,
+  message: "Too many integration requests. Try again shortly.",
+});
+
+export const externalActionAccountRateLimit = createAccountLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 15,
+  message: "Too many integration requests for this account. Try again shortly.",
+});
+
+export const uploadIpRateLimit = createIpLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 10,
+  message: "Too many upload requests. Try again shortly.",
+});
+
+export const uploadAccountRateLimit = createAccountLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 5,
+  message: "Too many upload requests for this account. Try again shortly.",
+});
+
+export const apiIpRateLimit = createIpLimiter({
+  windowMs: ONE_MINUTE_MS,
+  limit: 600,
+  message: "Too many API requests. Try again shortly.",
 });

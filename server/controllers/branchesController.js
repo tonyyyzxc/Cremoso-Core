@@ -16,7 +16,7 @@ const validContactEmail = (email) => !email || validEmail(email);
 
 export async function listBranches(_req, res) {
   try {
-    return res.json(await Branch.find().sort({ name: 1 }));
+    return res.json(await Branch.find().sort({ name: 1 }).limit(500));
   } catch (error) {
     console.error("Branch list error:", error);
     return res.status(500).json({ error: "Unable to load branches." });
@@ -25,7 +25,7 @@ export async function listBranches(_req, res) {
 
 export async function listWorkers(_req, res) {
   try {
-    const workers = await Worker.find().populate("branchId", "name").sort({ name: 1 });
+    const workers = await Worker.find().populate("branchId", "name").sort({ name: 1 }).limit(500);
     return res.json(workers);
   } catch (error) {
     console.error("Worker list error:", error);

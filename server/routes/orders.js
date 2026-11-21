@@ -4,6 +4,10 @@ import { requireBranch } from "../middleware/requireBranch.js";
 import { validateObjectId } from "../middleware/validateObjectId.js";
 import { requireEditLock } from "../utils/editLock.js";
 import {
+  refreshAccountRateLimit,
+  refreshIpRateLimit,
+} from "../middleware/rateLimiters.js";
+import {
   confirmOrderPayment,
   createNewOrder,
   archiveOrder,
@@ -20,7 +24,13 @@ import {
 const router = express.Router();
 router.use(requireAuth);
 
-router.get("/", requireRole("admin"), listOrders);
+router.get(
+  "/",
+  requireRole("admin"),
+  refreshIpRateLimit,
+  refreshAccountRateLimit,
+  listOrders,
+);
 router.post(
   "/:id/archive",
   requireRole("admin"),
@@ -36,8 +46,22 @@ router.delete(
   deleteArchivedOrder,
 );
 router.post("/", requireRole("branch", "staff"), createNewOrder);
-router.get("/transactions", requireRole("branch", "staff"), requireBranch, listStaffTransactions);
-router.get("/queue", requireRole("branch", "staff"), requireBranch, listStaffOrderQueue);
+router.get(
+  "/transactions",
+  requireRole("branch", "staff"),
+  requireBranch,
+  refreshIpRateLimit,
+  refreshAccountRateLimit,
+  listStaffTransactions,
+);
+router.get(
+  "/queue",
+  requireRole("branch", "staff"),
+  requireBranch,
+  refreshIpRateLimit,
+  refreshAccountRateLimit,
+  listStaffOrderQueue,
+);
 router.post(
   "/queue/:id/confirm-payment",
   requireRole("branch", "staff"),

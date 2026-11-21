@@ -21,13 +21,15 @@ import usersRouter from "./routes/users.js";
 import integrationCredentialsRouter from "./routes/integrationCredentials.js";
 import pushRouter from "./routes/push.js";
 import editLocksRouter from "./routes/editLocks.js";
+import { apiIpRateLimit } from "./middleware/rateLimiters.js";
 
 const app = express();
 
 if (process.env.RENDER === "true") app.set("trust proxy", 1);
 
 app.use(cors());
-app.use(express.json({ limit: "10mb" }));
+app.use("/api", apiIpRateLimit);
+app.use(express.json({ limit: "1mb" }));
 app.use("/api/sheets", sheetsRouter);
 app.use("/api/drive", driveRouter);
 app.use("/api/calendar", calendarRouter);
