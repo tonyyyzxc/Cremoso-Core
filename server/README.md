@@ -24,12 +24,15 @@ This installs the dependencies listed in `package.json`:
 - `dotenv`
 - `express`
 - `express-rate-limit`
+- `helmet`
 - `firebase-admin`
 - `google-auth-library`
 - `googleapis`
 - `jsonwebtoken`
 - `mongoose`
 - `multer`
+- `rate-limit-redis`
+- `redis`
 - `nodemon` (development dependency)
 
 ## Configure
@@ -37,6 +40,20 @@ This installs the dependencies listed in `package.json`:
 Create or update the backend environment file in this folder with the connection settings provided for your environment. Set `RECAPTCHA_SECRET_KEY` to the secret key that matches the Google reCAPTCHA v2 Checkbox site key configured in the client. Keep this secret on the server only; do not commit credentials or secrets.
 
 The backend requires `MONGODB_URL` to connect to MongoDB and `JWT_SECRET` to sign and verify sessions. `PORT` is optional; the server uses port `5000` when it is not set.
+
+Set `CLIENT_URL` to the frontend origin in deployment. API CORS allows that origin and `http://localhost:5173` for local development.
+
+### Optional shared rate-limit storage
+
+Redis-backed rate limits are an optional deployment optimization and are outside the routine local development setup. Without `REDIS_URL`, rate limits use the existing in-memory store, which is suitable for a single local server process but is not shared between multiple server instances.
+
+To enable shared rate limits, provision a Redis service and set `REDIS_URL` in the backend environment to its connection URL. For local development with Redis installed and running on the default port, use:
+
+```text
+REDIS_URL=redis://localhost:6379
+```
+
+For a hosted deployment, use the Redis provider's private/internal connection URL when the API and Redis service share a network. Keep credentials in the deployment environment; do not commit a Redis URL containing a password. When `REDIS_URL` is set, the API connects to Redis before it starts listening, so an unavailable Redis service prevents startup rather than silently reverting to per-instance limits.
 
 Set `SUPER_ADMIN_EMAIL` to the email address of the designated active Admin account. That account keeps the Admin role and permissions, and receives Super Admin-only account management access. Regular Admins can create Branch Manager and Staff accounts; only the Super Admin can create or manage Admin accounts.
 

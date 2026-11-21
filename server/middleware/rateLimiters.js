@@ -1,8 +1,26 @@
 import { rateLimit } from "express-rate-limit";
+import { RedisStore } from "rate-limit-redis";
+import { createClient } from "redis";
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;
 const ONE_MINUTE_MS = 60 * 1000;
+const redisClient = process.env.REDIS_URL
+  ? createClient({ url: process.env.REDIS_URL })
+  : null;
+let redisStoreIndex = 0;
+
+if (redisClient) {
+  redisClient.on("error", (error) => {
+    console.error("Redis rate-limit store error:", error.message);
+  });
+}
+
+export async function connectRateLimitStore() {
+  if (!redisClient) return;
+  await redisClient.connect();
+  console.log("Redis rate-limit store online.");
+}
 
 function createLimiter({
   windowMs,
@@ -10,12 +28,21 @@ function createLimiter({
   message,
   keyGenerator,
 }) {
+  // Redis is an optional deployment optimization; local development keeps the in-memory store.
+  const store = redisClient
+    ? new RedisStore({
+      sendCommand: (...args) => redisClient.sendCommand(args),
+      prefix: `cremoso:rate-limit:${redisStoreIndex++}:`,
+    })
+    : undefined;
+
   return rateLimit({
     windowMs,
     limit,
     standardHeaders: "draft-8",
     legacyHeaders: false,
     ...(keyGenerator ? { keyGenerator } : {}),
+    ...(store ? { store } : {}),
     handler(req, res) {
       const retryAfterSeconds = Math.max(
         1,

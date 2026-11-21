@@ -1,6 +1,7 @@
 import "./config.js";
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import mongoose from "mongoose";
 import sheetsRouter from "./routes/sheets.js";
 import driveRouter from "./routes/drive.js";
@@ -21,13 +22,26 @@ import usersRouter from "./routes/users.js";
 import integrationCredentialsRouter from "./routes/integrationCredentials.js";
 import pushRouter from "./routes/push.js";
 import editLocksRouter from "./routes/editLocks.js";
-import { apiIpRateLimit } from "./middleware/rateLimiters.js";
+import {
+  apiIpRateLimit,
+  connectRateLimitStore,
+} from "./middleware/rateLimiters.js";
 
 const app = express();
 
 if (process.env.RENDER === "true") app.set("trust proxy", 1);
 
-app.use(cors());
+const allowedOrigins = new Set(["http://localhost:5173"]);
+if (process.env.CLIENT_URL) {
+  allowedOrigins.add(new URL(process.env.CLIENT_URL).origin);
+}
+
+app.use(helmet());
+app.use(cors({
+  origin(origin, callback) {
+    callback(null, !origin || allowedOrigins.has(origin));
+  },
+}));
 app.use("/api", apiIpRateLimit);
 app.use(express.json({ limit: "1mb" }));
 app.use("/api/sheets", sheetsRouter);
@@ -61,6 +75,8 @@ mongoose
   .catch((err) => {
     console.error("MongoDB connection failed:", err.name, "-", err.message);
   });
+
+await connectRateLimitStore();
 
 app.listen(PORT, () => {
   console.log(`Server running at ${PORT}`);
