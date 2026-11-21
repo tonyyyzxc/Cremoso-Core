@@ -90,9 +90,9 @@ export function AnimatedThemeToggler({
   fromCenter = false,
   theme,
   onThemeChange,
+  "aria-label": ariaLabel = "Choose theme",
   ...props
 }) {
-  const buttonRef = useRef(null);
   const transitioningRef = useRef(false);
   const animationRef = useRef(null);
   const isDark = theme === "dark";
@@ -111,10 +111,10 @@ export function AnimatedThemeToggler({
     root.style.removeProperty("--magicui-theme-vt-clip-from");
   }, [cancelAnimation]);
 
-  const toggleTheme = useCallback(() => {
-    const button = buttonRef.current;
+  const selectTheme = useCallback((nextTheme, event) => {
+    const button = event.currentTarget;
     const root = document.documentElement;
-    if (!button || transitioningRef.current || root.dataset.magicuiThemeVt === "active") return;
+    if (!button || nextTheme === theme || transitioningRef.current || root.dataset.magicuiThemeVt === "active") return;
 
     const width = window.innerWidth;
     const height = window.innerHeight;
@@ -123,7 +123,7 @@ export function AnimatedThemeToggler({
     const y = fromCenter ? height / 2 : bounds.top + bounds.height / 2;
     const maxRadius = Math.hypot(Math.max(x, width - x), Math.max(y, height - y));
     const clipPaths = getClipPaths(variant, x, y, maxRadius, width, height);
-    const applyTheme = () => onThemeChange?.(isDark ? "light" : "dark");
+    const applyTheme = () => onThemeChange?.(nextTheme);
 
     if (typeof document.startViewTransition !== "function") {
       applyTheme();
@@ -143,8 +143,20 @@ export function AnimatedThemeToggler({
       cancelAnimation();
     };
 
-    const transition = document.startViewTransition(() => flushSync(applyTheme));
-    transition.finished.finally(cleanup).catch(() => {});
+    let transition;
+    try {
+      transition = document.startViewTransition(() => flushSync(applyTheme));
+    } catch {
+      cleanup();
+      applyTheme();
+      return;
+    }
+    const cleanupTimer = window.setTimeout(cleanup, duration + 250);
+    const finishTransition = () => {
+      window.clearTimeout(cleanupTimer);
+      cleanup();
+    };
+    transition.finished.finally(finishTransition).catch(() => {});
     transition.ready.then(() => {
       animationRef.current = root.animate({ clipPath: clipPaths }, {
         duration,
@@ -152,19 +164,36 @@ export function AnimatedThemeToggler({
         fill: "forwards",
         pseudoElement: "::view-transition-new(root)",
       });
-    }).catch(() => {});
-  }, [cancelAnimation, duration, fromCenter, isDark, onThemeChange, variant]);
+    }).catch(finishTransition);
+  }, [cancelAnimation, duration, fromCenter, onThemeChange, theme, variant]);
 
   return (
-    <button
-      type="button"
-      ref={buttonRef}
-      onClick={toggleTheme}
-      className={className}
+    <div
+      role="group"
+      aria-label={ariaLabel}
+      className={`inline-flex shrink-0 items-center gap-0.5 rounded-full border border-[#E9E2D6] bg-[#FFFCF7] p-0.5 dark:border-neutral-700 dark:bg-neutral-900 ${className}`}
       {...props}
     >
-      {isDark ? <Sun aria-hidden="true" /> : <Moon aria-hidden="true" />}
-      <span className="sr-only">Toggle theme</span>
-    </button>
+      <button
+        type="button"
+        onClick={(event) => selectTheme("light", event)}
+        data-sound-effect="theme"
+        aria-label="Light theme"
+        aria-pressed={!isDark}
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 motion-reduce:transition-none ${!isDark ? "bg-[#EEE9E0] text-[#0F3B3B] dark:bg-neutral-700 dark:text-white" : "text-muted hover:bg-[#F5EFE4] hover:text-[#0A7779] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-[#45C5C1]"}`}
+      >
+        <Sun size={16} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        onClick={(event) => selectTheme("dark", event)}
+        data-sound-effect="theme"
+        aria-label="Dark theme"
+        aria-pressed={isDark}
+        className={`inline-flex h-7 w-7 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 motion-reduce:transition-none ${isDark ? "bg-[#EEE9E0] text-[#0F3B3B] dark:bg-neutral-700 dark:text-white" : "text-muted hover:bg-[#F5EFE4] hover:text-[#0A7779] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-[#45C5C1]"}`}
+      >
+        <Moon size={16} aria-hidden="true" />
+      </button>
+    </div>
   );
 }

@@ -66,7 +66,7 @@ function MetricCard({ label, value, detail, icon: Icon }) {
   return (
     <motion.article
       variants={riseIn}
-      className={`${cardClass} flex items-center gap-4 p-5 transition-shadow duration-200 hover:shadow-[0_16px_36px_-22px_rgba(15,59,59,0.4)]`}
+      className={`${cardClass} flex min-h-36 items-center gap-4 p-5 transition-shadow duration-200 hover:shadow-[0_16px_36px_-22px_rgba(15,59,59,0.4)]`}
     >
       <span className="rounded-2xl bg-[#0A8B8E]/10 p-3.5 text-[#0A7779] dark:bg-[#0A8B8E]/15 dark:text-[#45C5C1]">
         <Icon size={20} />
@@ -75,7 +75,7 @@ function MetricCard({ label, value, detail, icon: Icon }) {
         <p className="text-sm text-muted dark:text-gray-400">{label}</p>
         <p className="mt-1 truncate text-2xl font-semibold">{value}</p>
         {detail && (
-          <p className="mt-1 text-xs text-muted dark:text-gray-400">{detail}</p>
+          <p className="mt-1 line-clamp-2 text-xs text-muted dark:text-gray-400">{detail}</p>
         )}
       </div>
     </motion.article>
@@ -224,14 +224,14 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
 
   return (
     <section className={`${cardClass} p-6`} aria-label={`${title} chart`}>
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
+      <div className="flex min-h-12 items-start justify-between gap-3">
+        <div className="min-w-0">
           <h3 className="font-semibold">{title}</h3>
-          <p className="mt-1 text-xs text-muted dark:text-gray-400">
+          <p className="mt-1 line-clamp-1 text-xs text-muted dark:text-gray-400">
             Last 7 days · refreshes every minute
           </p>
         </div>
-        <div className="flex gap-4 text-xs text-muted dark:text-gray-400">
+        <div className="flex shrink-0 gap-4 text-xs text-muted dark:text-gray-400">
           <button
             type="button"
             aria-pressed={visibleSeries.staff}

@@ -9,6 +9,7 @@ import {
   initializePushMessaging,
 } from "../firebase.js";
 import { StreakBar } from "./loading.jsx";
+import { useSound } from "../context/useSound.js";
 import { useTheme } from "../theme/useTheme.js";
 
 const titleMap = {
@@ -28,30 +29,45 @@ const titleMap = {
   "activity-logs": "Activity Logs",
 };
 
+const breadcrumbMap = {
+  dashboard: "Workspace",
+  staff: "Management",
+  "new-order": "Operations",
+  "order-queue": "Operations",
+  transactions: "Operations",
+  reports: "Operations",
+  schedule: "Operations",
+  reconciliation: "Operations",
+  orders: "Operations",
+  menu: "Management",
+  management: "Management",
+  settings: "Account",
+  drive: "Management",
+  "activity-logs": "Management",
+};
+
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const activeId = location.pathname.replace("/", "") || "dashboard";
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
   const [viewportMode, setViewportMode] = useState("desktop");
   const { theme, setTheme } = useTheme();
+  const { enabled: soundEnabled, toggleSound } = useSound();
   const contentRef = useRef(null);
 
   useEffect(() => {
     const mobileQuery = window.matchMedia("(max-width: 767px)");
-    const tabletQuery = window.matchMedia("(min-width: 768px) and (max-width: 1279px)");
     const updateViewportMode = () => {
-      setViewportMode(mobileQuery.matches ? "mobile" : tabletQuery.matches ? "tablet" : "desktop");
+      setViewportMode(mobileQuery.matches ? "mobile" : "desktop");
     };
 
     updateViewportMode();
     mobileQuery.addEventListener("change", updateViewportMode);
-    tabletQuery.addEventListener("change", updateViewportMode);
 
     return () => {
       mobileQuery.removeEventListener("change", updateViewportMode);
-      tabletQuery.removeEventListener("change", updateViewportMode);
     };
   }, []);
 
@@ -133,16 +149,15 @@ export default function Layout() {
       <SidebarNav
         activeId={activeId}
         onSelect={handleSelect}
-        onLogout={handleLogout}
         userRole={user?.role}
-        collapsed={viewportMode === "tablet" || (viewportMode === "desktop" && !sidebarOpen)}
         mobileOpen={viewportMode !== "mobile" || mobileSidebarOpen}
-        showIcons={viewportMode === "tablet"}
+        desktopCollapsed={desktopSidebarCollapsed}
       />
-      <div className="flex min-w-0 flex-1 flex-col transition-[width] duration-300 ease-in-out motion-reduce:transition-none">
+      <div className="flex min-w-0 flex-1 flex-col">
         <TopBar
-          pageTitle={titleMap[activeId] || "Dashboard"}
+          breadcrumb={breadcrumbMap[activeId] || "Workspace"}
           userName={branchName || user?.name || user?.email || ""}
+          accountName={user?.name || user?.email || ""}
           userEmail={user?.email || ""}
           userRole={[
             user?.isSuperAdmin
@@ -155,19 +170,20 @@ export default function Layout() {
             .filter(Boolean)
             .join(" / ")}
           userPicture={user?.picture}
-          onViewProfile={() => navigate("/settings")}
-          sidebarOpen={sidebarOpen}
+          isSettingsPage={location.pathname === "/settings"}
           mobileSidebarOpen={mobileSidebarOpen}
           mobileMode={viewportMode === "mobile"}
-          onToggleSidebar={() => {
-            if (viewportMode === "mobile") {
-              setMobileSidebarOpen((open) => !open);
-            } else if (viewportMode === "desktop") {
-              setSidebarOpen((open) => !open);
-            }
-          }}
+          onBack={() => navigate(-1)}
+          onToggleSidebar={() => setMobileSidebarOpen((open) => !open)}
+          desktopSidebarCollapsed={desktopSidebarCollapsed}
+          onToggleDesktopSidebar={() =>
+            setDesktopSidebarCollapsed((collapsed) => !collapsed)
+          }
           theme={theme}
           onThemeChange={setTheme}
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
+          onLogout={handleLogout}
         />
         <div ref={contentRef} className="min-w-0 flex-1 overflow-y-auto scroll-smooth bg-background p-4 sm:p-5 lg:p-6 dark:bg-black">
           <Outlet />
