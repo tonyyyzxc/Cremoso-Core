@@ -22,7 +22,9 @@ export const integrationCredentialFields = {
 };
 
 const environmentCredentials = {
-  googleAuth: () => ({ clientId: process.env.GOOGLE_CLIENT_ID || "" }),
+  googleAuth: () => ({
+    clientId: process.env.GOOGLE_CLIENT_ID || process.env.VITE_GOOGLE_CLIENT_ID || "",
+  }),
   recaptcha: () => ({
     siteKey: process.env.RECAPTCHA_SITE_KEY || process.env.VITE_RECAPTCHA_SITE_KEY || "",
     secretKey: process.env.RECAPTCHA_SECRET_KEY || "",
@@ -74,6 +76,68 @@ export function isCredentialEncryptionConfigured() {
   return /^[a-f\d]{64}$/i.test(
     process.env.INTEGRATION_CREDENTIALS_ENCRYPTION_KEY || "",
   );
+}
+
+const secretCredentialFields = new Set([
+  "apiKey",
+  "clientSecret",
+  "secretKey",
+  "vapidKey",
+]);
+
+function maskSecretValue(value) {
+  if (value.length <= 12) return "••••••••";
+  return `${value.slice(0, 3)}••••••••${value.slice(-4)}`;
+}
+
+function maskEmailValue(value) {
+  const match = /^(.*?)([^@\s<>]+)@([^@\s<>]+)(.*)$/.exec(value);
+  if (!match) return null;
+
+  const [, prefix, localPart, domain, suffix] = match;
+  const maskedLocalPart = localPart.length > 1
+    ? `${localPart[0]}•••${localPart.at(-1)}`
+    : `${localPart[0]}•••`;
+  return `${prefix}${maskedLocalPart}@${domain}${suffix}`;
+}
+
+function maskUrlValue(value) {
+  try {
+    const url = new URL(value);
+    return `${url.protocol}//${url.host}/••••`;
+  } catch {
+    return null;
+  }
+}
+
+function maskClientIdValue(value) {
+  const googleClientIdSuffix = ".apps.googleusercontent.com";
+  if (!value.endsWith(googleClientIdSuffix)) return null;
+
+  const prefix = value.slice(0, 8);
+  return `${prefix}••••••••${googleClientIdSuffix}`;
+}
+
+function maskIdentifierValue(value) {
+  if (value.length <= 8) return "••••••••";
+  return `${value.slice(0, 3)}••••••${value.slice(-4)}`;
+}
+
+function maskCredentialValue(field, value) {
+  const normalized = typeof value === "string" ? value.trim() : "";
+  if (!normalized) return null;
+
+  if (secretCredentialFields.has(field)) return maskSecretValue(normalized);
+  if (field === "sender") {
+    return maskEmailValue(normalized) || maskIdentifierValue(normalized);
+  }
+  if (field === "clientId") {
+    return maskClientIdValue(normalized) || maskIdentifierValue(normalized);
+  }
+  if (field === "redirectUri") {
+    return maskUrlValue(normalized) || maskIdentifierValue(normalized);
+  }
+  return maskIdentifierValue(normalized);
 }
 
 export function encryptIntegrationCredentialBundle(credentials) {
@@ -139,6 +203,11 @@ export async function getIntegrationCredentialStatuses() {
       hasOverride: overrides.has(integration),
       configured: integrationCredentialFields[integration].every(
         (field) => Boolean(credentials[field]?.trim()),
+      ),
+      maskedValues: Object.fromEntries(
+        integrationCredentialFields[integration]
+          .map((field) => [field, maskCredentialValue(field, credentials[field])])
+          .filter(([, maskedValue]) => maskedValue),
       ),
     };
   }

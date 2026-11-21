@@ -1685,6 +1685,32 @@ export default function SettingsPage() {
                   </p>
                 </div>
 
+                {credentialEditor.step === "account" && (
+                  <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-neutral-700 dark:bg-neutral-950">
+                    <div>
+                      <h4 className="text-sm font-semibold">Current credentials</h4>
+                      <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Masked values from {credentialStatuses[credentialEditor.integration]?.hasOverride
+                          ? "the saved override"
+                          : "the deployment configuration"}.
+                      </p>
+                    </div>
+                    <dl className="space-y-2">
+                      {Object.entries(credentialIntegrations[credentialEditor.integration].fields).map(([field, label]) => (
+                        <div key={field} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-sm">
+                          <dt className="text-gray-600 dark:text-gray-300">{label}</dt>
+                          <dd className="font-mono text-gray-900 dark:text-white">
+                            {credentialStatuses[credentialEditor.integration]?.maskedValues?.[field]
+                              || (credentialStatuses[credentialEditor.integration]
+                                ? "Not configured"
+                                : "Loading…")}
+                          </dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
+
                 {credentialEditor.step === "account" ? (
                   <div className="space-y-4">
                     <label className="block space-y-1.5 text-sm font-medium">
