@@ -194,6 +194,14 @@ export default function SettingsPage() {
 
   const isAdmin = user?.role === "admin";
   const isSuperAdmin = user?.isSuperAdmin === true;
+  const [activeSettingsTab, setActiveSettingsTab] = useState("account");
+  const settingsTabs = [
+    { id: "account", label: "Account & security" },
+    ...(user?.role === "branch"
+      ? [{ id: "operations", label: "Operations" }]
+      : []),
+    ...(isAdmin ? [{ id: "integrations", label: "Integrations" }] : []),
+  ];
 
   useEffect(() => {
     apiRequest("/api/auth-settings")
@@ -864,6 +872,25 @@ export default function SettingsPage() {
           </p>
         )}
 
+        {!initialLoading && (
+          <nav
+            aria-label="Settings sections"
+            className="flex gap-2 overflow-x-auto border-b border-gray-200 dark:border-neutral-800"
+          >
+            {settingsTabs.map(({ id, label }) => (
+              <button
+                key={id}
+                type="button"
+                aria-current={activeSettingsTab === id ? "page" : undefined}
+                onClick={() => setActiveSettingsTab(id)}
+                className={`shrink-0 border-b-2 px-4 py-3 text-sm font-medium ${activeSettingsTab === id ? "border-[#0A8B8E] text-[#0A8B8E]" : "border-transparent text-gray-500 hover:text-[#0A3B3D] dark:hover:text-white"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        )}
+
         {initialLoading ? (
           <div className="space-y-6">
             <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
@@ -901,8 +928,10 @@ export default function SettingsPage() {
             </section>
           </div>
         ) : (
-          <FadeIn from="bottom" delay={0.3}>
+          <FadeIn key={activeSettingsTab} from="bottom" delay={0.3}>
             <div className="space-y-6">
+              {activeSettingsTab === "account" && (
+                <div className="space-y-6">
               {["branch", "staff"].includes(user?.role) && (
                 <section className="rounded-3xl border border-[#0A8B8E]/20 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
                   <div className="flex items-start gap-3">
@@ -1288,22 +1317,26 @@ export default function SettingsPage() {
                   )}
                 </div>
               </section>
+                </div>
+              )}
 
-              <section className="rounded-3xl border border-[#F2C879]/50 bg-linear-to-br from-white via-white to-[#F2C879]/10 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/20 sm:p-6">
-                <header className="mb-5 border-b border-[#F2C879]/30 pb-4 dark:border-neutral-800">
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8A641B] dark:text-amber-300">
-                    Branch and access settings
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold">
-                    Operations preferences
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                    Manage your branch contact details and staff sign-in
-                    options.
-                  </p>
-                </header>
-                <div className="grid gap-5 lg:grid-cols-2">
-                  {user?.role === "branch" && (
+              {(activeSettingsTab === "operations" || activeSettingsTab === "integrations") && (
+                <section className="rounded-3xl border border-[#F2C879]/50 bg-linear-to-br from-white via-white to-[#F2C879]/10 p-5 shadow-sm dark:border-neutral-800 dark:from-neutral-900 dark:via-neutral-900 dark:to-amber-950/20 sm:p-6">
+                  <header className="mb-5 border-b border-[#F2C879]/30 pb-4 dark:border-neutral-800">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8A641B] dark:text-amber-300">
+                      {activeSettingsTab === "operations" ? "Branch settings" : "Connected services"}
+                    </p>
+                    <h3 className="mt-1 text-lg font-semibold">
+                      {activeSettingsTab === "operations" ? "Branch details" : "Integrations"}
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      {activeSettingsTab === "operations"
+                        ? "Update the contact details associated with your branch."
+                        : "Manage connected services and activity logging."}
+                    </p>
+                  </header>
+                <div className={activeSettingsTab === "integrations" ? "space-y-5" : "grid gap-5 lg:grid-cols-2"}>
+                  {activeSettingsTab === "operations" && user?.role === "branch" && (
                     <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                       <div className="mb-5 flex items-start gap-3">
                         <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
@@ -1404,6 +1437,17 @@ export default function SettingsPage() {
                     </section>
                   )}
 
+                  {activeSettingsTab === "integrations" && isSuperAdmin && (
+                    <div className="rounded-xl bg-[#FBF6EF] p-4 text-sm text-gray-600 dark:bg-neutral-950 dark:text-gray-300">
+                      Right-click a credential-backed integration below to edit or remove its credential override. Changing Google OAuth credentials may require users to reconnect.
+                      {!credentialEncryptionConfigured && (
+                        <p className="mt-3 rounded-xl bg-amber-50 p-3 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                          Set INTEGRATION_CREDENTIALS_ENCRYPTION_KEY in the server deployment environment before managing credentials.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {isAdmin && (
                     <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                       <div className="mb-5 flex items-start gap-3">
@@ -1460,16 +1504,6 @@ export default function SettingsPage() {
                         >
                           {googleFeedback}
                         </p>
-                      )}
-                      {isSuperAdmin && (
-                        <div className="mt-5 rounded-xl bg-[#FBF6EF] p-4 text-sm text-gray-600 dark:bg-neutral-950 dark:text-gray-300">
-                          Right-click a credential-backed integration below to edit or remove its credential override. Changing Google OAuth credentials may require users to reconnect.
-                          {!credentialEncryptionConfigured && (
-                            <p className="mt-3 rounded-xl bg-amber-50 p-3 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-                              Set INTEGRATION_CREDENTIALS_ENCRYPTION_KEY in the server deployment environment before managing credentials.
-                            </p>
-                          )}
-                        </div>
                       )}
                       <div className="mt-4 space-y-3">
                         {Object.entries(integrationLabels).map(([setting, label]) => (
@@ -1544,7 +1578,8 @@ export default function SettingsPage() {
                     </section>
                   )}
                 </div>
-              </section>
+                </section>
+              )}
             </div>
           </FadeIn>
         )}

@@ -29,6 +29,9 @@ export default function StaffPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
+  const [isWorkerModalOpen, setIsWorkerModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [modalError, setModalError] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -49,7 +52,7 @@ export default function StaffPage() {
   const addWorker = async (event) => {
     event.preventDefault();
     setIsSaving(true);
-    setError("");
+    setModalError("");
     try {
       const worker = await apiRequest("/api/staff/workers", {
         method: "POST",
@@ -64,9 +67,10 @@ export default function StaffPage() {
       setEmail("");
       setPhone("");
       setAddress("");
+      setIsWorkerModalOpen(false);
       toast.success("Worker added.");
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     } finally {
       setIsSaving(false);
     }
@@ -75,7 +79,7 @@ export default function StaffPage() {
   const createStaffAccount = async (event) => {
     event.preventDefault();
     setIsCreatingAccount(true);
-    setError("");
+    setModalError("");
     try {
       const account = await apiRequest("/api/users/staff", {
         method: "POST",
@@ -95,12 +99,33 @@ export default function StaffPage() {
       setStaffEmail("");
       setStaffPhone("");
       setStaffPassword("");
+      setIsAccountModalOpen(false);
       toast.success("Staff sign-in account created.");
     } catch (err) {
-      setError(err.message);
+      setModalError(err.message);
     } finally {
       setIsCreatingAccount(false);
     }
+  };
+
+  const closeWorkerModal = () => {
+    if (isSaving) return;
+    setName("");
+    setEmail("");
+    setPhone("");
+    setAddress("");
+    setModalError("");
+    setIsWorkerModalOpen(false);
+  };
+
+  const closeAccountModal = () => {
+    if (isCreatingAccount) return;
+    setStaffName("");
+    setStaffEmail("");
+    setStaffPhone("");
+    setStaffPassword("");
+    setModalError("");
+    setIsAccountModalOpen(false);
   };
 
   const removeWorker = async (worker) => {
@@ -154,7 +179,8 @@ export default function StaffPage() {
 
       {isLoading ? <div className="space-y-4"><div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-40" /><Skeleton className="mt-2 h-4 w-72 max-w-full" /><div className="mt-5 grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-11 w-full" />)}</div><Skeleton className="mt-4 h-10 w-32" /></div><div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><div className="border-b border-gray-100 p-5 dark:border-neutral-800"><Skeleton className="h-5 w-24" /><Skeleton className="mt-2 h-4 w-56" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4].map((index) => <div key={index} className="grid grid-cols-4 gap-4"><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mb-5 flex items-start gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
           <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
             <KeyRound size={20} />
           </div>
@@ -166,57 +192,19 @@ export default function StaffPage() {
             </p>
           </div>
         </div>
-        <form onSubmit={createStaffAccount} className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1.5 text-sm font-medium">
-            Staff name
-            <input
-              className={inputClassName}
-              value={staffName}
-              onChange={(event) => setStaffName(event.target.value)}
-              autoComplete="name"
-              required
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium">
-            Login email
-            <input
-              className={inputClassName}
-              type="email"
-              value={staffEmail}
-              onChange={(event) => setStaffEmail(event.target.value)}
-              autoComplete="off"
-              required
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium">
-            Contact number
-            <input
-              className={inputClassName}
-              type="tel"
-              value={staffPhone}
-              onChange={(event) => setStaffPhone(event.target.value)}
-              autoComplete="tel"
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium">
-            Initial password
-            <input
-              className={inputClassName}
-              type="password"
-              value={staffPassword}
-              onChange={(event) => setStaffPassword(event.target.value)}
-              autoComplete="new-password"
-              minLength={8}
-              required
-            />
-          </label>
-          <div className="sm:col-span-2">
-            <button type="submit" disabled={isCreatingAccount} className={buttonClassName}>
-              <UserPlus size={16} />
-              {isCreatingAccount ? "Creating account..." : "Create staff account"}
-            </button>
-          </div>
-        </form>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setModalError("");
+              setIsAccountModalOpen(true);
+            }}
+            className={buttonClassName}
+          >
+            <UserPlus size={16} />
+            Create staff account
+          </button>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
@@ -255,7 +243,8 @@ export default function StaffPage() {
       </section>
 
       <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="mb-5 flex items-start gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
           <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
             <Users size={20} />
           </div>
@@ -266,55 +255,18 @@ export default function StaffPage() {
             </p>
           </div>
         </div>
-        <form onSubmit={addWorker} className="grid gap-4 sm:grid-cols-2">
-          <label className="block space-y-1.5 text-sm font-medium">
-            Name
-            <input
-              className={inputClassName}
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              autoComplete="name"
-              required
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium">
-            Gmail / email
-            <input
-              className={inputClassName}
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="off"
-              required
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium">
-            Contact number
-            <input
-              className={inputClassName}
-              type="tel"
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              autoComplete="tel"
-              required
-            />
-          </label>
-          <label className="block space-y-1.5 text-sm font-medium">
-            Address
-            <input
-              className={inputClassName}
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              autoComplete="street-address"
-              required
-            />
-          </label>
-          <div className="sm:col-span-2">
-            <button type="submit" disabled={isSaving} className={buttonClassName}>
-              {isSaving ? "Adding..." : "Add worker"}
-            </button>
-          </div>
-        </form>
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setModalError("");
+              setIsWorkerModalOpen(true);
+            }}
+            className={buttonClassName}
+          >
+            Add worker
+          </button>
+        </div>
       </section>
 
       <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
@@ -373,6 +325,198 @@ export default function StaffPage() {
         )}
       </section>
       </div></FadeIn>}
+      <AnimatePresence>
+        {isAccountModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeAccountModal();
+            }}
+          >
+            <motion.form
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="staff-account-modal-title"
+              onSubmit={createStaffAccount}
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+            >
+              <div>
+                <h3 id="staff-account-modal-title" className="text-lg font-semibold">
+                  Create a staff sign-in account
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  This account can take orders and confirm payments for your branch.
+                </p>
+              </div>
+              {modalError && (
+                <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                  {modalError}
+                </p>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Staff name
+                  <input
+                    className={inputClassName}
+                    value={staffName}
+                    onChange={(event) => setStaffName(event.target.value)}
+                    autoComplete="name"
+                    required
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Login email
+                  <input
+                    className={inputClassName}
+                    type="email"
+                    value={staffEmail}
+                    onChange={(event) => setStaffEmail(event.target.value)}
+                    autoComplete="off"
+                    required
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Contact number
+                  <input
+                    className={inputClassName}
+                    type="tel"
+                    value={staffPhone}
+                    onChange={(event) => setStaffPhone(event.target.value)}
+                    autoComplete="tel"
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Initial password
+                  <input
+                    className={inputClassName}
+                    type="password"
+                    value={staffPassword}
+                    onChange={(event) => setStaffPassword(event.target.value)}
+                    autoComplete="new-password"
+                    minLength={8}
+                    required
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-neutral-800">
+                <button
+                  type="button"
+                  onClick={closeAccountModal}
+                  disabled={isCreatingAccount}
+                  className="px-3 py-2 text-sm font-semibold text-gray-600 disabled:opacity-50 dark:text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={isCreatingAccount} className={buttonClassName}>
+                  <UserPlus size={16} />
+                  {isCreatingAccount ? "Creating account..." : "Create staff account"}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {isWorkerModalOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) closeWorkerModal();
+            }}
+          >
+            <motion.form
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="worker-modal-title"
+              onSubmit={addWorker}
+              initial={{ opacity: 0, y: 16, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+            >
+              <div>
+                <h3 id="worker-modal-title" className="text-lg font-semibold">
+                  Add a worker
+                </h3>
+                <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  Worker records are for contact details and do not provide sign-in access.
+                </p>
+              </div>
+              {modalError && (
+                <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">
+                  {modalError}
+                </p>
+              )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Name
+                  <input
+                    className={inputClassName}
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    autoComplete="name"
+                    required
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Gmail / email
+                  <input
+                    className={inputClassName}
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    autoComplete="off"
+                    required
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Contact number
+                  <input
+                    className={inputClassName}
+                    type="tel"
+                    value={phone}
+                    onChange={(event) => setPhone(event.target.value)}
+                    autoComplete="tel"
+                    required
+                  />
+                </label>
+                <label className="block space-y-1.5 text-sm font-medium">
+                  Address
+                  <input
+                    className={inputClassName}
+                    value={address}
+                    onChange={(event) => setAddress(event.target.value)}
+                    autoComplete="street-address"
+                    required
+                  />
+                </label>
+              </div>
+              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-neutral-800">
+                <button
+                  type="button"
+                  onClick={closeWorkerModal}
+                  disabled={isSaving}
+                  className="px-3 py-2 text-sm font-semibold text-gray-600 disabled:opacity-50 dark:text-gray-300"
+                >
+                  Cancel
+                </button>
+                <button type="submit" disabled={isSaving} className={buttonClassName}>
+                  {isSaving ? "Adding..." : "Add worker"}
+                </button>
+              </div>
+            </motion.form>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>{isLoading && <StreakBar />}</AnimatePresence>
     </section>
     </MotionConfig>

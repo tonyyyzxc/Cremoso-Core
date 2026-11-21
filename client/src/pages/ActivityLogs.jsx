@@ -48,20 +48,6 @@ function formatChangedFields(fields) {
     : "";
 }
 
-function StatusBadge({ status }) {
-  const styles =
-    status === "failure"
-      ? "bg-rose-50 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300"
-      : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300";
-  return (
-    <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${styles}`}
-    >
-      {status || "success"}
-    </span>
-  );
-}
-
 export default function ActivityLogsPage() {
   const [user] = useState(() => {
     try {
@@ -374,9 +360,6 @@ export default function ActivityLogsPage() {
                       <th className="px-5 py-3">Account</th>
                       <th className="px-5 py-3">Branch</th>
                       <th className="px-5 py-3">Activity</th>
-                      <th className="px-5 py-3">Category</th>
-                      <th className="px-5 py-3">Status</th>
-                      <th className="px-5 py-3">Target</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
@@ -410,15 +393,6 @@ export default function ActivityLogsPage() {
                               Changed fields: {formatChangedFields(log.details.changedFields)}
                             </p>
                           )}
-                        </td>
-                        <td className="px-5 py-4 capitalize">
-                          {log.category || "—"}
-                        </td>
-                        <td className="px-5 py-4">
-                          <StatusBadge status={log.status} />
-                        </td>
-                        <td className="px-5 py-4 text-gray-600 dark:text-gray-300">
-                          {log.target?.label || log.target?.id || "—"}
                         </td>
                       </tr>
                     ))}
