@@ -209,11 +209,11 @@ export default function SidebarNav({
     <aside
       inert={fullyCollapsed || hiddenOnMobile}
       aria-hidden={fullyCollapsed || hiddenOnMobile || undefined}
-      className={`fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden border-r border-border bg-card transition-transform duration-300 ease-in-out motion-reduce:transition-none md:relative md:inset-auto md:z-auto md:h-full md:shrink-0 md:translate-x-0 md:transition-[width] xl:duration-300 ${
+      className={`fixed inset-y-0 left-0 z-50 flex w-64 min-w-0 flex-col overflow-hidden border-r border-[#E9E2D6] bg-[#FFFCF7] transition-transform duration-300 ease-in-out motion-reduce:transition-none md:relative md:inset-auto md:z-auto md:h-full md:shrink-0 md:translate-x-0 md:transition-[width] xl:duration-300 ${
         hiddenOnMobile ? "-translate-x-full" : "translate-x-0"
       } ${
         collapsed ? (showIcons ? "md:w-18" : "md:w-0 md:border-r-0") : "md:w-64"
-      } dark:bg-neutral-900`}
+      } dark:border-neutral-800 dark:bg-neutral-900`}
     >
       <div
         className={`flex h-full shrink-0 flex-col overflow-hidden ${
@@ -224,7 +224,7 @@ export default function SidebarNav({
           className={`flex shrink-0 items-center gap-3 px-4 pb-5 pt-6 ${iconRail ? "justify-center px-2" : ""}`}
         >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary shadow-[0_5px_12px_rgba(11,138,138,0.22)] ring-1 ring-white/20 dark:bg-[#0A8B8E]">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-linear-to-br from-[#14A3A5] to-[#066E70] shadow-[0_8px_18px_rgba(11,138,138,0.24)] ring-1 ring-white/40 dark:from-[#0A8B8E] dark:to-[#066E70]">
               <img
                 src="/android-chrome-512x512.png"
                 alt="Cremoso icon"
@@ -234,10 +234,10 @@ export default function SidebarNav({
           </div>
           {!labelsHidden && (
             <div className="min-w-0 overflow-hidden whitespace-nowrap">
-              <div className="font-serif text-lg font-bold tracking-[0.12em] text-primary-strong dark:text-white">
+              <div className="font-serif text-lg font-bold tracking-[0.12em] text-[#0F3B3B] dark:text-white">
                 CREMOSO
               </div>
-              <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-muted">
+              <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.2em] text-[#A58A62] dark:text-gray-400">
                 Operations
               </div>
             </div>
@@ -253,7 +253,7 @@ export default function SidebarNav({
           {navGroups.map(({ label: groupLabel, items }) => (
             <div key={groupLabel} className="space-y-1.5">
               {!labelsHidden && (
-                <p className="px-4 pb-1 pt-2 text-[9px] font-bold tracking-[0.18em] text-muted/80">
+                <p className="px-4 pb-1 pt-2 text-[9px] font-bold tracking-[0.18em] text-[#A58A62] dark:text-gray-500">
                   {groupLabel}
                 </p>
               )}
@@ -270,9 +270,9 @@ export default function SidebarNav({
                     aria-current={isActive ? "page" : undefined}
                     className={`relative grid min-h-10 w-full items-center rounded-xl text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card motion-reduce:transition-none ${itemLayout} ${
                       isActive
-                        ? "bg-primary/10 font-semibold text-primary-strong ring-1 ring-inset ring-primary/15 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-primary dark:bg-[#0A8B8E]/10 dark:text-white dark:ring-[#0A8B8E]/20"
+                        ? "bg-[#E8F4F1] font-semibold text-[#0F5554] ring-1 ring-inset ring-[#0A8B8E]/15 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-[#0A8B8E] dark:bg-[#0A8B8E]/10 dark:text-white dark:ring-[#0A8B8E]/20"
                         : available
-                          ? "text-muted hover:bg-background hover:text-primary-strong dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+                          ? "text-muted hover:bg-[#F5EFE4] hover:text-[#0F3B3B] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
                           : "cursor-not-allowed text-gray-400 dark:text-neutral-600"
                     }`}
                   >
@@ -294,7 +294,7 @@ export default function SidebarNav({
           ))}
         </nav>
 
-        <div className="shrink-0 space-y-1 border-t border-border px-3 py-3 dark:border-neutral-800">
+        <div className="shrink-0 space-y-1 border-t border-[#E9E2D6] px-3 py-3 dark:border-neutral-800">
           {SIDEBAR_ACTIONS.map(({ id, label, icon: Icon }) => {
             const isSettings = id === "settings";
             const isActive = isSettings && activeId === id;
@@ -308,9 +308,9 @@ export default function SidebarNav({
                 aria-current={isActive ? "page" : undefined}
                 className={`relative grid min-h-10 w-full items-center rounded-xl text-left text-sm transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-card motion-reduce:transition-none ${itemLayout} ${
                   isActive
-                    ? "bg-primary/10 font-semibold text-primary-strong ring-1 ring-inset ring-primary/15 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-primary dark:bg-[#0A8B8E]/10 dark:text-white dark:ring-[#0A8B8E]/20"
+                    ? "bg-[#E8F4F1] font-semibold text-[#0F5554] ring-1 ring-inset ring-[#0A8B8E]/15 before:absolute before:bottom-2 before:left-0 before:top-2 before:w-0.5 before:rounded-full before:bg-[#0A8B8E] dark:bg-[#0A8B8E]/10 dark:text-white dark:ring-[#0A8B8E]/20"
                     : isSettings
-                      ? "text-muted hover:bg-background hover:text-primary-strong dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
+                      ? "text-muted hover:bg-[#F5EFE4] hover:text-[#0F3B3B] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-white"
                       : "text-muted hover:bg-rose-50 hover:text-rose-700 dark:text-gray-300 dark:hover:bg-rose-950/30 dark:hover:text-rose-300"
                 }`}
               >

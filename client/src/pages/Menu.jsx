@@ -25,8 +25,8 @@ const blankItem = (displayOrder = 0) => ({
   addons: [],
 });
 
-const cardClass = "rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
-const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+const cardClass = "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+const inputClass = "w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 
 function menuUrl(branchId, itemId = "") {
   const path = itemId ? `/api/menu/${itemId}` : "/api/menu";
@@ -676,8 +676,8 @@ export default function MenuPage() {
       {loading && <p role="status" className="sr-only">Loading menu...</p>}
       <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Catalog and availability controls</p>
-          <h2 className="mt-1 text-2xl font-semibold">Menu management</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779] dark:text-[#45C5C1]">Catalog and availability controls</p>
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Menu management</h2>
         </div>
         {(tab === "items" || tab === "inventory") && isAdmin && (
           <div className="flex flex-wrap items-center gap-3">
@@ -707,7 +707,7 @@ export default function MenuPage() {
         )}
       </motion.header>
 
-      <div className="flex gap-2 border-b border-gray-200 dark:border-neutral-800">
+      <div className="flex gap-2 border-b border-[#E9E2D6] dark:border-neutral-800">
         {[
           ["items", "Menu items"],
           ...(canViewInventory ? [["inventory", "Inventory"]] : []),
@@ -741,7 +741,7 @@ export default function MenuPage() {
                   </div>
                   {isAdmin && (
                     <div className="flex flex-wrap items-center gap-1">
-                      <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-2 py-1 dark:bg-neutral-950">
+                      <div className="flex items-center gap-2 rounded-xl bg-[#F5EFE4] px-2 py-1 dark:bg-neutral-950">
                         <Skeleton className="h-8 w-20 rounded-lg" />
                         <Skeleton className="h-3 w-10" />
                         <Skeleton className="h-8 w-12 rounded-lg" />
@@ -759,7 +759,7 @@ export default function MenuPage() {
                 <Skeleton className="h-10 w-32 rounded-xl" />
               </div>
               <section className={`${cardClass} overflow-hidden`}>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
                   <div>
                     <h3 className="font-semibold">Supply stock</h3>
                     <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p>
@@ -767,7 +767,7 @@ export default function MenuPage() {
                 </div>
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-190 text-left text-sm">
-                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                    <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                       <tr>
                         <th className="px-5 py-3">Supply</th>
                         <th className="px-5 py-3">Stock</th>
@@ -803,7 +803,7 @@ export default function MenuPage() {
                 <section key={key} className={`${cardClass} space-y-4`}>
                   <div><h3 className="text-lg font-semibold">{title}</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p></div>
                   {[0, 1, 2].map((row) => (
-                    <div key={row} className="flex items-center justify-between border-t border-gray-100 pt-4 dark:border-neutral-800">
+                    <div key={row} className="flex items-center justify-between border-t border-[#EFE7DB] pt-4 dark:border-neutral-800">
                       <Skeleton className="h-5 w-32" />
                       <Skeleton className="h-5 w-5 rounded" />
                     </div>
@@ -820,11 +820,11 @@ export default function MenuPage() {
 
       {tab === "items" && form && isAdmin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) closeItemForm(); }}>
-        <section role="dialog" aria-modal="true" aria-labelledby="menu-form-title" className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-gray-200 bg-white p-5 shadow-xl dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+        <section role="dialog" aria-modal="true" aria-labelledby="menu-form-title" className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-5 shadow-xl dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
         <form onSubmit={saveItem} className="space-y-5">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm font-semibold text-[#0A8B8E]">Menu catalog</p><h3 id="menu-form-title" className="mt-1 text-lg font-semibold">{form._id ? "Edit menu item" : "New menu item"}</h3></div>
-            <button type="button" onClick={closeItemForm} disabled={busy} aria-label="Close form" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"><X size={18} /></button>
+            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Menu catalog</p><h3 id="menu-form-title" className="mt-1 text-lg font-semibold">{form._id ? "Edit menu item" : "New menu item"}</h3></div>
+            <button type="button" onClick={closeItemForm} disabled={busy} aria-label="Close form" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-50 dark:hover:bg-neutral-800"><X size={18} /></button>
           </div>
           {error && <p role="alert" className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -851,7 +851,7 @@ export default function MenuPage() {
             <div><h4 className="font-semibold">Included choices</h4><p className="mt-1 text-xs text-gray-500">Set included portions for parfait products. Extra portions use each add-on’s price.</p></div>
             <div className="grid gap-3 sm:grid-cols-3">{[["includedFruitPortions", "Fruit portions"], ["includedToppingPortions", "Topping portions"], ["includedSaucePortions", "Sauce portions"]].map(([key, label]) => <label key={key} className="space-y-1 text-sm">{label}<input className={inputClass} type="number" min="0" step="1" value={form[key] ?? 0} onChange={(event) => setForm({ ...form, [key]: event.target.value })} /></label>)}</div>
           </div>}
-          {form.itemType === "product" && <div className="space-y-3 rounded-xl border border-gray-200 p-4 dark:border-neutral-700">
+          {form.itemType === "product" && <div className="space-y-3 rounded-xl border border-[#E9E2D6] p-4 dark:border-neutral-700">
             <div className="flex items-center justify-between gap-3"><div><h4 className="font-semibold">Supplies used for every item</h4><p className="mt-1 text-xs text-gray-500">These quantities are added to any supply usage configured on the selected variant.</p></div><button type="button" onClick={() => addSupplyUsage("item")} className="shrink-0 text-sm font-medium text-[#0A8B8E]">+ Add supply</button></div>
             {(form.supplyUsage || []).map((usage, index) => <div key={`item-supply-${index}`} className="grid grid-cols-[minmax(0,1fr)_120px_auto] items-center gap-2">
               <select className={inputClass} value={usage.supplyId} onChange={(event) => updateSupplyUsage("item", -1, index, "supplyId", event.target.value)} required>
@@ -863,7 +863,7 @@ export default function MenuPage() {
             {!supplies.some((supply) => supply.active) && <p className="text-xs text-gray-500">Add a supply in the Inventory tab first.</p>}
           </div>}
           {(form.itemType === "product" ? [["variants", "Variants / cup sizes"], ["addons", "Legacy add-ons / syrups"]] : []).map(([kind, title]) => (
-            <div key={kind} className="space-y-3 rounded-xl bg-gray-50 p-4 dark:bg-neutral-950">
+            <div key={kind} className="space-y-3 rounded-xl bg-[#F5EFE4] p-4 dark:bg-neutral-950">
               <div className="flex items-center justify-between"><h4 className="font-semibold">{title}</h4><button type="button" onClick={() => setForm({ ...form, [kind]: [...form[kind], { name: "", price: 0, active: true, supplyUsage: [] }] })} className="text-sm font-medium text-[#0A8B8E]">+ Add option</button></div>
               {!form[kind].length && <p className="text-sm text-gray-500">No options added.</p>}
               {form[kind].map((option, index) => (
@@ -876,7 +876,7 @@ export default function MenuPage() {
                   <button type="button" disabled={index === form[kind].length - 1} onClick={() => moveOption(kind, index, 1)} title="Move option down" className="rounded p-1 text-gray-500 disabled:opacity-30"><ArrowDown size={15} /></button>
                   <button type="button" onClick={() => setForm({ ...form, [kind]: form[kind].filter((_, i) => i !== index) })} aria-label="Remove option" className="rounded-lg px-3 text-gray-500 hover:bg-red-50 hover:text-red-600"><X size={18} /></button>
                 </div>
-                {kind === "variants" && <div className="space-y-2 rounded-lg border border-gray-200 p-3 dark:border-neutral-800">
+                {kind === "variants" && <div className="space-y-2 rounded-lg border border-[#E9E2D6] p-3 dark:border-neutral-800">
                   <div className="flex items-center justify-between"><p className="text-xs font-medium text-gray-600 dark:text-gray-300">Additional supplies for {option.name || "this variant"}</p><button type="button" onClick={() => addSupplyUsage("variant", index)} className="text-xs font-medium text-[#0A8B8E]">+ Add supply</button></div>
                   {(option.supplyUsage || []).map((usage, usageIndex) => <div key={`variant-supply-${index}-${usageIndex}`} className="grid grid-cols-[minmax(0,1fr)_120px_auto] items-center gap-2">
                     <select className={inputClass} value={usage.supplyId} onChange={(event) => updateSupplyUsage("variant", index, usageIndex, "supplyId", event.target.value)} required><option value="">Choose a supply</option>{supplies.filter((supply) => supply.active).map((supply) => <option key={supply._id} value={supply._id}>{supply.name} ({supply.unit})</option>)}</select>
@@ -888,7 +888,7 @@ export default function MenuPage() {
               ))}
             </div>
           ))}
-          <div className="flex justify-end gap-2"><button type="button" onClick={closeItemForm} disabled={busy} className="rounded-xl border border-gray-200 px-4 py-2 text-sm disabled:opacity-50 dark:border-neutral-700">Cancel</button><button disabled={busy || Boolean(form._id && (menuLock.isBlocked("MenuItem", form._id) || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${form._id}`)))} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Save size={16} />{busy ? "Saving…" : "Save item"}</button></div>
+          <div className="flex justify-end gap-2"><button type="button" onClick={closeItemForm} disabled={busy} className="rounded-xl border border-[#E9E2D6] px-4 py-2 text-sm disabled:opacity-50 dark:border-neutral-700">Cancel</button><button disabled={busy || Boolean(form._id && (menuLock.isBlocked("MenuItem", form._id) || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${form._id}`)))} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"><Save size={16} />{busy ? "Saving…" : "Save item"}</button></div>
         </form>
         </section>
         </div>
@@ -909,11 +909,11 @@ export default function MenuPage() {
                 <p className="mt-2 text-sm font-semibold">₱{Number(item.price).toFixed(2)} <span className="font-normal text-gray-500">{item.itemType === "addon" ? "per add" : "base price"}</span>{item.variants?.length > 0 && <span className="ml-2 font-normal text-gray-500">· {item.variants.filter((x) => x.active).length} variants</span>}{item.addons?.length > 0 && <span className="ml-2 font-normal text-gray-500">· {item.addons.filter((x) => x.active).length} add-ons</span>}</p>
               </div>
               {isAdmin && <div className="flex flex-wrap items-center gap-1">
-                {selectedBranchId && <div className="flex items-center gap-2 rounded-xl bg-gray-50 px-2 py-1 dark:bg-neutral-950">
+                {selectedBranchId && <div className="flex items-center gap-2 rounded-xl bg-[#F5EFE4] px-2 py-1 dark:bg-neutral-950">
                   <label className="sr-only" htmlFor={`menu-stock-${item._id}`}>Stock at selected branch for {item.name}</label>
                   <input
                     id={`menu-stock-${item._id}`}
-                    className="w-20 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
+                    className="w-20 rounded-lg border border-[#E9E2D6] bg-[#FFFCF7] px-2 py-1.5 text-sm dark:border-neutral-700 dark:bg-neutral-900"
                     type="number"
                     min="0"
                     step="1"
@@ -929,11 +929,11 @@ export default function MenuPage() {
                     {savingStockItemId === item._id ? "Saving…" : "Save"}
                   </button>
                 </div>}
-                <button disabled={index === 0 || busy || menuLock.isBlocked("MenuItem", item._id) || secondaryMenuLock.isBlocked("MenuItem", visibleItems[index - 1]?._id)} onClick={() => moveItem(item, -1)} title="Move up" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowUp size={17} /></button>
-                <button disabled={index === visibleItems.length - 1 || busy || menuLock.isBlocked("MenuItem", item._id) || secondaryMenuLock.isBlocked("MenuItem", visibleItems[index + 1]?._id)} onClick={() => moveItem(item, 1)} title="Move down" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowDown size={17} /></button>
+                <button disabled={index === 0 || busy || menuLock.isBlocked("MenuItem", item._id) || secondaryMenuLock.isBlocked("MenuItem", visibleItems[index - 1]?._id)} onClick={() => moveItem(item, -1)} title="Move up" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowUp size={17} /></button>
+                <button disabled={index === visibleItems.length - 1 || busy || menuLock.isBlocked("MenuItem", item._id) || secondaryMenuLock.isBlocked("MenuItem", visibleItems[index + 1]?._id)} onClick={() => moveItem(item, 1)} title="Move down" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-30 dark:hover:bg-neutral-800"><ArrowDown size={17} /></button>
                 {!item.archived && <button disabled={menuLock.isBlocked("MenuItem", item._id)} onClick={() => patchItem(item, { active: !item.active })} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">{item.active ? "Disable" : "Enable"}</button>}
                 <button type="button" disabled={stockLoading || menuLock.isBlocked("MenuItem", item._id) || inventoryLock.isBlocked("Inventory", `${selectedBranchId}:${item._id}`)} onClick={() => openItemForm(item)} className="rounded-lg px-3 py-2 text-sm text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Edit</button>
-                <button disabled={menuLock.isBlocked("MenuItem", item._id)} onClick={() => patchItem(item, { archived: !item.archived })} title={item.archived ? "Restore item" : "Archive item"} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"><Archive size={17} /></button>
+                <button disabled={menuLock.isBlocked("MenuItem", item._id)} onClick={() => patchItem(item, { archived: !item.archived })} title={item.archived ? "Restore item" : "Archive item"} className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-50 dark:hover:bg-neutral-800"><Archive size={17} /></button>
               </div>}
             </article>
           ))}
@@ -941,7 +941,7 @@ export default function MenuPage() {
       )}
 
       {itemMenu && isAdmin && (
-        <div className="fixed z-50 min-w-44 rounded-xl border border-gray-200 bg-white p-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900" style={{ left: itemMenu.x, top: itemMenu.y }} onClick={(event) => event.stopPropagation()}>
+        <div className="fixed z-50 min-w-44 rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] p-1 shadow-xl dark:border-neutral-700 dark:bg-neutral-900" style={{ left: itemMenu.x, top: itemMenu.y }} onClick={(event) => event.stopPropagation()}>
           <button type="button" onClick={deleteItem} disabled={menuLock.isBlocked("MenuItem", itemMenu.item._id)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/40">
             <Trash2 size={16} /> Delete menu item
           </button>
@@ -957,7 +957,7 @@ export default function MenuPage() {
               {isAdmin && <div className="flex justify-end"><button type="button" onClick={() => setShowAddSupplyModal(true)} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#08777a]"><Plus size={17} /> Add supply</button></div>}
 
               <section className={`${cardClass} overflow-hidden`}>
-                <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                <div className="border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
                   <h3 className="font-semibold">Menu item stock</h3>
                   <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
                     Current quantities and low-stock thresholds at {branches.find((branch) => branch._id === selectedBranchId)?.name || "your branch"}.
@@ -966,7 +966,7 @@ export default function MenuPage() {
                 {stockLoading ? <p className="p-5 text-sm text-gray-500">Loading menu item stock...</p> : !items.length ? <p className="p-5 text-sm text-gray-500">No menu items in this branch.</p> : (
                   <div className="overflow-x-auto">
                     <table className="w-full min-w-150 text-left text-sm">
-                      <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                      <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                         <tr><th className="px-5 py-3">Menu item</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th></tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
@@ -990,20 +990,20 @@ export default function MenuPage() {
               </section>
 
               <section className={`${cardClass} overflow-hidden`}>
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><div><h3 className="font-semibold">Supply stock</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p></div></div>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800"><div><h3 className="font-semibold">Supply stock</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Current quantities at {branches.find((branch) => branch._id === selectedBranchId)?.name || "the selected branch"}. Sales deduct configured usage automatically.</p></div></div>
                 {stockLoading ? <p className="p-5 text-sm text-gray-500">Loading supply stock...</p> : !supplies.length ? <p className="p-5 text-sm text-gray-500">No supplies yet. Add cups, cones, or other items above.</p> : (
                   <div className="overflow-x-auto"><table className="w-full min-w-190 text-left text-sm">
-                    <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Supply</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th>{isAdmin && <th className="px-5 py-3 text-right">Actions</th>}</tr></thead>
+                    <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Supply</th><th className="px-5 py-3">Stock</th><th className="px-5 py-3">Low threshold</th><th className="px-5 py-3">Status</th>{isAdmin && <th className="px-5 py-3 text-right">Actions</th>}</tr></thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{supplies.map((supply) => {
                       const isLow = supply.quantity <= supply.lowStockThreshold;
                       return <tr key={supply._id} className={!supply.active ? "opacity-60" : ""}>
                         <td className="px-5 py-4">
-                          {isAdmin ? <><input className="w-44 rounded-lg border border-gray-200 bg-white px-3 py-2 font-medium dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} name`} value={supply.name} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, name: event.target.value } : entry))} /><div className="mt-2 flex items-center gap-2"><span className="text-xs text-gray-500">Unit</span><input className="w-28 rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} unit`} value={supply.unit} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, unit: event.target.value } : entry))} /></div></> : <><span className="font-medium">{supply.name}</span><div className="mt-1 text-xs text-gray-500">{supply.unit}</div></>}
+                          {isAdmin ? <><input className="w-44 rounded-lg border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2 font-medium dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} name`} value={supply.name} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, name: event.target.value } : entry))} /><div className="mt-2 flex items-center gap-2"><span className="text-xs text-gray-500">Unit</span><input className="w-28 rounded-lg border border-[#E9E2D6] bg-[#FFFCF7] px-2 py-1.5 text-xs dark:border-neutral-700 dark:bg-neutral-950" aria-label={`${supply.name} unit`} value={supply.unit} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, unit: event.target.value } : entry))} /></div></> : <><span className="font-medium">{supply.name}</span><div className="mt-1 text-xs text-gray-500">{supply.unit}</div></>}
                         </td>
-                        <td className="px-5 py-4">{isAdmin ? <div className="flex items-center gap-2"><input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} stock quantity`} value={supplyQuantityDrafts[supply._id] ?? 0} readOnly={(supply.inventoryVersion ?? -1) >= 0 && !hasLock(supplyInventoryLock, "SupplyInventory", `${selectedBranchId}:${supply._id}`)} onClick={() => (supply.inventoryVersion ?? -1) >= 0 && beginStockEdit("SupplyInventory", `${selectedBranchId}:${supply._id}`, supplyInventoryLock)} onFocus={() => (supply.inventoryVersion ?? -1) >= 0 && beginStockEdit("SupplyInventory", `${selectedBranchId}:${supply._id}`, supplyInventoryLock)} onChange={(event) => setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: event.target.value }))} disabled={!supply.active || supplyInventoryLock.isBlocked("SupplyInventory", `${selectedBranchId}:${supply._id}`)} /><span className="text-xs text-gray-500">{supply.unit}</span></div> : <>{supply.quantity} {supply.unit}</>}</td>
-                        <td className="px-5 py-4">{isAdmin ? <input className="w-28 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} low stock threshold`} value={supply.lowStockThreshold} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, lowStockThreshold: event.target.value } : entry))} /> : supply.lowStockThreshold}</td>
+                        <td className="px-5 py-4">{isAdmin ? <div className="flex items-center gap-2"><input className="w-28 rounded-lg border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} stock quantity`} value={supplyQuantityDrafts[supply._id] ?? 0} readOnly={(supply.inventoryVersion ?? -1) >= 0 && !hasLock(supplyInventoryLock, "SupplyInventory", `${selectedBranchId}:${supply._id}`)} onClick={() => (supply.inventoryVersion ?? -1) >= 0 && beginStockEdit("SupplyInventory", `${selectedBranchId}:${supply._id}`, supplyInventoryLock)} onFocus={() => (supply.inventoryVersion ?? -1) >= 0 && beginStockEdit("SupplyInventory", `${selectedBranchId}:${supply._id}`, supplyInventoryLock)} onChange={(event) => setSupplyQuantityDrafts((current) => ({ ...current, [supply._id]: event.target.value }))} disabled={!supply.active || supplyInventoryLock.isBlocked("SupplyInventory", `${selectedBranchId}:${supply._id}`)} /><span className="text-xs text-gray-500">{supply.unit}</span></div> : <>{supply.quantity} {supply.unit}</>}</td>
+                        <td className="px-5 py-4">{isAdmin ? <input className="w-28 rounded-lg border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2 dark:border-neutral-700 dark:bg-neutral-950" type="number" min="0" step="1" aria-label={`${supply.name} low stock threshold`} value={supply.lowStockThreshold} readOnly={!hasLock(supplyLock, "Supply", supply._id)} onClick={() => beginStockEdit("Supply", supply._id, supplyLock)} onFocus={() => beginStockEdit("Supply", supply._id, supplyLock)} onChange={(event) => setSupplies((current) => current.map((entry) => entry._id === supply._id ? { ...entry, lowStockThreshold: event.target.value } : entry))} /> : supply.lowStockThreshold}</td>
                         <td className="px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${!supply.active ? "bg-gray-100 text-gray-600 dark:bg-neutral-800 dark:text-gray-300" : isLow ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"}`}>{!supply.active ? "Inactive" : isLow ? "Low stock" : "In stock"}</span></td>
-                        {isAdmin && <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => saveSupplyQuantity(supply)} disabled={supplyInventoryLock.isBlocked("SupplyInventory", `${selectedBranchId}:${supply._id}`)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Save stock</button><button type="button" onClick={() => updateSupply(supply, { name: supply.name, unit: supply.unit, lowStockThreshold: Number(supply.lowStockThreshold) })} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Save details</button><button type="button" onClick={() => updateSupply(supply, { active: !supply.active })} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800">{supply.active ? "Disable" : "Enable"}</button><button type="button" onClick={() => deleteSupply(supply)} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/40">Delete</button></div></td>}
+                        {isAdmin && <td className="px-5 py-4"><div className="flex justify-end gap-2"><button type="button" onClick={() => saveSupplyQuantity(supply)} disabled={supplyInventoryLock.isBlocked("SupplyInventory", `${selectedBranchId}:${supply._id}`)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Save stock</button><button type="button" onClick={() => updateSupply(supply, { name: supply.name, unit: supply.unit, lowStockThreshold: Number(supply.lowStockThreshold) })} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-semibold text-[#0A8B8E] hover:bg-[#0A8B8E]/10 disabled:opacity-50">Save details</button><button type="button" onClick={() => updateSupply(supply, { active: !supply.active })} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-medium text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-50 dark:hover:bg-neutral-800">{supply.active ? "Disable" : "Enable"}</button><button type="button" onClick={() => deleteSupply(supply)} disabled={supplyLock.isBlocked("Supply", supply._id)} className="rounded-lg px-3 py-2 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50 dark:hover:bg-red-950/40">Delete</button></div></td>}
                       </tr>;
                     })}</tbody>
                   </table></div>
@@ -1012,13 +1012,13 @@ export default function MenuPage() {
 
               {showAddSupplyModal && isAdmin && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setShowAddSupplyModal(false); }}>
                 <section role="dialog" aria-modal="true" aria-labelledby="add-supply-title" className={`${cardClass} w-full max-w-lg p-6`}>
-                  <div className="flex items-start justify-between gap-4"><div><p className="text-sm font-semibold text-[#0A8B8E]">Branch inventory</p><h3 id="add-supply-title" className="mt-1 text-xl font-semibold">Add a supply</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">This supply will be available to track across all branches.</p></div><button type="button" onClick={() => setShowAddSupplyModal(false)} aria-label="Close add supply dialog" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><X size={18} /></button></div>
+                  <div className="flex items-start justify-between gap-4"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Branch inventory</p><h3 id="add-supply-title" className="mt-1 text-xl font-semibold">Add a supply</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">This supply will be available to track across all branches.</p></div><button type="button" onClick={() => setShowAddSupplyModal(false)} aria-label="Close add supply dialog" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] dark:hover:bg-neutral-800"><X size={18} /></button></div>
                   {error && <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
                   <form onSubmit={createSupply} className="mt-5 space-y-4">
                     <label className="block space-y-1.5 text-sm font-medium">Supply name<input className={inputClass} value={supplyName} onChange={(event) => setSupplyName(event.target.value)} placeholder="Cups, cones, spoons..." required /></label>
                     <label className="block space-y-1.5 text-sm font-medium">Unit<input className={inputClass} value={supplyUnit} onChange={(event) => setSupplyUnit(event.target.value)} placeholder="pieces, sleeves" required /></label>
                     <label className="block space-y-1.5 text-sm font-medium">Low stock threshold<input className={inputClass} type="number" min="0" step="1" value={supplyThreshold} onChange={(event) => setSupplyThreshold(event.target.value)} required /><span className="block text-xs font-normal text-gray-500">Show a low stock warning when quantity reaches this number.</span></label>
-                    <div className="flex justify-end gap-2 border-t border-gray-100 pt-4 dark:border-neutral-800"><button type="button" onClick={() => setShowAddSupplyModal(false)} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold dark:border-neutral-700">Cancel</button><button className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#08777a]"><Plus size={16} /> Add supply</button></div>
+                    <div className="flex justify-end gap-2 border-t border-[#EFE7DB] pt-4 dark:border-neutral-800"><button type="button" onClick={() => setShowAddSupplyModal(false)} className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold dark:border-neutral-700">Cancel</button><button className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#08777a]"><Plus size={16} /> Add supply</button></div>
                   </form>
                 </section>
               </div>}
@@ -1032,7 +1032,7 @@ export default function MenuPage() {
           {[ ["channels", "Sales channels", "Choose where orders may be accepted."], ["paymentMethods", "Payment methods", "Choose which payment methods are available."] ].map(([key, title, description]) => (
             <section key={key} className={`${cardClass} space-y-4`}>
               <div><h3 className="text-lg font-semibold">{title}</h3><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{description}</p></div>
-              {config[key]?.map((entry) => <label key={entry.key} className="flex cursor-pointer items-center justify-between border-t border-gray-100 pt-4 dark:border-neutral-800"><span className="font-medium">{entry.name}</span><input type="checkbox" checked={entry.active} disabled={!isAdmin || storeConfigLock.isBlocked("StoreConfig", "default")} onChange={() => toggleConfig(key, entry.key)} className="h-5 w-5 accent-[#0A8B8E]" /></label>)}
+              {config[key]?.map((entry) => <label key={entry.key} className="flex cursor-pointer items-center justify-between border-t border-[#EFE7DB] pt-4 dark:border-neutral-800"><span className="font-medium">{entry.name}</span><input type="checkbox" checked={entry.active} disabled={!isAdmin || storeConfigLock.isBlocked("StoreConfig", "default")} onChange={() => toggleConfig(key, entry.key)} className="h-5 w-5 accent-[#0A8B8E]" /></label>)}
               {!isAdmin && <p className="text-xs text-gray-500">Only administrators can change availability.</p>}
             </section>
           ))}

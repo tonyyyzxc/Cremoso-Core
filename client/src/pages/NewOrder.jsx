@@ -19,9 +19,9 @@ import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
 const cardClass =
-  "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass =
-  "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+  "w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3.5 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const primaryButtonClass =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a] disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -135,14 +135,14 @@ function ItemCard({ item, stockQuantity, onChoose }) {
 function QuantityControl({ quantity, onChange, label, maxQuantity = 99 }) {
   return (
     <div
-      className="inline-flex items-center rounded-lg border border-gray-200 dark:border-neutral-700"
+      className="inline-flex items-center rounded-lg border border-[#E9E2D6] dark:border-neutral-700"
       aria-label={label}
     >
       <button
         type="button"
         onClick={() => onChange(quantity - 1)}
         disabled={quantity <= 1}
-        className="rounded-l-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-neutral-800"
+        className="rounded-l-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-40 dark:hover:bg-neutral-800"
         aria-label="Decrease quantity"
       >
         <Minus size={14} />
@@ -154,7 +154,7 @@ function QuantityControl({ quantity, onChange, label, maxQuantity = 99 }) {
         type="button"
         onClick={() => onChange(quantity + 1)}
         disabled={quantity >= maxQuantity}
-        className="rounded-r-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-40 dark:hover:bg-neutral-800"
+        className="rounded-r-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-40 dark:hover:bg-neutral-800"
         aria-label="Increase quantity"
       >
         <Plus size={14} />
@@ -518,10 +518,10 @@ export default function NewOrderPage() {
           className="flex flex-wrap items-end justify-between gap-4"
         >
           <div>
-            <p className="text-sm font-semibold text-[#0A8B8E]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">
               Branch point of sale
             </p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+            <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
               New order
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
@@ -596,7 +596,7 @@ export default function NewOrderPage() {
                         type="button"
                         onClick={loadCatalog}
                         disabled={loading}
-                        className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-100 hover:text-[#0A8B8E] disabled:opacity-50 dark:text-gray-300 dark:hover:bg-neutral-800"
+                        className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-[#F5EFE4] hover:text-[#0A8B8E] disabled:opacity-50 dark:text-gray-300 dark:hover:bg-neutral-800"
                       >
                         <RefreshCw
                           size={15}
@@ -679,7 +679,7 @@ export default function NewOrderPage() {
                 <aside
                   className={`${cardClass} overflow-hidden xl:sticky xl:top-5`}
                 >
-                  <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+                  <div className="flex items-center justify-between border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
                     <div className="flex items-center gap-3">
                       <span className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
                         <ShoppingCart size={19} />
@@ -776,7 +776,7 @@ export default function NewOrderPage() {
 
                       <form
                         onSubmit={placeOrder}
-                        className="space-y-4 border-t border-gray-100 p-5 dark:border-neutral-800"
+                        className="space-y-4 border-t border-[#EFE7DB] p-5 dark:border-neutral-800"
                       >
                         <label className="block space-y-1.5 text-sm font-medium">
                           Customer name or identifier{" "}
@@ -816,7 +816,7 @@ export default function NewOrderPage() {
                             No sales channels are enabled for this system.
                           </p>
                         )}
-                        <div className="space-y-2 border-t border-gray-100 pt-3 text-sm dark:border-neutral-800">
+                        <div className="space-y-2 border-t border-[#EFE7DB] pt-3 text-sm dark:border-neutral-800">
                           <div className="flex justify-between text-gray-500">
                             <span>Subtotal</span>
                             <span>{money(subtotal)}</span>
@@ -898,7 +898,7 @@ export default function NewOrderPage() {
                       type="button"
                       onClick={() => setCustomizingItem(null)}
                       aria-label="Close customization"
-                      className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"
+                      className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] dark:hover:bg-neutral-800"
                     >
                       <X size={19} />
                     </button>
@@ -914,7 +914,7 @@ export default function NewOrderPage() {
                           {availableVariants.map((variant) => (
                             <label
                               key={variant._id}
-                              className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-3.5 transition ${selectedVariantId === variant._id ? "border-[#0A8B8E] bg-[#0A8B8E]/5" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700 dark:hover:border-neutral-600"}`}
+                              className={`flex cursor-pointer items-center justify-between gap-3 rounded-xl border p-3.5 transition ${selectedVariantId === variant._id ? "border-[#0A8B8E] bg-[#0A8B8E]/5" : "border-[#E9E2D6] hover:border-gray-300 dark:border-neutral-700 dark:hover:border-neutral-600"}`}
                             >
                               <span className="flex items-center gap-3">
                                 <input
@@ -951,7 +951,7 @@ export default function NewOrderPage() {
                           {availableAddons.map((addon) => (
                             <label
                               key={addon._id}
-                              className={`flex cursor-pointer items-center justify-between gap-2 rounded-xl border p-3 transition ${selectedAddonIds.includes(addon._id) ? "border-[#0A8B8E] bg-[#0A8B8E]/5" : "border-gray-200 hover:border-gray-300 dark:border-neutral-700 dark:hover:border-neutral-600"}`}
+                              className={`flex cursor-pointer items-center justify-between gap-2 rounded-xl border p-3 transition ${selectedAddonIds.includes(addon._id) ? "border-[#0A8B8E] bg-[#0A8B8E]/5" : "border-[#E9E2D6] hover:border-gray-300 dark:border-neutral-700 dark:hover:border-neutral-600"}`}
                             >
                               <span className="flex min-w-0 items-center gap-2">
                                 <input
@@ -1004,7 +1004,7 @@ export default function NewOrderPage() {
                             return (
                               <div
                                 key={portionCategory}
-                                className="rounded-xl border border-gray-200 p-3 dark:border-neutral-700"
+                                className="rounded-xl border border-[#E9E2D6] p-3 dark:border-neutral-700"
                               >
                                 <div className="mb-2 flex items-center justify-between">
                                   <h4 className="text-sm font-semibold">
@@ -1055,7 +1055,7 @@ export default function NewOrderPage() {
                                                 }),
                                               )
                                             }
-                                            className="rounded-lg border border-gray-200 p-1.5 text-gray-500 disabled:opacity-40 dark:border-neutral-700"
+                                            className="rounded-lg border border-[#E9E2D6] p-1.5 text-gray-500 disabled:opacity-40 dark:border-neutral-700"
                                           >
                                             <Minus size={13} />
                                           </button>
@@ -1079,7 +1079,7 @@ export default function NewOrderPage() {
                                                 }),
                                               )
                                             }
-                                            className="rounded-lg border border-gray-200 p-1.5 text-gray-500 disabled:opacity-40 dark:border-neutral-700"
+                                            className="rounded-lg border border-[#E9E2D6] p-1.5 text-gray-500 disabled:opacity-40 dark:border-neutral-700"
                                           >
                                             <Plus size={13} />
                                           </button>
@@ -1097,12 +1097,12 @@ export default function NewOrderPage() {
                     {!availableVariants.length &&
                       !availableAddons.length &&
                       !availablePortionItems.length && (
-                        <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                        <p className="rounded-xl bg-[#F5EFE4] p-4 text-sm text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                           This item has no variants or add-ons. You can add it
                           as is.
                         </p>
                       )}
-                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 pt-4 dark:border-neutral-800">
+                    <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#EFE7DB] pt-4 dark:border-neutral-800">
                       <div>
                         <p className="text-xs text-gray-500">Price per item</p>
                         <p className="mt-1 text-lg font-semibold">
@@ -1137,7 +1137,7 @@ export default function NewOrderPage() {
                       <button
                         type="button"
                         onClick={() => setCustomizingItem(null)}
-                        className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold dark:border-neutral-700"
+                        className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold dark:border-neutral-700"
                       >
                         Cancel
                       </button>
@@ -1180,7 +1180,7 @@ export default function NewOrderPage() {
                   <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
                     Payment confirmation will be handled from the Order Queue.
                   </p>
-                  <div className="mt-5 rounded-xl bg-gray-50 px-4 py-4 dark:bg-neutral-950">
+                  <div className="mt-5 rounded-xl bg-[#F5EFE4] px-4 py-4 dark:bg-neutral-950">
                     <p className="text-xs uppercase tracking-wide text-gray-500">
                       Order number
                     </p>

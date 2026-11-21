@@ -9,9 +9,9 @@ import { apiRequest } from "../utils/api.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 
 const cardClass =
-  "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass =
-  "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+  "rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const pageSize = 25;
 
 const categories = [
@@ -162,10 +162,10 @@ export default function ActivityLogsPage() {
       <FadeIn from="top">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-semibold text-[#0A8B8E]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">
               System history
             </p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+            <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
               Activity Logs
             </h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
@@ -315,7 +315,7 @@ export default function ActivityLogsPage() {
             <button
               type="button"
               onClick={resetFilters}
-              className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
+              className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-[#F5EFE4] dark:border-neutral-700 dark:text-gray-200 dark:hover:bg-neutral-800"
             >
               Clear
             </button>
@@ -336,7 +336,7 @@ export default function ActivityLogsPage() {
       ) : (
         <FadeIn from="bottom" delay={0.2}>
           <section className={`${cardClass} overflow-hidden`}>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
               <div>
                 <h3 className="font-semibold">Recorded activity</h3>
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
@@ -354,7 +354,7 @@ export default function ActivityLogsPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full min-w-250 text-left text-sm">
-                  <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                  <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                     <tr>
                       <th className="px-5 py-3">When</th>
                       <th className="px-5 py-3">Account</th>
@@ -400,7 +400,7 @@ export default function ActivityLogsPage() {
                 </table>
               </div>
             )}
-            <div className="flex items-center justify-between border-t border-gray-100 px-5 py-3 dark:border-neutral-800">
+            <div className="flex items-center justify-between border-t border-[#EFE7DB] px-5 py-3 dark:border-neutral-800">
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 Page {page} of {pageCount}
               </p>
@@ -410,7 +410,7 @@ export default function ActivityLogsPage() {
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
                   disabled={loading || page <= 1}
                   aria-label="Previous page"
-                  className="rounded-lg border border-gray-200 p-2 text-gray-600 disabled:opacity-40 dark:border-neutral-700 dark:text-gray-300"
+                  className="rounded-lg border border-[#E9E2D6] p-2 text-gray-600 disabled:opacity-40 dark:border-neutral-700 dark:text-gray-300"
                 >
                   <ChevronLeft size={18} />
                 </button>
@@ -419,7 +419,7 @@ export default function ActivityLogsPage() {
                   onClick={() => setPage((current) => current + 1)}
                   disabled={loading || page >= pageCount}
                   aria-label="Next page"
-                  className="rounded-lg border border-gray-200 p-2 text-gray-600 disabled:opacity-40 dark:border-neutral-700 dark:text-gray-300"
+                  className="rounded-lg border border-[#E9E2D6] p-2 text-gray-600 disabled:opacity-40 dark:border-neutral-700 dark:text-gray-300"
                 >
                   <ChevronRight size={18} />
                 </button>

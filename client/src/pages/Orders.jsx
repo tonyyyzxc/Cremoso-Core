@@ -17,8 +17,8 @@ import { useEditLock } from "../hooks/useEditLock.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
 
-const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
-const inputClass = "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+const cardClass = "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+const inputClass = "rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const statusStyles = {
   pending: "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300",
   completed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300",
@@ -212,8 +212,8 @@ export default function OrdersPage() {
       {initialLoading && <p role="status" className="sr-only">Loading orders...</p>}
       <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[#0A8B8E]">Admin workspace</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Orders</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Admin workspace</p>
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Orders</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Review order history, item price snapshots, and void or refund records across branches.</p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-xl border border-[#0A8B8E]/15 bg-[#0A8B8E]/5 px-3.5 py-2.5 text-sm font-medium text-[#0A6B6E] dark:text-teal-300">
@@ -223,7 +223,7 @@ export default function OrdersPage() {
 
       {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300">{error}</p>}
 
-      {initialLoading ? <div className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((index) => <div key={index} className={`${cardClass} flex gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><div className="space-y-2"><Skeleton className="h-4 w-28" /><Skeleton className="h-7 w-20" /></div></div>)}</div><div className={`${cardClass} grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5`}>{[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-10 w-full" />)}</div><div className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><Skeleton className="h-5 w-40" /><Skeleton className="mt-2 h-4 w-72" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4, 5].map((index) => <div key={index} className="grid grid-cols-7 gap-4"><Skeleton className="col-span-2 h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <>
+      {initialLoading ? <div className="space-y-5"><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{[0, 1, 2, 3].map((index) => <div key={index} className={`${cardClass} flex gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><div className="space-y-2"><Skeleton className="h-4 w-28" /><Skeleton className="h-7 w-20" /></div></div>)}</div><div className={`${cardClass} grid gap-3 p-4 sm:grid-cols-2 lg:grid-cols-5`}>{[0, 1, 2, 3, 4].map((index) => <Skeleton key={index} className="h-10 w-full" />)}</div><div className={`${cardClass} overflow-hidden`}><div className="border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800"><Skeleton className="h-5 w-40" /><Skeleton className="mt-2 h-4 w-72" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4, 5].map((index) => <div key={index} className="grid grid-cols-7 gap-4"><Skeleton className="col-span-2 h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <>
       <motion.div variants={staggerContainer} initial="hidden" animate="show" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[
           ["Orders in view", counts.total, <CircleDollarSign size={19} />],
@@ -256,7 +256,7 @@ export default function OrdersPage() {
       </section></FadeIn>
 
       <FadeIn from="bottom" delay={0.3}><section className={`${cardClass} overflow-hidden`}>
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+        <div className="flex items-center justify-between border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
           <div>
             <h3 className="font-semibold">{showArchived ? "Archived orders" : "Order history"}</h3>
             <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -268,7 +268,7 @@ export default function OrdersPage() {
               type="button"
               onClick={() => setShowArchived((current) => !current)}
               aria-pressed={showArchived}
-              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+              className="inline-flex items-center gap-2 rounded-xl border border-[#E9E2D6] px-3 py-2 text-sm font-medium hover:bg-[#F5EFE4] dark:border-neutral-700 dark:hover:bg-neutral-800"
             >
               <Archive size={16} /> {showArchived ? "Show active orders" : "Show archived"}
             </button>
@@ -277,13 +277,13 @@ export default function OrdersPage() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full min-w-195 text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+            <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
               <tr><th className="px-5 py-3 font-semibold">Order</th><th className="px-5 py-3 font-semibold">Branch</th><th className="px-5 py-3 font-semibold">Date</th><th className="px-5 py-3 font-semibold">Channel / payment</th><th className="px-5 py-3 font-semibold">Total</th><th className="px-5 py-3 font-semibold">Status</th><th className="px-5 py-3 text-right font-semibold">Actions</th></tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
               {!loading && !orders.length && <tr><td colSpan="7" className="px-6 py-14 text-center"><p className="font-medium">{showArchived ? "No archived orders found" : "No order records found"}</p><p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{showArchived ? "Orders you archive will appear here." : "Orders will appear here after a checkout flow starts saving transactions."}</p></td></tr>}
               {orders.map((order) => (
-                <tr key={order._id} className="hover:bg-gray-50/70 dark:hover:bg-neutral-800/40">
+                <tr key={order._id} className="hover:bg-[#F5EFE4]/70 dark:hover:bg-neutral-800/40">
                   <td className="px-5 py-4"><p className="font-semibold">{order.orderNumber}</p><p className="mt-1 text-xs text-gray-500">{order.customer || "Walk-in"}</p>{order.archivedAt && <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-300">Archived {formatDate(order.archivedAt)}</p>}</td>
                   <td className="px-5 py-4">{order.branchId?.name || "Unknown branch"}</td>
                   <td className="px-5 py-4 text-gray-600 dark:text-gray-300">{formatDate(order.createdAt)}</td>
@@ -291,7 +291,7 @@ export default function OrdersPage() {
                   <td className="px-5 py-4 font-semibold">{formatCurrency(order.total)}</td>
                   <td className="px-5 py-4"><OrderStatus status={order.status} />{order.archivedAt && <p className="mt-1 text-xs text-gray-500">Archived by {order.archivedBy?.name || order.archivedBy?.email || "Admin"}</p>}</td>
                   <td className="px-5 py-4"><div className="flex justify-end gap-1">
-                    <button type="button" onClick={() => openOrder(order)} title="View order details" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 hover:text-[#0A8B8E] dark:hover:bg-neutral-800"><Eye size={17} /></button>
+                    <button type="button" onClick={() => openOrder(order)} title="View order details" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] hover:text-[#0A8B8E] dark:hover:bg-neutral-800"><Eye size={17} /></button>
                     {!order.archivedAt && order.status === "pending" && <button type="button" onClick={() => openAction("void", order)} disabled={editLock.isBlocked("Order", order._id)} title="Void pending order" className="rounded-lg p-2 text-gray-500 hover:bg-red-50 hover:text-red-600 disabled:opacity-50 dark:hover:bg-red-950/40"><Ban size={17} /></button>}
                     {!order.archivedAt && order.status === "completed" && <button type="button" onClick={() => openAction("refund", order)} disabled={editLock.isBlocked("Order", order._id)} title="Refund completed order" className="rounded-lg p-2 text-gray-500 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:hover:bg-rose-950/40"><RotateCcw size={17} /></button>}
                     {order.archivedAt ? (
@@ -311,18 +311,18 @@ export default function OrdersPage() {
       {selectedOrder && (
         <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedOrder(null); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="order-detail-title" className={`${cardClass} max-h-[90vh] w-full max-w-3xl overflow-y-auto p-5 sm:p-6`}>
-            <div className="flex items-start justify-between gap-4"><div><p className="text-sm text-gray-500">Order details</p><h3 id="order-detail-title" className="mt-1 text-xl font-semibold">{selectedOrder.orderNumber}</h3></div><button type="button" onClick={() => setSelectedOrder(null)} aria-label="Close order details" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><X size={19} /></button></div>
+            <div className="flex items-start justify-between gap-4"><div><p className="text-sm text-gray-500">Order details</p><h3 id="order-detail-title" className="mt-1 text-xl font-semibold">{selectedOrder.orderNumber}</h3></div><button type="button" onClick={() => setSelectedOrder(null)} aria-label="Close order details" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] dark:hover:bg-neutral-800"><X size={19} /></button></div>
             <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <div><p className="text-xs text-gray-500">Branch</p><p className="mt-1 font-medium">{selectedOrder.branchId?.name || "Unknown branch"}</p></div>
               <div><p className="text-xs text-gray-500">Placed</p><p className="mt-1 font-medium">{formatDate(selectedOrder.createdAt)}</p></div>
               <div><p className="text-xs text-gray-500">Channel</p><p className="mt-1 capitalize font-medium">{selectedOrder.channel}</p></div>
               <div><p className="text-xs text-gray-500">Status</p><div className="mt-1"><OrderStatus status={selectedOrder.status} /></div></div>
             </div>
-            <div className="mt-6 overflow-x-auto rounded-xl border border-gray-200 dark:border-neutral-800">
-              <table className="w-full min-w-130 text-left text-sm"><thead className="bg-gray-50 text-xs text-gray-500 dark:bg-neutral-950"><tr><th className="px-4 py-3">Item snapshot</th><th className="px-4 py-3">Qty</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3 text-right">Line total</th></tr></thead><tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{selectedOrder.items.map((item, index) => <tr key={`${item.name}-${index}`}><td className="px-4 py-3"><p className="font-medium">{item.name}{item.variant?.name ? ` · ${item.variant.name}` : ""}</p>{item.addons?.length > 0 && <div className="mt-1 space-y-0.5 text-xs text-gray-500">{item.addons.map((addon, addonIndex) => <p key={`${addon.name}-${addonIndex}`}>{addon.menuItemId ? `${addon.quantity} × ${addon.name} (${formatCurrency(addon.price)} each${addon.chargedQuantity < addon.quantity ? `, ${addon.quantity - addon.chargedQuantity} included` : ""})` : addon.name}</p>)}</div>}</td><td className="px-4 py-3">{item.quantity}</td><td className="px-4 py-3">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-3 text-right font-medium">{formatCurrency(item.lineTotal)}</td></tr>)}</tbody></table>
+            <div className="mt-6 overflow-x-auto rounded-xl border border-[#E9E2D6] dark:border-neutral-800">
+              <table className="w-full min-w-130 text-left text-sm"><thead className="bg-[#F5EFE4] text-xs text-gray-500 dark:bg-neutral-950"><tr><th className="px-4 py-3">Item snapshot</th><th className="px-4 py-3">Qty</th><th className="px-4 py-3">Unit</th><th className="px-4 py-3 text-right">Line total</th></tr></thead><tbody className="divide-y divide-gray-100 dark:divide-neutral-800">{selectedOrder.items.map((item, index) => <tr key={`${item.name}-${index}`}><td className="px-4 py-3"><p className="font-medium">{item.name}{item.variant?.name ? ` · ${item.variant.name}` : ""}</p>{item.addons?.length > 0 && <div className="mt-1 space-y-0.5 text-xs text-gray-500">{item.addons.map((addon, addonIndex) => <p key={`${addon.name}-${addonIndex}`}>{addon.menuItemId ? `${addon.quantity} × ${addon.name} (${formatCurrency(addon.price)} each${addon.chargedQuantity < addon.quantity ? `, ${addon.quantity - addon.chargedQuantity} included` : ""})` : addon.name}</p>)}</div>}</td><td className="px-4 py-3">{item.quantity}</td><td className="px-4 py-3">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-3 text-right font-medium">{formatCurrency(item.lineTotal)}</td></tr>)}</tbody></table>
             </div>
-            <div className="ml-auto mt-4 max-w-xs space-y-2 text-sm"><div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatCurrency(selectedOrder.subtotal)}</span></div><div className="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold dark:border-neutral-800"><span>Total</span><span>{formatCurrency(selectedOrder.total)}</span></div><p className="text-right text-xs text-gray-500">Payment: {selectedOrder.paymentMethod || "Not recorded"}</p></div>
-            {selectedOrder.auditTrail?.length > 0 && <div className="mt-6"><h4 className="font-semibold">Void and refund audit</h4><div className="mt-3 space-y-3">{selectedOrder.auditTrail.map((entry, index) => <div key={`${entry.action}-${index}`} className="rounded-xl bg-gray-50 p-4 text-sm dark:bg-neutral-950"><p className="font-medium capitalize">{entry.action} · {formatDate(entry.performedAt)}</p><p className="mt-1 text-gray-600 dark:text-gray-300">{entry.reason}</p><p className="mt-2 text-xs text-gray-500">By {entry.performedBy?.name || entry.performedBy?.email || "Administrator"}</p></div>)}</div></div>}
+            <div className="ml-auto mt-4 max-w-xs space-y-2 text-sm"><div className="flex justify-between text-gray-500"><span>Subtotal</span><span>{formatCurrency(selectedOrder.subtotal)}</span></div><div className="flex justify-between border-t border-[#E9E2D6] pt-2 text-base font-semibold dark:border-neutral-800"><span>Total</span><span>{formatCurrency(selectedOrder.total)}</span></div><p className="text-right text-xs text-gray-500">Payment: {selectedOrder.paymentMethod || "Not recorded"}</p></div>
+            {selectedOrder.auditTrail?.length > 0 && <div className="mt-6"><h4 className="font-semibold">Void and refund audit</h4><div className="mt-3 space-y-3">{selectedOrder.auditTrail.map((entry, index) => <div key={`${entry.action}-${index}`} className="rounded-xl bg-[#F5EFE4] p-4 text-sm dark:bg-neutral-950"><p className="font-medium capitalize">{entry.action} · {formatDate(entry.performedAt)}</p><p className="mt-1 text-gray-600 dark:text-gray-300">{entry.reason}</p><p className="mt-2 text-xs text-gray-500">By {entry.performedBy?.name || entry.performedBy?.email || "Administrator"}</p></div>)}</div></div>}
           </section>
         </div>
       )}
@@ -330,10 +330,10 @@ export default function OrdersPage() {
       {action && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <form onSubmit={submitAction} className={`${cardClass} w-full max-w-md space-y-4 p-6`}>
-            <div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-semibold capitalize">{action.type} order</h3><p className="mt-1 text-sm text-gray-500">{action.order.orderNumber} · {formatCurrency(action.order.total)}</p></div><button type="button" onClick={closeAction} aria-label="Close" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-neutral-800"><X size={18} /></button></div>
+            <div className="flex items-start justify-between gap-4"><div><h3 className="text-lg font-semibold capitalize">{action.type} order</h3><p className="mt-1 text-sm text-gray-500">{action.order.orderNumber} · {formatCurrency(action.order.total)}</p></div><button type="button" onClick={closeAction} aria-label="Close" className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] dark:hover:bg-neutral-800"><X size={18} /></button></div>
             <p className="text-sm text-gray-600 dark:text-gray-300">{action.type === "void" ? "This will mark the pending order as voided." : "This will record a full refund for the completed order."} Enter a reason to keep the action in the audit history.</p>
             <label className="block space-y-1 text-sm font-medium">Reason<textarea autoFocus required minLength="3" maxLength="500" rows="3" className={`${inputClass} w-full resize-y`} value={action.reason} onChange={(event) => setAction((current) => ({ ...current, reason: event.target.value }))} placeholder="Enter the reason" /></label>
-            <div className="flex justify-end gap-2"><button type="button" onClick={closeAction} className="rounded-xl border border-gray-200 px-4 py-2 text-sm dark:border-neutral-700">Cancel</button><button disabled={saving || editLock.isBlocked("Order", action.order._id)} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{saving ? "Saving…" : `Confirm ${action.type}`}</button></div>
+            <div className="flex justify-end gap-2"><button type="button" onClick={closeAction} className="rounded-xl border border-[#E9E2D6] px-4 py-2 text-sm dark:border-neutral-700">Cancel</button><button disabled={saving || editLock.isBlocked("Order", action.order._id)} className="rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60">{saving ? "Saving…" : `Confirm ${action.type}`}</button></div>
           </form>
         </div>
       )}

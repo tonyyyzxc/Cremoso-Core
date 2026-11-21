@@ -5,10 +5,10 @@ import { useEditLock } from "../hooks/useEditLock.js";
 import { useToast } from "../hooks/UseToast.jsx";
 import { Skeleton } from "../components/loading.jsx";
 
-const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
-const inputClass = "scheme-light dark:scheme-dark w-full rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+const cardClass = "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+const inputClass = "scheme-light dark:scheme-dark w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2.5 text-sm outline-none transition focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const primaryButtonClass = "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a] disabled:cursor-not-allowed disabled:opacity-50";
-const secondaryButtonClass = "inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800";
+const secondaryButtonClass = "inline-flex items-center justify-center gap-2 rounded-xl border border-[#E9E2D6] px-3 py-2 text-sm font-medium hover:bg-[#F5EFE4] disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800";
 
 function getManilaDateKey(date = new Date()) {
   return new Intl.DateTimeFormat("en-CA", {
@@ -351,8 +351,8 @@ export default function SchedulePage() {
     <section className="mx-auto max-w-6xl space-y-6 text-[#0A3B3D] dark:text-white">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[#0A8B8E]">Branch operations</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Shift Schedule</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Branch operations</p>
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Shift Schedule</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Manage branch shifts and keep their events in Google Calendar.
           </p>

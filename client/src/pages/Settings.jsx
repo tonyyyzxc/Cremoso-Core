@@ -27,7 +27,7 @@ import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
 const inputClassName =
-  "w-full rounded-xl border border-gray-200 bg-[#FAF6F0] px-4 py-3 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/20 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+  "w-full rounded-xl border border-[#E9E2D6] bg-[#FAF6F0] px-4 py-3 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/20 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const buttonClassName =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#097578] disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -855,7 +855,7 @@ export default function SettingsPage() {
           <p className="text-sm font-medium text-[#0A8B8E]">
             Account preferences
           </p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
             Settings
           </h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
@@ -875,7 +875,7 @@ export default function SettingsPage() {
         {!initialLoading && (
           <nav
             aria-label="Settings sections"
-            className="flex gap-2 overflow-x-auto border-b border-gray-200 dark:border-neutral-800"
+            className="flex gap-2 overflow-x-auto border-b border-[#E9E2D6] dark:border-neutral-800"
           >
             {settingsTabs.map(({ id, label }) => (
               <button
@@ -893,14 +893,14 @@ export default function SettingsPage() {
 
         {initialLoading ? (
           <div className="space-y-6">
-            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <section className="rounded-3xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
               <Skeleton className="h-6 w-48" />
               <Skeleton className="mt-2 h-4 w-72 max-w-full" />
               <div className="mt-5 grid gap-5 lg:grid-cols-2">
                 {[0, 1].map((index) => (
                   <div
                     key={index}
-                    className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"
+                    className="space-y-4 rounded-2xl border border-[#E9E2D6] p-6 dark:border-neutral-800"
                   >
                     <Skeleton className="h-6 w-40" />
                     <Skeleton className="h-4 w-56" />
@@ -911,13 +911,13 @@ export default function SettingsPage() {
                 ))}
               </div>
             </section>
-            <section className="rounded-3xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+            <section className="rounded-3xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
               <Skeleton className="h-6 w-44" />
               <div className="mt-5 grid gap-5 lg:grid-cols-2">
                 {[0, 1].map((index) => (
                   <div
                     key={index}
-                    className="space-y-4 rounded-2xl border border-gray-200 p-6 dark:border-neutral-800"
+                    className="space-y-4 rounded-2xl border border-[#E9E2D6] p-6 dark:border-neutral-800"
                   >
                     <Skeleton className="h-6 w-40" />
                     <Skeleton className="h-11 w-full" />
@@ -933,7 +933,7 @@ export default function SettingsPage() {
               {activeSettingsTab === "account" && (
                 <div className="space-y-6">
               {["branch", "staff"].includes(user?.role) && (
-                <section className="rounded-3xl border border-[#0A8B8E]/20 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
+                <section className="rounded-3xl border border-[#0A8B8E]/20 bg-[#FFFCF7] p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900 sm:p-6">
                   <div className="flex items-start gap-3">
                     <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
                       <Bell size={20} />
@@ -958,7 +958,7 @@ export default function SettingsPage() {
                       }
                       className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${pushRegistered ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
                     >
-                      <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${pushRegistered ? "left-6" : "left-1"}`} />
+                      <span className={`absolute top-1 h-5 w-5 rounded-full bg-[#FFFCF7] shadow transition ${pushRegistered ? "left-6" : "left-1"}`} />
                     </button>
                   </div>
                   <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
@@ -995,7 +995,7 @@ export default function SettingsPage() {
                   </p>
                 </header>
                 <div className="grid gap-5 lg:grid-cols-2">
-                  <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                  <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                     <div className="mb-5 flex items-start gap-3">
                       <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
                         <KeyRound size={20} />
@@ -1155,7 +1155,7 @@ export default function SettingsPage() {
                   </section>
 
                   {isAdmin && (
-                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                       <div className="mb-5 flex items-start gap-3">
                         <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
                           <CircleUserRound size={20} />
@@ -1237,7 +1237,7 @@ export default function SettingsPage() {
                   )}
 
                   {user?.role === "branch" && (
-                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                       <div className="mb-5 flex items-start gap-3">
                         <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
                           <CircleUserRound size={20} />
@@ -1337,7 +1337,7 @@ export default function SettingsPage() {
                   </header>
                 <div className={activeSettingsTab === "integrations" ? "space-y-5" : "grid gap-5 lg:grid-cols-2"}>
                   {activeSettingsTab === "operations" && user?.role === "branch" && (
-                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                       <div className="mb-5 flex items-start gap-3">
                         <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
                           <Building2 size={20} />
@@ -1449,7 +1449,7 @@ export default function SettingsPage() {
                   )}
 
                   {isAdmin && (
-                    <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+                    <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
                       <div className="mb-5 flex items-start gap-3">
                         <div className="rounded-xl bg-[#F2C879]/25 p-2.5 text-[#8A641B]">
                           <ShieldCheck size={20} />
@@ -1489,7 +1489,7 @@ export default function SettingsPage() {
                           className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${googleAuthEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
                         >
                           <span
-                            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${googleAuthEnabled ? "left-6" : "left-1"}`}
+                            className={`absolute top-1 h-5 w-5 rounded-full bg-[#FFFCF7] shadow transition ${googleAuthEnabled ? "left-6" : "left-1"}`}
                           />
                         </button>
                       </div>
@@ -1527,7 +1527,7 @@ export default function SettingsPage() {
                               disabled={savingIntegration === setting || !authSettingsLoaded}
                               className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${integrationSettings[setting] ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
                             >
-                              <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${integrationSettings[setting] ? "left-6" : "left-1"}`} />
+                              <span className={`absolute top-1 h-5 w-5 rounded-full bg-[#FFFCF7] shadow transition ${integrationSettings[setting] ? "left-6" : "left-1"}`} />
                             </button>
                           </div>
                         ))}
@@ -1557,7 +1557,7 @@ export default function SettingsPage() {
                           className={`relative h-7 w-12 shrink-0 rounded-full transition disabled:cursor-not-allowed disabled:opacity-50 ${activityLoggingEnabled ? "bg-[#0A8B8E]" : "bg-gray-300 dark:bg-neutral-700"}`}
                         >
                           <span
-                            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${activityLoggingEnabled ? "left-6" : "left-1"}`}
+                            className={`absolute top-1 h-5 w-5 rounded-full bg-[#FFFCF7] shadow transition ${activityLoggingEnabled ? "left-6" : "left-1"}`}
                           />
                         </button>
                       </div>
@@ -1592,7 +1592,7 @@ export default function SettingsPage() {
           >
             <div
               role="menu"
-              className="fixed min-w-48 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
+              className="fixed min-w-48 rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] p-1.5 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
               style={{ left: integrationContextMenu.x, top: integrationContextMenu.y }}
               onMouseDown={(event) => event.stopPropagation()}
             >
@@ -1600,7 +1600,7 @@ export default function SettingsPage() {
                 type="button"
                 role="menuitem"
                 onClick={() => openCredentialEditor(integrationContextMenu.integration, "replace")}
-                className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-gray-100 dark:hover:bg-neutral-800"
+                className="w-full rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-[#F5EFE4] dark:hover:bg-neutral-800"
               >
                 Edit credentials
               </button>
@@ -1641,7 +1641,7 @@ export default function SettingsPage() {
                 initial={{ opacity: 0, y: 16, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                className="w-full max-w-md space-y-5 rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+                className="w-full max-w-md space-y-5 rounded-2xl bg-[#FFFCF7] p-6 shadow-xl dark:bg-neutral-900"
               >
                 <div>
                   <h3 id="integration-change-title" className="text-lg font-semibold">
@@ -1662,7 +1662,7 @@ export default function SettingsPage() {
                     type="button"
                     onClick={cancelIntegrationChange}
                     disabled={isSavingGoogleSetting || Boolean(savingIntegration)}
-                    className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200"
+                    className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold text-gray-700 disabled:opacity-50 dark:border-neutral-700 dark:text-gray-200"
                   >
                     Cancel
                   </button>
@@ -1703,7 +1703,7 @@ export default function SettingsPage() {
                 initial={{ opacity: 0, y: 16, scale: 0.98 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 12, scale: 0.98 }}
-                className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+                className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl dark:bg-neutral-900"
               >
                 <div>
                   <h3 className="text-lg font-semibold">
@@ -1721,7 +1721,7 @@ export default function SettingsPage() {
                 </div>
 
                 {credentialEditor.step === "account" && (
-                  <div className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-neutral-700 dark:bg-neutral-950">
+                  <div className="space-y-3 rounded-xl border border-[#E9E2D6] bg-[#F5EFE4] p-4 dark:border-neutral-700 dark:bg-neutral-950">
                     <div>
                       <h4 className="text-sm font-semibold">Current credentials</h4>
                       <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
@@ -1826,7 +1826,7 @@ export default function SettingsPage() {
                     ))}
                     {credentialEditor.integration === "recaptcha" && credentialValues.siteKey && (
                       showCredentialCaptcha ? (
-                        <div className="rounded-xl border border-gray-200 p-3 dark:border-neutral-700">
+                        <div className="rounded-xl border border-[#E9E2D6] p-3 dark:border-neutral-700">
                           <p className="mb-3 text-sm text-gray-600 dark:text-gray-300">
                             Complete a fresh reCAPTCHA challenge to verify this site key and secret.
                           </p>
@@ -1845,7 +1845,7 @@ export default function SettingsPage() {
                         <button
                           type="button"
                           onClick={() => setShowCredentialCaptcha(true)}
-                          className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold dark:border-neutral-700"
+                          className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold dark:border-neutral-700"
                         >
                           Load reCAPTCHA test
                         </button>
@@ -1892,7 +1892,7 @@ export default function SettingsPage() {
                   </div>
                 )}
 
-                <div className="flex justify-end border-t border-gray-100 pt-4 dark:border-neutral-800">
+                <div className="flex justify-end border-t border-[#EFE7DB] pt-4 dark:border-neutral-800">
                   <button
                     type="button"
                     disabled={credentialBusy}

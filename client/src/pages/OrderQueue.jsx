@@ -7,9 +7,9 @@ import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
 const cardClass =
-  "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 const inputClass =
-  "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+  "w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3.5 py-2.5 text-sm outline-none focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const primaryButtonClass =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a] disabled:cursor-not-allowed disabled:opacity-50";
 
@@ -147,8 +147,8 @@ export default function OrderQueuePage() {
       {initialLoading && <p role="status" className="sr-only">Loading pending orders...</p>}
       <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[#0A8B8E]">Branch point of sale</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Order queue</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Branch point of sale</p>
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Order queue</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
             Confirm payments or cancel pending orders. This queue refreshes every 15 seconds.
           </p>
@@ -163,9 +163,9 @@ export default function OrderQueuePage() {
 
       {initialLoading ? (
         <div className="space-y-4">{[0, 1, 2].map((index) => <div key={index} className={`${cardClass} overflow-hidden`}>
-          <div className="flex items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><div className="space-y-2"><Skeleton className="h-3 w-28" /><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-52" /></div><Skeleton className="h-6 w-28 rounded-full" /></div>
+          <div className="flex items-start justify-between gap-4 border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800"><div className="space-y-2"><Skeleton className="h-3 w-28" /><Skeleton className="h-6 w-40" /><Skeleton className="h-4 w-52" /></div><Skeleton className="h-6 w-28 rounded-full" /></div>
           <div className="space-y-3 px-5 py-4">{[0, 1].map((row) => <div key={row} className="flex justify-between"><Skeleton className="h-4 w-48" /><Skeleton className="h-4 w-20" /></div>)}</div>
-          <div className="flex justify-between border-t border-gray-100 px-5 py-4 dark:border-neutral-800"><Skeleton className="h-6 w-36" /><div className="flex gap-2"><Skeleton className="h-10 w-28" /><Skeleton className="h-10 w-32" /></div></div>
+          <div className="flex justify-between border-t border-[#EFE7DB] px-5 py-4 dark:border-neutral-800"><Skeleton className="h-6 w-36" /><div className="flex gap-2"><Skeleton className="h-10 w-28" /><Skeleton className="h-10 w-32" /></div></div>
         </div>)}</div>
       ) : !orders.length ? (
         <FadeIn from="bottom" delay={0.3}><div className={`${cardClass} px-6 py-14 text-center`}>
@@ -177,7 +177,7 @@ export default function OrderQueuePage() {
         <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
           {orders.map((order) => (
             <article key={order._id} className={`${cardClass} overflow-hidden`}>
-              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+              <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-[#0A8B8E]">{order.orderNumber}</p>
                   <h3 className="mt-1 text-lg font-semibold">{order.customer || "Walk-in"}</h3>
@@ -204,7 +204,7 @@ export default function OrderQueuePage() {
                 ))}
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-gray-100 px-5 py-4 dark:border-neutral-800">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
                 <p className="text-lg font-semibold">Total <span className="ml-2">{money(order.total)}</span></p>
                 <div className="flex flex-wrap gap-2">
                   <button type="button" onClick={() => openVoidConfirmation(order)} disabled={editLock.isBlocked("Order", order._id)} className="inline-flex items-center gap-2 rounded-xl border border-red-200 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-50 disabled:opacity-50 dark:border-red-900 dark:text-red-300 dark:hover:bg-red-950/40">
@@ -244,7 +244,7 @@ export default function OrderQueuePage() {
                 </label>
               )}
               <div className="flex justify-end gap-2">
-                <button type="button" onClick={closeAction} disabled={busy} className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold disabled:opacity-50 dark:border-neutral-700">Keep order</button>
+                <button type="button" onClick={closeAction} disabled={busy} className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold disabled:opacity-50 dark:border-neutral-700">Keep order</button>
                 <button type="submit" disabled={busy || (action.type === "payment" && !paymentMethod)} className={primaryButtonClass}>
                   {busy ? "Saving…" : action.type === "payment" ? "Confirm payment" : "Cancel order"}
                 </button>

@@ -5,8 +5,8 @@ import { apiRequest } from "../utils/api.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
-const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
-const inputClass = "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm outline-none focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+const cardClass = "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+const inputClass = "w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3.5 py-2.5 text-sm outline-none focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const buttonClass = "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a] disabled:cursor-not-allowed disabled:opacity-50";
 
 function money(value) {
@@ -101,8 +101,8 @@ export default function ReconciliationPage() {
       {!initialLoaded && <p role="status" className="sr-only">Loading shift reconciliation...</p>}
       <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[#0A8B8E]">Branch closeout</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Shift Reconciliation</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Branch closeout</p>
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Shift Reconciliation</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Compare expected cash for today with the amount counted in the register.</p>
         </div>
         <button type="button" onClick={loadReconciliation} disabled={loading} className={buttonClass}><RefreshCw size={16} className={loading ? "animate-spin" : ""} /> Refresh</button>
@@ -112,7 +112,7 @@ export default function ReconciliationPage() {
 
       {!initialLoaded ? <div className="space-y-4">
         <div className={`${cardClass} p-5`}><Skeleton className="h-6 w-36" /><Skeleton className="mt-2 h-4 w-48" /><Skeleton className="mt-3 h-4 w-full" /></div>
-        <div className={`${cardClass} space-y-5 p-5 sm:p-6`}><div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-11 w-full" /></div>)}</div><div className="grid gap-3 rounded-xl bg-gray-50 p-4 dark:bg-neutral-950 sm:grid-cols-3">{[0, 1, 2].map((index) => <div key={index} className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-6 w-32" /></div>)}</div><Skeleton className="h-10 w-40" /></div>
+        <div className={`${cardClass} space-y-5 p-5 sm:p-6`}><div className="grid gap-4 sm:grid-cols-2">{[0, 1].map((index) => <div key={index} className="space-y-2"><Skeleton className="h-4 w-36" /><Skeleton className="h-11 w-full" /></div>)}</div><div className="grid gap-3 rounded-xl bg-[#F5EFE4] p-4 dark:bg-neutral-950 sm:grid-cols-3">{[0, 1, 2].map((index) => <div key={index} className="space-y-2"><Skeleton className="h-4 w-24" /><Skeleton className="h-6 w-32" /></div>)}</div><Skeleton className="h-10 w-40" /></div>
       </div> : (
         <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
           <section className={`${cardClass} p-5`}>
@@ -129,7 +129,7 @@ export default function ReconciliationPage() {
               </label>
             </div>
 
-            <div className="grid gap-3 rounded-xl bg-gray-50 p-4 dark:bg-neutral-950 sm:grid-cols-3">
+            <div className="grid gap-3 rounded-xl bg-[#F5EFE4] p-4 dark:bg-neutral-950 sm:grid-cols-3">
               <div><p className="text-xs text-gray-500 dark:text-gray-400">Cash sales</p><p className="mt-1 text-lg font-semibold">{money(cashSales)}</p></div>
               <div><p className="text-xs text-gray-500 dark:text-gray-400">Expected cash</p><p className="mt-1 text-lg font-semibold">{money(isSubmitted ? reconciliation.expectedCash : calculatedExpected)}</p></div>
               <div><p className="text-xs text-gray-500 dark:text-gray-400">Difference</p><p className={`mt-1 text-lg font-semibold ${Number(variance) === 0 ? "text-emerald-700 dark:text-emerald-300" : "text-amber-700 dark:text-amber-300"}`}>{variance === null ? "Enter counted cash" : money(variance)}</p></div>
@@ -141,7 +141,7 @@ export default function ReconciliationPage() {
                 <span>{reconciliation.submittedBy?.name || reconciliation.submittedBy?.email || "Staff"}{reconciliation.submittedAt ? ` · ${formatDate(reconciliation.submittedAt)}` : ""}</span>
               </div>
             ) : (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-gray-100 pt-4 dark:border-neutral-800">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#EFE7DB] pt-4 dark:border-neutral-800">
                 <p className="text-xs text-gray-500 dark:text-gray-400">You can submit one reconciliation for this branch today.</p>
                 <button type="submit" disabled={saving || calculatedVariance === null} className={buttonClass}>{saving ? "Submitting..." : "Submit reconciliation"}</button>
               </div>

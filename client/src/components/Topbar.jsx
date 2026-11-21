@@ -18,7 +18,7 @@ export default function TopBar({
   const initial = (userName || "?").charAt(0).toUpperCase();
 
   return (
-    <header className="flex h-16 shrink-0 items-center justify-between border-b border-border bg-card px-3 sm:px-5 lg:px-6 dark:border-neutral-800 dark:bg-neutral-900">
+    <header className="flex h-16 shrink-0 items-center justify-between border-b border-[#E9E2D6] bg-[#FFFCF7] px-3 sm:px-5 lg:px-6 dark:border-neutral-800 dark:bg-neutral-900">
       {/* Left: sidebar toggle + page title */}
       <div className="flex items-center gap-3">
         <button
@@ -26,7 +26,7 @@ export default function TopBar({
           onClick={onToggleSidebar}
           aria-label={mobileMode ? mobileSidebarOpen ? "Close navigation menu" : "Open navigation menu" : sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
           aria-expanded={mobileMode ? mobileSidebarOpen : sidebarOpen}
-          className="rounded-lg p-2 text-muted hover:bg-background hover:text-primary dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-[#0A8B8E] md:hidden xl:inline-flex"
+          className="rounded-xl p-2 text-muted transition-colors hover:bg-[#F5EFE4] hover:text-[#0A7779] dark:text-gray-400 dark:hover:bg-neutral-800 dark:hover:text-[#45C5C1] md:hidden xl:inline-flex"
         >
           {mobileMode ? mobileSidebarOpen ? <X size={20} /> : <Menu size={20} /> : (
             <ChevronLeft
@@ -37,7 +37,7 @@ export default function TopBar({
             />
           )}
         </button>
-        <h1 className="min-w-0 truncate text-lg font-semibold text-primary-strong dark:text-white">
+        <h1 className="min-w-0 truncate font-serif text-xl font-semibold text-[#0F3B3B] dark:text-white">
           {pageTitle}
         </h1>
       </div>
@@ -49,13 +49,13 @@ export default function TopBar({
           onThemeChange={onThemeChange}
           variant="circle"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
-          className="rounded-lg p-2 text-muted hover:bg-background hover:text-primary dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-[#0A8B8E]"
+          className="rounded-xl p-2 text-muted transition-colors hover:bg-[#F5EFE4] hover:text-[#0A7779] dark:text-gray-300 dark:hover:bg-neutral-800 dark:hover:text-[#45C5C1]"
         />
         <button
           type="button"
           onClick={onViewProfile}
           title={userEmail}
-          className="flex items-center gap-3 rounded-xl px-2 py-1.5 hover:bg-background dark:hover:bg-neutral-800"
+          className="flex items-center gap-3 rounded-xl px-2 py-1.5 transition-colors hover:bg-[#F5EFE4] dark:hover:bg-neutral-800"
         >
           {userPicture ? (
             <img

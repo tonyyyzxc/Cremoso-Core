@@ -5,8 +5,8 @@ import { apiRequest } from "../utils/api.js";
 import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
-const cardClass = "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
-const inputClass = "rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+const cardClass = "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+const inputClass = "rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3 py-2.5 text-sm outline-none focus:border-[#0A8B8E] dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 
 function getManilaDate() {
   return new Intl.DateTimeFormat("en-CA", {
@@ -61,8 +61,8 @@ export default function TransactionsPage() {
       {!initialLoaded && <p role="status" className="sr-only">Loading transactions...</p>}
       <motion.header initial={{ opacity: 0, y: -24 }} animate={{ opacity: 1, y: 0 }} transition={fadeTransition} className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-sm font-semibold text-[#0A8B8E]">Branch sales</p>
-          <h2 className="mt-1 text-3xl font-semibold tracking-tight">Transactions</h2>
+          <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">Branch sales</p>
+          <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Transactions</h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">Completed orders for your branch, grouped by the time payment was confirmed.</p>
         </div>
         <button type="button" onClick={loadTransactions} disabled={loading} className="inline-flex items-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#08777a] disabled:opacity-50">
@@ -74,7 +74,7 @@ export default function TransactionsPage() {
 
       {!initialLoaded ? <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2"><div className={`${cardClass} flex items-center gap-4 p-5`}><Skeleton className="h-11 w-11 rounded-xl" /><Skeleton className="h-10 w-56" /></div><div className={`${cardClass} space-y-2 p-5`}><Skeleton className="h-4 w-32" /><Skeleton className="h-8 w-20" /><Skeleton className="h-4 w-36" /></div></div>
-        <div className={`${cardClass} overflow-hidden`}><div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800"><Skeleton className="h-5 w-48" /><Skeleton className="mt-2 h-4 w-72" /></div><div className="space-y-5 p-5">{[0, 1, 2, 3, 4].map((row) => <div key={row} className="flex gap-4"><Skeleton className="h-5 flex-1" /><Skeleton className="h-5 flex-1" /><Skeleton className="h-5 flex-1" /></div>)}</div></div>
+        <div className={`${cardClass} overflow-hidden`}><div className="border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800"><Skeleton className="h-5 w-48" /><Skeleton className="mt-2 h-4 w-72" /></div><div className="space-y-5 p-5">{[0, 1, 2, 3, 4].map((row) => <div key={row} className="flex gap-4"><Skeleton className="h-5 flex-1" /><Skeleton className="h-5 flex-1" /><Skeleton className="h-5 flex-1" /></div>)}</div></div>
       </div> : <>
       <FadeIn from="left" delay={0.15}><div className="grid gap-4 sm:grid-cols-2">
         <section className={`${cardClass} flex items-center gap-4 p-5`}>
@@ -91,7 +91,7 @@ export default function TransactionsPage() {
       </div></FadeIn>
 
       <FadeIn from="bottom" delay={0.3}><section className={`${cardClass} overflow-hidden`}>
-        <div className="border-b border-gray-100 px-5 py-4 dark:border-neutral-800">
+        <div className="border-b border-[#EFE7DB] px-5 py-4 dark:border-neutral-800">
           <h3 className="font-semibold">Completed transactions</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">Payment method and completion time are recorded for each order.</p>
         </div>
@@ -100,7 +100,7 @@ export default function TransactionsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-205 text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Order</th><th className="px-5 py-3">Completed at</th><th className="px-5 py-3">Channel</th><th className="px-5 py-3">Items</th><th className="px-5 py-3">Payment</th><th className="px-5 py-3 text-right">Total</th></tr></thead>
+              <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400"><tr><th className="px-5 py-3">Order</th><th className="px-5 py-3">Completed at</th><th className="px-5 py-3">Channel</th><th className="px-5 py-3">Items</th><th className="px-5 py-3">Payment</th><th className="px-5 py-3 text-right">Total</th></tr></thead>
               <tbody className="divide-y divide-gray-100 dark:divide-neutral-800">
                 {orders.map((order) => <tr key={order._id}>
                   <td className="px-5 py-4"><p className="font-semibold">{order.orderNumber}</p><p className="mt-1 text-xs text-gray-500">{order.customer || "Walk-in"}</p></td>

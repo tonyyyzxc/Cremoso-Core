@@ -25,11 +25,11 @@ import {
 } from "../components/loadingVariants.js";
 
 const inputClassName =
-  "w-full rounded-xl border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+  "w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-3.5 py-2.5 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/15 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const buttonClassName =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#097578] disabled:cursor-not-allowed disabled:opacity-60";
 const cardClassName =
-  "rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
 
 function statusClass(status) {
   if (status === "active")
@@ -458,10 +458,10 @@ export default function ManagementPage() {
           className="flex flex-wrap items-end justify-between gap-4"
         >
           <div>
-            <p className="text-sm font-semibold text-[#0A8B8E]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779]">
               People & access
             </p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+            <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">
               Management
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
@@ -588,7 +588,7 @@ export default function ManagementPage() {
         <section
           className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}
         >
-          <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
+          <div className="border-b border-[#EFE7DB] p-5 dark:border-neutral-800 sm:p-6">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <h3 className="font-semibold">Branches</h3>
@@ -636,7 +636,7 @@ export default function ManagementPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full min-w-225 text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+              <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-3.5 font-semibold">Account</th>
                   <th className="px-5 py-3.5 font-semibold">Contact</th>
@@ -669,7 +669,7 @@ export default function ManagementPage() {
                           y: event.clientY,
                         });
                       }}
-                      className="hover:bg-gray-50/70 dark:hover:bg-neutral-800/40"
+                      className="hover:bg-[#F5EFE4]/70 dark:hover:bg-neutral-800/40"
                     >
                       <td className="px-5 py-4">
                         <div className="font-medium">
@@ -723,7 +723,7 @@ export default function ManagementPage() {
                               (account.status !== "active" && !account.branchId) ||
                               accountLock.isBlocked("User", account._id)
                             }
-                            className="rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-semibold text-[#0A3B3D] transition hover:bg-[#FBF6EF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800"
+                            className="rounded-lg border border-[#E9E2D6] px-3 py-1.5 text-xs font-semibold text-[#0A3B3D] transition hover:bg-[#FBF6EF] disabled:cursor-not-allowed disabled:opacity-50 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800"
                           >
                             {account.status === "active"
                               ? "Disable"
@@ -783,7 +783,7 @@ export default function ManagementPage() {
                   onClick={closeAddAccountModal}
                   disabled={busy}
                   aria-label="Close add account dialog"
-                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"
+                  className="rounded-lg p-2 text-gray-500 hover:bg-[#F5EFE4] disabled:opacity-50 dark:hover:bg-neutral-800"
                 >
                   <X size={18} />
                 </button>
@@ -937,7 +937,7 @@ export default function ManagementPage() {
                     type="button"
                     onClick={closeAddAccountModal}
                     disabled={busy}
-                    className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold disabled:opacity-50 dark:border-neutral-700"
+                    className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold disabled:opacity-50 dark:border-neutral-700"
                   >
                     Cancel
                   </button>
@@ -975,7 +975,7 @@ export default function ManagementPage() {
             />
             <div
               role="menu"
-              className="fixed z-50 min-w-44 rounded-xl border border-gray-200 bg-white p-1.5 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
+              className="fixed z-50 min-w-44 rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] p-1.5 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
               style={{
                 left: Math.min(accountMenu.x, window.innerWidth - 190),
                 top: Math.min(accountMenu.y, window.innerHeight - 230),
@@ -996,7 +996,7 @@ export default function ManagementPage() {
                     accountLock.isBlocked("User", accountMenu.account._id)
                   }
                   onClick={() => changeRole(accountMenu.account, role)}
-                  className="w-full rounded-lg px-3 py-2 text-left text-sm capitalize hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-neutral-800"
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm capitalize hover:bg-[#F5EFE4] disabled:cursor-not-allowed disabled:opacity-50 dark:hover:bg-neutral-800"
                   title={
                     role !== "admin" && !accountMenu.account.branchId
                       ? "Assign a branch before selecting this role."
@@ -1017,7 +1017,7 @@ export default function ManagementPage() {
                   Boolean(accountMenu.account.branchId?._id && branchLock.isBlocked("Branch", accountMenu.account.branchId._id))
                 }
                 onClick={() => openAccountEditor(accountMenu.account)}
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-gray-100 disabled:opacity-50 dark:hover:bg-neutral-800"
+                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-[#F5EFE4] disabled:opacity-50 dark:hover:bg-neutral-800"
               >
                 <Pencil size={15} /> Edit
               </button>
@@ -1053,7 +1053,7 @@ export default function ManagementPage() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="edit-account-title"
-              className="w-full max-w-xl rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+              className="w-full max-w-xl rounded-2xl bg-[#FFFCF7] p-6 shadow-xl dark:bg-neutral-900"
             >
               <h3 id="edit-account-title" className="text-lg font-semibold">
                 Edit account details
@@ -1064,7 +1064,7 @@ export default function ManagementPage() {
               <form onSubmit={saveAccountDetails} className="mt-5 space-y-4">
                 {editingAccount.branchId?._id ? (
                   <>
-                    <p className="border-b border-gray-100 pb-2 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E] dark:border-neutral-800">
+                    <p className="border-b border-[#EFE7DB] pb-2 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E] dark:border-neutral-800">
                       Branch manager
                     </p>
                     <label className="block space-y-1.5 text-sm font-medium">
@@ -1086,7 +1086,7 @@ export default function ManagementPage() {
                         placeholder="Optional"
                       />
                     </label>
-                    <p className="border-b border-gray-100 pb-2 pt-2 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E] dark:border-neutral-800">
+                    <p className="border-b border-[#EFE7DB] pb-2 pt-2 text-xs font-semibold uppercase tracking-wide text-[#0A8B8E] dark:border-neutral-800">
                       Branch information
                     </p>
                     <label className="block space-y-1.5 text-sm font-medium">
@@ -1158,7 +1158,7 @@ export default function ManagementPage() {
                   <button
                     type="button"
                     onClick={closeAccountEditor}
-                    className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold dark:border-neutral-700"
+                    className="rounded-xl border border-[#E9E2D6] px-4 py-2.5 text-sm font-semibold dark:border-neutral-700"
                   >
                     Cancel
                   </button>
@@ -1183,7 +1183,7 @@ export default function ManagementPage() {
           <section
             className={`${cardClassName} overflow-hidden ${loading ? "hidden" : ""}`}
           >
-            <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
+            <div className="border-b border-[#EFE7DB] p-5 dark:border-neutral-800 sm:p-6">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div>
                   <h3 className="font-semibold">Workers</h3>
@@ -1229,7 +1229,7 @@ export default function ManagementPage() {
 
             <div className="overflow-x-auto">
               <table className="w-full min-w-250 text-left text-sm">
-                <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+                <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                   <tr>
                     <th className="px-5 py-3.5 font-semibold">Name</th>
                     <th className="px-5 py-3.5 font-semibold">Email</th>
@@ -1242,7 +1242,7 @@ export default function ManagementPage() {
                   {filteredWorkers.map((worker) => (
                     <tr
                       key={worker._id}
-                      className="hover:bg-gray-50/70 dark:hover:bg-neutral-800/40"
+                      className="hover:bg-[#F5EFE4]/70 dark:hover:bg-neutral-800/40"
                     >
                       <td className="px-5 py-4 font-medium">{worker.name}</td>
                       <td className="px-5 py-4 text-xs text-gray-600 dark:text-gray-300">

@@ -8,7 +8,7 @@ import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import { fadeTransition } from "../components/loadingVariants.js";
 
 const inputClassName =
-  "w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/20 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
+  "w-full rounded-xl border border-[#E9E2D6] bg-[#FFFCF7] px-4 py-3 text-sm text-[#0A3B3D] outline-none transition placeholder:text-gray-400 focus:border-[#0A8B8E] focus:ring-2 focus:ring-[#0A8B8E]/20 dark:border-neutral-700 dark:bg-neutral-950 dark:text-white";
 const buttonClassName =
   "inline-flex items-center justify-center gap-2 rounded-xl bg-[#0A8B8E] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#097578] disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -161,7 +161,7 @@ export default function StaffPage() {
         <p className="text-sm font-medium text-[#0A8B8E]">
           {branch?.name || "Branch team"}
         </p>
-        <h2 className="mt-1 text-3xl font-semibold tracking-tight">Staff</h2>
+        <h2 className="mt-1 font-serif text-3xl font-semibold tracking-tight">Staff</h2>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-600 dark:text-gray-300">
           Manage staff sign-in accounts and separate worker contact records for
           your branch.
@@ -177,8 +177,8 @@ export default function StaffPage() {
         </p>
       )}
 
-      {isLoading ? <div className="space-y-4"><div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-40" /><Skeleton className="mt-2 h-4 w-72 max-w-full" /><div className="mt-5 grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-11 w-full" />)}</div><Skeleton className="mt-4 h-10 w-32" /></div><div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><div className="border-b border-gray-100 p-5 dark:border-neutral-800"><Skeleton className="h-5 w-24" /><Skeleton className="mt-2 h-4 w-56" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4].map((index) => <div key={index} className="grid grid-cols-4 gap-4"><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
-      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      {isLoading ? <div className="space-y-4"><div className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><Skeleton className="h-6 w-40" /><Skeleton className="mt-2 h-4 w-72 max-w-full" /><div className="mt-5 grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map((index) => <Skeleton key={index} className="h-11 w-full" />)}</div><Skeleton className="mt-4 h-10 w-32" /></div><div className="overflow-hidden rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900"><div className="border-b border-[#EFE7DB] p-5 dark:border-neutral-800"><Skeleton className="h-5 w-24" /><Skeleton className="mt-2 h-4 w-56" /></div><div className="space-y-4 p-5">{[0, 1, 2, 3, 4].map((index) => <div key={index} className="grid grid-cols-4 gap-4"><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /><Skeleton className="h-5" /></div>)}</div></div></div> : <FadeIn from="bottom" delay={0.3}><div className="space-y-4">
+      <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-start gap-3">
           <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
@@ -207,8 +207,8 @@ export default function StaffPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
+      <section className="overflow-hidden rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="border-b border-[#EFE7DB] p-5 dark:border-neutral-800 sm:p-6">
           <h3 className="font-semibold">Staff sign-in accounts</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {staffAccounts.length} account{staffAccounts.length === 1 ? "" : "s"} for {branch?.name || "your branch"}.
@@ -217,7 +217,7 @@ export default function StaffPage() {
         {staffAccounts.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-120 text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+              <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-3.5 font-semibold">Name</th>
                   <th className="px-5 py-3.5 font-semibold">Login email</th>
@@ -242,7 +242,7 @@ export default function StaffPage() {
         )}
       </section>
 
-      <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+      <section className="rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] p-6 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-start gap-3">
           <div className="rounded-xl bg-[#0A8B8E]/10 p-2.5 text-[#0A8B8E]">
@@ -269,8 +269,8 @@ export default function StaffPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-        <div className="border-b border-gray-100 p-5 dark:border-neutral-800 sm:p-6">
+      <section className="overflow-hidden rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
+        <div className="border-b border-[#EFE7DB] p-5 dark:border-neutral-800 sm:p-6">
           <h3 className="font-semibold">Workers</h3>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
             {workers.length} worker{workers.length === 1 ? "" : "s"} registered
@@ -280,7 +280,7 @@ export default function StaffPage() {
         {workers.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-190 text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
+              <thead className="bg-[#F5EFE4] text-xs uppercase tracking-wide text-gray-500 dark:bg-neutral-950 dark:text-gray-400">
                 <tr>
                   <th className="px-5 py-3.5 font-semibold">Name</th>
                   <th className="px-5 py-3.5 font-semibold">Email</th>
@@ -344,7 +344,7 @@ export default function StaffPage() {
               initial={{ opacity: 0, y: 16, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+              className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl dark:bg-neutral-900"
             >
               <div>
                 <h3 id="staff-account-modal-title" className="text-lg font-semibold">
@@ -404,7 +404,7 @@ export default function StaffPage() {
                   />
                 </label>
               </div>
-              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-neutral-800">
+              <div className="flex justify-end gap-3 border-t border-[#EFE7DB] pt-4 dark:border-neutral-800">
                 <button
                   type="button"
                   onClick={closeAccountModal}
@@ -441,7 +441,7 @@ export default function StaffPage() {
               initial={{ opacity: 0, y: 16, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 12, scale: 0.98 }}
-              className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-neutral-900"
+              className="max-h-[90vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl bg-[#FFFCF7] p-6 shadow-xl dark:bg-neutral-900"
             >
               <div>
                 <h3 id="worker-modal-title" className="text-lg font-semibold">
@@ -500,7 +500,7 @@ export default function StaffPage() {
                   />
                 </label>
               </div>
-              <div className="flex justify-end gap-3 border-t border-gray-100 pt-4 dark:border-neutral-800">
+              <div className="flex justify-end gap-3 border-t border-[#EFE7DB] pt-4 dark:border-neutral-800">
                 <button
                   type="button"
                   onClick={closeWorkerModal}

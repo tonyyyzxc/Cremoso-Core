@@ -11,15 +11,15 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { apiRequest } from "../utils/api.js";
+import { FadeIn, Skeleton, StreakBar } from "../components/loading.jsx";
 import {
-  FadeIn,
-  Skeleton,
-  StreakBar,
-} from "../components/loading.jsx";
-import { fadeTransition, riseIn, staggerContainer } from "../components/loadingVariants.js";
+  fadeTransition,
+  riseIn,
+  staggerContainer,
+} from "../components/loadingVariants.js";
 
 const cardClass =
-  "rounded-2xl border border-border bg-card shadow-sm dark:border-neutral-800 dark:bg-neutral-900";
+  "rounded-2xl border border-[#E9E2D6] bg-[#FFFCF7] shadow-[0_12px_32px_-24px_rgba(15,59,59,0.35)] dark:border-neutral-800 dark:bg-neutral-900";
 
 function getStoredUser() {
   try {
@@ -66,18 +66,16 @@ function MetricCard({ label, value, detail, icon: Icon }) {
   return (
     <motion.article
       variants={riseIn}
-      className={`${cardClass} flex items-center gap-4 p-5`}
+      className={`${cardClass} flex items-center gap-4 p-5 transition-shadow duration-200 hover:shadow-[0_16px_36px_-22px_rgba(15,59,59,0.4)]`}
     >
-      <span className="rounded-xl bg-icon-tile p-3 text-primary dark:bg-[#0A8B8E]/10 dark:text-[#0A8B8E]">
+      <span className="rounded-2xl bg-[#0A8B8E]/10 p-3.5 text-[#0A7779] dark:bg-[#0A8B8E]/15 dark:text-[#45C5C1]">
         <Icon size={20} />
       </span>
       <div className="min-w-0">
         <p className="text-sm text-muted dark:text-gray-400">{label}</p>
         <p className="mt-1 truncate text-2xl font-semibold">{value}</p>
         {detail && (
-          <p className="mt-1 text-xs text-muted dark:text-gray-400">
-            {detail}
-          </p>
+          <p className="mt-1 text-xs text-muted dark:text-gray-400">{detail}</p>
         )}
       </div>
     </motion.article>
@@ -130,7 +128,10 @@ function buildDailyTrend(sales, onlineOrders, from, to) {
 }
 
 function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
-  const [visibleSeries, setVisibleSeries] = useState({ staff: true, online: true });
+  const [visibleSeries, setVisibleSeries] = useState({
+    staff: true,
+    online: true,
+  });
   const [activeBar, setActiveBar] = useState(null);
   const chartData = data || [];
   const visibleValues = chartData.flatMap((entry) => [
@@ -151,7 +152,10 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
     axisMaximum = 1;
   } else {
     axisStep = Math.max(1, Math.ceil(largestValue / 4));
-    axisMaximum = Math.max(2, Math.ceil(Math.max(largestValue, 2) / axisStep) * axisStep);
+    axisMaximum = Math.max(
+      2,
+      Math.ceil(Math.max(largestValue, 2) / axisStep) * axisStep,
+    );
   }
 
   const ticks = Array.from(
@@ -159,18 +163,26 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
     (_, index) => axisMaximum - index * axisStep,
   );
   const tooltipId = `dashboard-chart-tooltip-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-  const formatValue = (value) => currency ? money(value) : Number(value || 0).toLocaleString("en-PH");
-  const formatAxisValue = (value) => currency
-    ? new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", notation: "compact", maximumFractionDigits: 1 }).format(value)
-    : Math.round(value).toLocaleString("en-PH");
-  const formatDate = (date) => new Intl.DateTimeFormat("en-PH", {
-    dateStyle: "full",
-    timeZone: "UTC",
-  }).format(new Date(`${date}T00:00:00Z`));
+  const formatValue = (value) =>
+    currency ? money(value) : Number(value || 0).toLocaleString("en-PH");
+  const formatAxisValue = (value) =>
+    currency
+      ? new Intl.NumberFormat("en-PH", {
+          style: "currency",
+          currency: "PHP",
+          notation: "compact",
+          maximumFractionDigits: 1,
+        }).format(value)
+      : Math.round(value).toLocaleString("en-PH");
+  const formatDate = (date) =>
+    new Intl.DateTimeFormat("en-PH", {
+      dateStyle: "full",
+      timeZone: "UTC",
+    }).format(new Date(`${date}T00:00:00Z`));
 
   const toggleSeries = (series) => {
     setVisibleSeries((current) => ({ ...current, [series]: !current[series] }));
-    setActiveBar((current) => current?.series === series ? null : current);
+    setActiveBar((current) => (current?.series === series ? null : current));
   };
 
   const renderBar = (entry, series, value, index) => {
@@ -180,9 +192,10 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
     const isDimmed = activeBar && !isActive;
     const height = value > 0 ? Math.max((value / axisMaximum) * 100, 1) : 0;
     const label = series === "staff" ? "Staff sales" : "Online orders";
-    const fill = series === "staff"
-      ? "linear-gradient(to top, #08777a, #1aa3a5)"
-      : "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, var(--accent))";
+    const fill =
+      series === "staff"
+        ? "linear-gradient(to top, #08777a, #1aa3a5)"
+        : "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, var(--accent))";
 
     return (
       <motion.div
@@ -191,9 +204,12 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
         tabIndex={0}
         aria-label={`${label}, ${formatDate(entry.date)}: ${formatValue(value)}. Staff sales: ${formatValue(entry[staffKey])}. Online orders: ${formatValue(entry[onlineKey])}.`}
         aria-describedby={activeBar?.id === barId ? tooltipId : undefined}
-        onMouseEnter={() => setActiveBar({ id: barId, date: entry.date, series })}
+        onMouseEnter={() =>
+          setActiveBar({ id: barId, date: entry.date, series })
+        }
         onMouseLeave={(event) => {
-          if (document.activeElement !== event.currentTarget) setActiveBar(null);
+          if (document.activeElement !== event.currentTarget)
+            setActiveBar(null);
         }}
         onFocus={() => setActiveBar({ id: barId, date: entry.date, series })}
         onBlur={() => setActiveBar(null)}
@@ -207,7 +223,7 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
   };
 
   return (
-    <section className={`${cardClass} p-5`} aria-label={`${title} chart`}>
+    <section className={`${cardClass} p-6`} aria-label={`${title} chart`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-semibold">{title}</h3>
@@ -222,7 +238,12 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
             onClick={() => toggleSeries("staff")}
             className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary dark:focus-visible:ring-[#0A8B8E] ${visibleSeries.staff ? "" : "opacity-50"}`}
           >
-            <i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "linear-gradient(to top, #08777a, #1aa3a5)" }} />
+            <i
+              className="h-2.5 w-2.5 rounded-sm"
+              style={{
+                backgroundImage: "linear-gradient(to top, #08777a, #1aa3a5)",
+              }}
+            />
             Staff sales
           </button>
           <button
@@ -231,53 +252,115 @@ function TrendChart({ title, data, staffKey, onlineKey, currency = false }) {
             onClick={() => toggleSeries("online")}
             className={`flex items-center gap-1.5 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-accent ${visibleSeries.online ? "" : "opacity-50"}`}
           >
-            <i className="h-2.5 w-2.5 rounded-sm" style={{ backgroundImage: "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, var(--accent))" }} />
+            <i
+              className="h-2.5 w-2.5 rounded-sm"
+              style={{
+                backgroundImage:
+                  "repeating-linear-gradient(135deg, rgba(255,255,255,.28) 0 2px, transparent 2px 6px), linear-gradient(to top, #d69d48, var(--accent))",
+              }}
+            />
             Online orders
           </button>
         </div>
       </div>
 
       <div className="relative mt-5 h-48">
-        <div className="flex h-full gap-2" role="group" aria-label={`${title} data`}>
-        <div className="relative h-full w-[4.5rem] shrink-0 text-right text-[10px] text-muted dark:text-gray-400" aria-hidden="true">
-          <div className="absolute inset-x-0 top-0 bottom-6">
-            {ticks.map((tick) => (
-              <span key={tick} className="absolute right-1 -translate-y-1/2 whitespace-nowrap" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }}>
-                {formatAxisValue(tick)}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div className="relative h-full min-w-0 flex-1 overflow-x-auto border-b border-border dark:border-neutral-700">
-          <div className="relative h-full" style={{ minWidth: `${Math.max(chartData.length * 40, 40)}px` }}>
-            <div className="absolute inset-x-0 top-0 bottom-6" aria-hidden="true">
+        <div
+          className="flex h-full gap-2"
+          role="group"
+          aria-label={`${title} data`}
+        >
+          <div
+            className="relative h-full w-18 shrink-0 text-right text-[10px] text-muted dark:text-gray-400"
+            aria-hidden="true"
+          >
+            <div className="absolute inset-x-0 top-0 bottom-6">
               {ticks.map((tick) => (
-                <div key={tick} className="absolute inset-x-0 border-t border-border/70 dark:border-neutral-700/70" style={{ top: `${((axisMaximum - tick) / axisMaximum) * 100}%` }} />
-              ))}
-            </div>
-            <div className="absolute inset-0 flex items-stretch gap-2">
-              {chartData.map((entry, index) => (
-                <div key={entry.date} className="flex h-full min-w-10 flex-1 flex-col">
-                  <div className="relative min-h-0 flex-1">
-                    <div className="absolute inset-0 flex items-end justify-center gap-1">
-                      {renderBar(entry, "staff", Number(entry[staffKey] || 0), index)}
-                      {renderBar(entry, "online", Number(entry[onlineKey] || 0), index)}
-                    </div>
-                  </div>
-                  <span className="h-6 shrink-0 truncate pt-1 text-center text-[10px] text-muted dark:text-gray-400">
-                    {entry.date.slice(5)}
-                  </span>
-                </div>
+                <span
+                  key={tick}
+                  className="absolute right-1 -translate-y-1/2 whitespace-nowrap"
+                  style={{
+                    top: `${((axisMaximum - tick) / axisMaximum) * 100}%`,
+                  }}
+                >
+                  {formatAxisValue(tick)}
+                </span>
               ))}
             </div>
           </div>
-        </div>
+          <div className="relative h-full min-w-0 flex-1 overflow-x-auto border-b border-border dark:border-neutral-700">
+            <div
+              className="relative h-full"
+              style={{ minWidth: `${Math.max(chartData.length * 40, 40)}px` }}
+            >
+              <div
+                className="absolute inset-x-0 top-0 bottom-6"
+                aria-hidden="true"
+              >
+                {ticks.map((tick) => (
+                  <div
+                    key={tick}
+                    className="absolute inset-x-0 border-t border-border/70 dark:border-neutral-700/70"
+                    style={{
+                      top: `${((axisMaximum - tick) / axisMaximum) * 100}%`,
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="absolute inset-0 flex items-stretch gap-2">
+                {chartData.map((entry, index) => (
+                  <div
+                    key={entry.date}
+                    className="flex h-full min-w-10 flex-1 flex-col"
+                  >
+                    <div className="relative min-h-0 flex-1">
+                      <div className="absolute inset-0 flex items-end justify-center gap-1">
+                        {renderBar(
+                          entry,
+                          "staff",
+                          Number(entry[staffKey] || 0),
+                          index,
+                        )}
+                        {renderBar(
+                          entry,
+                          "online",
+                          Number(entry[onlineKey] || 0),
+                          index,
+                        )}
+                      </div>
+                    </div>
+                    <span className="h-6 shrink-0 truncate pt-1 text-center text-[10px] text-muted dark:text-gray-400">
+                      {entry.date.slice(5)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
         {activeBar && (
-          <div id={tooltipId} role="tooltip" className="pointer-events-none absolute left-[calc(50%_+_2.25rem)] top-1 z-20 w-max max-w-[calc(100%_-_1rem)] -translate-x-1/2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-primary-strong shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-white">
+          <div
+            id={tooltipId}
+            role="tooltip"
+            className="pointer-events-none absolute left-[calc(50%+2.25rem)] top-1 z-20 w-max max-w-[calc(100%-1rem)] -translate-x-1/2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-primary-strong shadow-lg dark:border-neutral-700 dark:bg-neutral-900 dark:text-white"
+          >
             <p className="mb-1 font-semibold">{formatDate(activeBar.date)}</p>
-            <p>Staff sales: {formatValue(chartData.find((entry) => entry.date === activeBar.date)?.[staffKey])}</p>
-            <p>Online orders: {formatValue(chartData.find((entry) => entry.date === activeBar.date)?.[onlineKey])}</p>
+            <p>
+              Staff sales:{" "}
+              {formatValue(
+                chartData.find((entry) => entry.date === activeBar.date)?.[
+                  staffKey
+                ],
+              )}
+            </p>
+            <p>
+              Online orders:{" "}
+              {formatValue(
+                chartData.find((entry) => entry.date === activeBar.date)?.[
+                  onlineKey
+                ],
+              )}
+            </p>
           </div>
         )}
       </div>
@@ -503,14 +586,14 @@ function Dashboard() {
           className="flex flex-wrap items-end justify-between gap-4"
         >
           <div>
-            <p className="text-sm font-semibold text-primary dark:text-[#0A8B8E]">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-[#0A7779] dark:text-[#45C5C1]">
               {isAdmin
                 ? "Company overview"
                 : isStaff
                   ? "Staff workspace"
                   : "Branch workspace"}
             </p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-tight">
+            <h2 className="mt-1 font-serif text-4xl font-semibold tracking-tight">
               Dashboard
             </h2>
             <p className="mt-2 text-sm text-muted dark:text-gray-300">
@@ -518,18 +601,18 @@ function Dashboard() {
                 ? "Today’s sales and branch performance."
                 : isStaff
                   ? "Your completed orders and revenue for today."
-                : `${branchName || "Your branch"} · Today’s shift activity.`}
+                  : `${branchName || "Your branch"} · Today’s shift activity.`}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-sm text-muted dark:text-gray-400">
+            <span className="rounded-full border border-[#E9E2D6] bg-[#FFFCF7] px-3.5 py-2 text-xs font-medium text-muted dark:border-neutral-700 dark:bg-neutral-900 dark:text-gray-400">
               {businessDate}
             </span>
             <button
               type="button"
               onClick={loadDashboard}
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-xl border border-primary px-3.5 py-2.5 text-sm font-medium text-primary hover:bg-primary hover:text-white disabled:opacity-50 dark:border-neutral-700 dark:text-white dark:hover:bg-neutral-800 dark:hover:text-white"
+              className="inline-flex items-center gap-2 rounded-xl bg-linear-to-br from-[#14A3A5] via-[#0A8B8E] to-[#066E70] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-[#0A8B8E]/20 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[#0A8B8E]/25 active:translate-y-0 disabled:opacity-50 motion-reduce:transform-none dark:shadow-[#0A8B8E]/10"
             >
               <RefreshCw size={16} className={loading ? "animate-spin" : ""} />{" "}
               Refresh
@@ -710,7 +793,9 @@ function Dashboard() {
                             }).format(new Date(order.updatedAt))}
                           </p>
                         </div>
-                        <span className="font-semibold">{money(order.total)}</span>
+                        <span className="font-semibold">
+                          {money(order.total)}
+                        </span>
                       </article>
                     ))}
                   </div>
