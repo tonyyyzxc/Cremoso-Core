@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, MotionConfig } from "motion/react";
+import { usePublicAuthSettings } from "../context/PublicAuthSettingsContext.jsx";
 import { GoogleLogin } from "@react-oauth/google";
 import ReCAPTCHA from "react-google-recaptcha";
 import { fadeTransition } from "../components/loadingVariants.js";
@@ -14,7 +15,6 @@ import {
 import { useToast } from "../hooks/UseToast.jsx";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 const inputClass =
   "h-14 w-full rounded-2xl border border-[#E4ECEB] bg-[#FBFCFC] pr-4 text-[15px] text-[#0A3B3D] placeholder:text-[#9AAAAB] outline-none transition duration-200 focus:border-[#0A8B8E] focus:bg-white focus:ring-4 focus:ring-[#0A8B8E]/15";
@@ -42,13 +42,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recaptchaToken, setRecaptchaToken] = useState("");
-  const [loginIntegrations, setLoginIntegrations] = useState({
-    staffGoogleAuthEnabled: false,
-    recaptchaEnabled: true,
-    gmailEnabled: true,
-    recaptchaSiteKey: import.meta.env.VITE_RECAPTCHA_SITE_KEY || "",
-    loaded: false,
-  });
+  const loginIntegrations = usePublicAuthSettings();
   const [resetStep, setResetStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [googleButtonWidth, setGoogleButtonWidth] = useState(300);
@@ -58,50 +52,6 @@ function Login() {
   const recaptchaRef = useRef(null);
   const recaptchaContainerRef = useRef(null);
   const googleContainerRef = useRef(null);
-
-  // Prevents page scrolling while the login page is mounted.
-  useEffect(() => {
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, []);
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let isCancelled = false;
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
-
-    fetch(`${API_URL}/api/auth-settings/public`, { signal: controller.signal })
-      .then((response) => {
-        if (!response.ok)
-          throw new Error("Unable to load public sign-in settings.");
-        return response.json();
-      })
-      .then((config) =>
-        setLoginIntegrations((current) => ({
-          ...current,
-          ...config,
-          recaptchaSiteKey:
-            config.recaptchaSiteKey ||
-            import.meta.env.VITE_RECAPTCHA_SITE_KEY ||
-            "",
-          loaded: true,
-        })),
-      )
-      .catch((err) => {
-        if (isCancelled) return;
-        console.error("Public sign-in settings error:", err);
-        setLoginIntegrations((current) => ({ ...current, loaded: true }));
-      })
-      .finally(() => clearTimeout(timeoutId));
-
-    return () => {
-      isCancelled = true;
-      clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, []);
 
   // Keeps the reCAPTCHA widget scaled to the form width.
   useEffect(() => {
@@ -313,9 +263,8 @@ function Login() {
 
   const showGoogleSignIn =
     !isForgotPassword &&
-    loginIntegrations.loaded &&
     loginIntegrations.staffGoogleAuthEnabled;
-  const googleClientId = loginIntegrations.googleClientId || GOOGLE_CLIENT_ID;
+  const googleClientId = loginIntegrations.googleClientId;
   const isLoginFormInvalid = !identifier.trim() || !password;
   const isPasswordResetFormInvalid =
     resetStep === 0
@@ -359,7 +308,7 @@ function Login() {
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className="relative flex h-dvh items-center justify-center overflow-hidden bg-[#FAF5EC] px-4 py-4">
+      <div className="relative flex min-h-dvh items-start justify-center overflow-x-hidden bg-[#FAF5EC] px-4 py-4 md:items-center">
         {/* Ambient background */}
         <div
           className="pointer-events-none absolute inset-0"
@@ -396,10 +345,10 @@ function Login() {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ ...fadeTransition, delay: 0.15 }}
-          className="relative z-10 grid max-h-full w-full max-w-4xl grid-cols-1 overflow-y-auto rounded-[2.25rem] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(6,63,64,0.35)] md:grid-cols-[1.05fr_1fr] md:overflow-hidden"
+          className="relative z-10 grid w-full max-w-4xl grid-cols-1 overflow-hidden rounded-[2.25rem] border border-white/70 bg-white shadow-[0_30px_80px_-20px_rgba(6,63,64,0.35)] md:grid-cols-[1.05fr_1fr]"
         >
           {/* Brand panel */}
-          <div className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-linear-to-br from-[#2BB5B2] via-[#0A8B8E] to-[#063F40] px-8 py-10 text-center text-white md:py-14">
+          <div className="relative isolate flex flex-col items-center justify-center overflow-hidden bg-linear-to-br from-[#2BB5B2] via-[#0A8B8E] to-[#063F40] px-8 py-7 text-center text-white sm:py-10 md:py-14">
             <div className="pointer-events-none absolute -left-40 -top-44 -z-10 h-130 w-130 rounded-full border border-white/15" />
             <div className="pointer-events-none absolute -bottom-40 -right-32 -z-10 h-95 w-95 rounded-full border border-white/15" />
 
@@ -409,17 +358,17 @@ function Login() {
               style={{
                 filter: "drop-shadow(0 0 18px rgba(45, 212, 191, 0.3))",
               }}
-              className="group relative z-10 flex h-24 w-24 items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_20px_40px_-18px_rgba(0,0,0,.35)] backdrop-blur-sm md:h-28 md:w-28"
+              className="group relative z-10 flex h-20 w-20 items-center justify-center overflow-hidden rounded-[1.5rem] border border-white/25 bg-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,.35),0_20px_40px_-18px_rgba(0,0,0,.35)] backdrop-blur-sm sm:h-24 sm:w-24 md:h-28 md:w-28"
             >
               <span className="pointer-events-none absolute inset-0 -translate-x-full bg-linear-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
               <img
                 src="/android-chrome-512x512.png"
                 alt="Cremoso icon"
-                className="h-16 w-16 brightness-0 invert md:h-20 md:w-20"
+                className="h-14 w-14 brightness-0 invert sm:h-16 sm:w-16 md:h-20 md:w-20"
               />
             </motion.div>
 
-            <h1 className="relative z-10 mt-7 font-serif text-4xl font-bold uppercase leading-none tracking-[0.14em] md:text-5xl">
+            <h1 className="relative z-10 mt-5 font-serif text-4xl font-bold uppercase leading-none tracking-[0.14em] sm:mt-7 md:text-5xl">
               Cremoso
             </h1>
 
@@ -435,8 +384,8 @@ function Login() {
 
           {/* Form panel */}
           <div
-            className={`flex flex-col justify-center bg-white px-7 sm:px-10 md:px-12 ${
-              isForgotPassword ? "py-8" : "py-8 md:py-12"
+            className={`flex flex-col justify-center bg-white px-7 py-7 sm:px-10 sm:py-8 md:px-12 ${
+              isForgotPassword ? "md:py-8" : "md:py-12"
             }`}
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#0A8B8E]">

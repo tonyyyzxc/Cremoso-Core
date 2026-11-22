@@ -103,4 +103,4 @@ Cremoso-Core/
 
 ## Project context
 
-Team Kondisyones developed Cremoso-Core collaboratively for an actual client as part of coursework in Systems Integration & Architecture 1, Advanced Database Systems, Integrative Programming Technologies 1, and Information Assurance & Security 1.
+Team Kondisyones developed Cremoso-Core collaboratively for an actual client as part of coursework in Systems Integration & Architecture 1, Advanced Database Systems, Integrative Programming Technologies 2, and Information Assurance & Security 1.
