@@ -1,3 +1,4 @@
+// Mongoose model for store-wide display and operating configuration.
 import mongoose from "mongoose";
 
 const storeConfigSchema = new mongoose.Schema(

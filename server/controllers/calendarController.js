@@ -1,3 +1,4 @@
+// API handlers for Google Calendar OAuth and shift-schedule synchronization.
 import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import ShiftSchedule from "../models/shiftSchedule.js";

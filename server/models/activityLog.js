@@ -1,3 +1,4 @@
+// Mongoose model for recorded administrator and staff activity.
 import mongoose from "mongoose";
 
 const targetSchema = new mongoose.Schema(

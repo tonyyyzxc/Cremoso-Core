@@ -1,3 +1,4 @@
+// API handlers for reading and updating store configuration.
 import StoreConfig from "../models/storeConfig.js";
 import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";
 

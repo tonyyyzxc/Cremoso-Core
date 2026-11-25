@@ -5,6 +5,7 @@ const upload = multer({
   limits: { fileSize: 25 * 1024 * 1024 },
 });
 
+// Process a multipart file upload and attach it to the request.
 export function handleUpload(req, res, next) {
   upload.single("file")(req, res, (error) => {
     if (!error) return next();

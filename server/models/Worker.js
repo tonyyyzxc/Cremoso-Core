@@ -1,3 +1,4 @@
+// Mongoose model for branch staff worker records.
 import mongoose from "mongoose";
 
 const workerSchema = new mongoose.Schema(

@@ -1,3 +1,4 @@
+// Mongoose model for browser push-notification registrations.
 import mongoose from "mongoose";
 
 const pushRegistrationSchema = new mongoose.Schema(

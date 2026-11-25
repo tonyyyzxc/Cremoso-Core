@@ -10,6 +10,7 @@ import {
 } from "../controllers/staffController.js";
 
 const router = express.Router();
+// Staff routes return branch details and manage worker profiles.
 
 router.get(
   "/branch",

@@ -1,3 +1,4 @@
+// Mongoose model for customer orders and order audit history.
 import mongoose from "mongoose";
 
 const orderItemSchema = new mongoose.Schema(

@@ -18,6 +18,7 @@ import {
 } from "../controllers/integrationCredentialsController.js";
 
 const router = express.Router();
+// Super Admin routes manage integration credential status and verification.
 
 router.use(requireAuth, requireSuperAdmin);
 router.get("/", getIntegrationCredentialStatus);

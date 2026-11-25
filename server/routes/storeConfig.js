@@ -4,6 +4,7 @@ import { getStoreConfig, updateStoreConfig } from "../controllers/storeConfigCon
 import { requireEditLock } from "../utils/editLock.js";
 
 const router = express.Router();
+// Store configuration routes read and update the active store settings.
 router.use(requireAuth);
 
 router.get("/", getStoreConfig);

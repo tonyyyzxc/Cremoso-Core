@@ -19,6 +19,7 @@ import {
 } from "../controllers/calendarController.js";
 
 const router = express.Router();
+// Calendar routes connect Google Calendar and manage shift schedules.
 router.get("/callback", handleCalendarCallback);
 router.use(requireAuth);
 

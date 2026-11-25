@@ -1,3 +1,4 @@
+// Mongoose model for ingredients and supply catalog records.
 import mongoose from "mongoose";
 
 const supplySchema = new mongoose.Schema(

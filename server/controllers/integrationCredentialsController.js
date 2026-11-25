@@ -1,3 +1,4 @@
+// API handlers for integration credential verification and OAuth callbacks.
 import { randomInt, timingSafeEqual } from "node:crypto";
 import { OAuth2Client } from "google-auth-library";
 import { google } from "googleapis";

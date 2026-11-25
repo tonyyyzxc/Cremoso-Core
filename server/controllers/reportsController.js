@@ -1,3 +1,4 @@
+// API handlers for staff sales and branch sales reports.
 import mongoose from "mongoose";
 import { randomInt } from "node:crypto";
 import Branch from "../models/branch.js";

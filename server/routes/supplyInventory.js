@@ -11,6 +11,7 @@ import {
 } from "../controllers/supplyInventoryController.js";
 
 const router = express.Router();
+// Supply routes manage supplies and branch-level stock quantities.
 router.use(requireAuth);
 
 router.get("/", requireRole("admin", "branch"), listSupplies);

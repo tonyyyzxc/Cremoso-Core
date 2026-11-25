@@ -16,12 +16,14 @@ if (redisClient) {
   });
 }
 
+// Initialize the Redis-backed store used by API rate limiters.
 export async function connectRateLimitStore() {
   if (!redisClient) return;
   await redisClient.connect();
   console.log("Redis rate-limit store online.");
 }
 
+// Create a configurable Express rate limiter.
 function createLimiter({
   windowMs,
   limit,
@@ -60,7 +62,9 @@ function createLimiter({
   });
 }
 
+// Create an IP-based limiter for a route or request scope.
 const createIpLimiter = (options) => createLimiter(options);
+// Create an account-based limiter for authenticated requests.
 const createAccountLimiter = (options) => createLimiter({
   ...options,
   keyGenerator: (req) => "user:" + req.user._id.toString(),

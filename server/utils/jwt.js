@@ -1,3 +1,4 @@
+// Utilities for signing and verifying JSON web tokens.
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 

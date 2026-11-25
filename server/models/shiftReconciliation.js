@@ -1,3 +1,4 @@
+// Mongoose model for submitted end-of-shift reconciliation reports.
 import mongoose from "mongoose";
 
 const shiftReconciliationSchema = new mongoose.Schema(

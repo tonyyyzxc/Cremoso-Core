@@ -1,3 +1,4 @@
+// API handlers for supplies and branch-level supply quantities.
 import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import MenuItem from "../models/menuItem.js";

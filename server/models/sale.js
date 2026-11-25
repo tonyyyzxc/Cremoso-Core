@@ -1,3 +1,4 @@
+// Mongoose model for completed staff sales and sold items.
 import mongoose from "mongoose";
 
 const saleItemSchema = new mongoose.Schema(

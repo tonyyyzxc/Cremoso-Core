@@ -9,6 +9,7 @@ import {
 } from "../controllers/authConfigController.js";
 
 const router = express.Router();
+// Authentication configuration routes expose public status and update settings.
 
 router.get("/public", getPublicIntegrationStatus);
 router.get("/", requireAuth, getAuthConfig);

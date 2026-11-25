@@ -1,3 +1,4 @@
+// API handlers for listing and managing branch menu items.
 import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import MenuItem from "../models/menuItem.js";

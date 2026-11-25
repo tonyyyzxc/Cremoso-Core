@@ -1,3 +1,4 @@
+// Utility for creating a Google Sheet from tabular rows.
 import { google } from "googleapis";
 
 export async function createGoogleSheet(auth, title, rows) {

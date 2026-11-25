@@ -1,3 +1,4 @@
+// Loads environment configuration and sets the server DNS resolvers.
 import dotenv from "dotenv";
 import path from "path";
 import dns from "dns";

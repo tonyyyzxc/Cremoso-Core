@@ -1,3 +1,4 @@
+// API handlers for creating, listing, updating, and removing users.
 import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import Session from "../models/session.js";

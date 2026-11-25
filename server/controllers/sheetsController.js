@@ -1,3 +1,4 @@
+// API handlers for Google Sheets OAuth and spreadsheet exports.
 import User from "../models/user.js";
 import { createGoogleSheet } from "../utils/googleSheets.js";
 import {

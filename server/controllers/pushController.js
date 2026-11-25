@@ -1,3 +1,4 @@
+// API handlers for push registration and test notifications.
 import AuthConfig from "../models/authConfig.js";
 import PushRegistration from "../models/pushRegistration.js";
 import { getChangedFieldNames, getEditMetadata, logActivity } from "../utils/activityLog.js";

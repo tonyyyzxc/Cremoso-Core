@@ -1,3 +1,4 @@
+// Mongoose model for application authentication and integration settings.
 import mongoose from "mongoose";
 
 const authConfigSchema = new mongoose.Schema(

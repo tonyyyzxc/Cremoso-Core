@@ -12,6 +12,7 @@ import {
 } from "../controllers/usersController.js";
 
 const router = express.Router();
+// User routes list staff and manage user account details.
 router.get(
   "/staff",
   requireAuth,

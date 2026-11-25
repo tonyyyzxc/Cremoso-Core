@@ -1,3 +1,4 @@
+// Mongoose model for a physical or virtual store branch.
 import mongoose from "mongoose";
 
 const branchSchema = new mongoose.Schema(

@@ -1,3 +1,4 @@
+// Mongoose model for short-lived collaborative edit locks.
 import mongoose from "mongoose";
 
 const editLockSchema = new mongoose.Schema(

@@ -1,3 +1,4 @@
+// API handlers for acquiring and managing collaborative edit locks.
 import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import EditLock from "../models/editLock.js";

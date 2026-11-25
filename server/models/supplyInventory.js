@@ -1,3 +1,4 @@
+// Mongoose model for branch-level supply stock quantities.
 import mongoose from "mongoose";
 
 const supplyInventorySchema = new mongoose.Schema(

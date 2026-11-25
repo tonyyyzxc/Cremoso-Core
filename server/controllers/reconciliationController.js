@@ -1,3 +1,4 @@
+// API handlers for shift reconciliation reports and submissions.
 import Order from "../models/order.js";
 import Sale from "../models/sale.js";
 import ShiftReconciliation from "../models/shiftReconciliation.js";

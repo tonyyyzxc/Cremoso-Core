@@ -1,3 +1,4 @@
+// Mongoose model for authenticated users and account permissions.
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema(

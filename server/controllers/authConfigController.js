@@ -1,3 +1,4 @@
+// API handlers for authentication settings and sidebar preferences.
 import AuthConfig from "../models/authConfig.js";
 import User from "../models/user.js";
 import {

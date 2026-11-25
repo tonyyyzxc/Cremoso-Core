@@ -1,3 +1,4 @@
+// Utilities for sending password reset and integration verification emails.
 import { getIntegrationCredentials } from "./integrationCredentials.js";
 
 const BREVO_EMAIL_API_URL = "https://api.brevo.com/v3/smtp/email";

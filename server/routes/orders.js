@@ -22,6 +22,7 @@ import {
 } from "../controllers/ordersController.js";
 
 const router = express.Router();
+// Order routes create, list, confirm, archive, void, and refund orders.
 router.use(requireAuth);
 
 router.get(

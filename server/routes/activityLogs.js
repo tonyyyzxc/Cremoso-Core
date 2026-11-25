@@ -6,8 +6,10 @@ import {
   refreshIpRateLimit,
 } from "../middleware/rateLimiters.js";
 
+// Define authenticated activity-log API endpoints.
 const router = express.Router();
 
+// GET /api/activity-logs lists activity records allowed for the signed-in role.
 router.get(
   "/",
   requireAuth,

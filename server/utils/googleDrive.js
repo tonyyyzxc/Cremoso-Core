@@ -1,3 +1,4 @@
+// Utilities for Google Drive OAuth clients and API error responses.
 import { google } from "googleapis";
 import User from "../models/user.js";
 import { isIntegrationEnabled } from "./integrationConfig.js";

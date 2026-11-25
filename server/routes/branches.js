@@ -10,6 +10,7 @@ import {
 } from "../controllers/branchesController.js";
 
 const router = express.Router();
+// Branch routes manage branches, branch accounts, and branch workers.
 router.use(requireAuth, requireRole("admin"));
 
 router.get("/", refreshIpRateLimit, refreshAccountRateLimit, listBranches);

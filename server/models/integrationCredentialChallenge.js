@@ -1,3 +1,4 @@
+// Mongoose model for pending integration credential verification challenges.
 import mongoose from "mongoose";
 
 const integrationCredentialChallengeSchema = new mongoose.Schema(

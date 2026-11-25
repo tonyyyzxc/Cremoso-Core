@@ -1,3 +1,4 @@
+// Mongoose model for per-branch menu-item inventory quantities.
 import mongoose from "mongoose";
 
 const inventorySchema = new mongoose.Schema(

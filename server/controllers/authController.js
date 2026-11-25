@@ -1,3 +1,4 @@
+// API handlers for login, password reset, profile, and session management.
 import { randomInt, randomUUID } from "node:crypto";
 import { OAuth2Client } from "google-auth-library";
 import User from "../models/user.js";

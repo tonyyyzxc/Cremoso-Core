@@ -1,3 +1,4 @@
+// Mongoose model for menu products, variants, addons, and supply usage.
 import mongoose from "mongoose";
 
 const optionSchema = new mongoose.Schema({

@@ -1,3 +1,4 @@
+// Utilities for edit metadata, change detection, redaction, and activity logging.
 import AuthConfig from "../models/authConfig.js";
 import ActivityLog from "../models/activityLog.js";
 

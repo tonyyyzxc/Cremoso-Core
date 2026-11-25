@@ -13,6 +13,7 @@ import {
 } from "../controllers/pushController.js";
 
 const router = express.Router();
+// Push routes manage browser registrations and test notifications.
 router.use(requireAuth);
 
 router.get("/registration", getPushRegistration);

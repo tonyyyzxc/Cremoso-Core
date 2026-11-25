@@ -1,3 +1,4 @@
+// Mongoose model for validated integration credential state.
 import mongoose from "mongoose";
 
 const integrationCredentialValidationSchema = new mongoose.Schema(

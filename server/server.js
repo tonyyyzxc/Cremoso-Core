@@ -27,10 +27,13 @@ import {
   connectRateLimitStore,
 } from "./middleware/rateLimiters.js";
 
+// Create the Express application.
 const app = express();
 
+// Trust the first proxy when the API is deployed on Render.
 if (process.env.RENDER === "true") app.set("trust proxy", 1);
 
+// Allow the local client and the configured deployment URL.
 const allowedOrigins = new Set(["http://localhost:5173"]);
 if (process.env.CLIENT_URL) {
   allowedOrigins.add(new URL(process.env.CLIENT_URL).origin);
@@ -38,12 +41,15 @@ if (process.env.CLIENT_URL) {
 
 app.use(helmet());
 app.use(cors({
+  // Allow requests from approved browser origins.
   origin(origin, callback) {
     callback(null, !origin || allowedOrigins.has(origin));
   },
 }));
 app.use("/api", apiIpRateLimit);
 app.use(express.json({ limit: "1mb" }));
+
+// Mount each feature router under its API prefix.
 app.use("/api/sheets", sheetsRouter);
 app.use("/api/drive", driveRouter);
 app.use("/api/calendar", calendarRouter);
@@ -67,6 +73,7 @@ app.use("/api/users", usersRouter);
 const PORT = process.env.PORT || 5000;
 const MONGODB_URL = process.env.MONGODB_URL;
 
+// Connect the API to MongoDB.
 mongoose
   .connect(MONGODB_URL)
   .then(() => {
@@ -78,6 +85,7 @@ mongoose
 
 await connectRateLimitStore();
 
+// Start listening for HTTP requests.
 app.listen(PORT, () => {
   console.log(`Server running at ${PORT}`);
 });

@@ -1,3 +1,4 @@
+// Mongoose model for integration credential overrides.
 import mongoose from "mongoose";
 
 const integrationCredentialSchema = new mongoose.Schema(

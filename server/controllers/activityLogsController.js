@@ -1,3 +1,4 @@
+// API handlers for filtering and returning activity logs.
 import mongoose from "mongoose";
 import ActivityLog from "../models/activityLog.js";
 import User from "../models/user.js";

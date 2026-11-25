@@ -8,6 +8,7 @@ import {
 } from "../controllers/editLocksController.js";
 
 const router = express.Router();
+// Edit-lock routes acquire, inspect, renew, and release record locks.
 
 router.use(requireAuth);
 router.get("/status", getEditLockStatus);

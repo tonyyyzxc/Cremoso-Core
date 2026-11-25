@@ -1,3 +1,4 @@
+// Utilities for encrypting, masking, loading, and saving integration credentials.
 import { createCipheriv, createDecipheriv, randomBytes } from "node:crypto";
 import IntegrationCredential from "../models/integrationCredential.js";
 import { getEditMetadata } from "./activityLog.js";

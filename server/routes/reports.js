@@ -7,6 +7,7 @@ import {
 } from "../middleware/rateLimiters.js";
 
 const router = express.Router();
+// Report routes create staff sales and provide branch sales reports.
 router.use(requireAuth);
 
 router.get(

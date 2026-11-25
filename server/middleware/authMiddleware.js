@@ -3,6 +3,7 @@ import User from "../models/user.js";
 import Session from "../models/session.js";
 import { isSuperAdminAccount } from "../utils/superAdmin.js";
 
+// Verify the bearer token and attach the active user and session to the request.
 export async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith("Bearer ")) {
@@ -39,6 +40,7 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+// Build middleware that restricts a route to the supplied user roles.
 export function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user || !roles.includes(req.user.role)) {
@@ -48,6 +50,7 @@ export function requireRole(...roles) {
   };
 }
 
+// Allow the request to continue only for the Super Admin account.
 export function requireSuperAdmin(req, res, next) {
   if (!isSuperAdminAccount(req.user)) {
     return res.status(403).json({ error: "Only the Super Admin can manage integration credentials." });

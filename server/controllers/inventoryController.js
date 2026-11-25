@@ -1,3 +1,4 @@
+// API handlers for inventory listings and quantity updates.
 import mongoose from "mongoose";
 import Branch from "../models/branch.js";
 import Inventory from "../models/inventory.js";

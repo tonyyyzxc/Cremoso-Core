@@ -93,3 +93,4 @@ main()
     await mongoose.disconnect();
     process.exitCode = 1;
   });
+// Seed the database with initial users and branch data.

@@ -11,6 +11,7 @@ import {
 } from "../middleware/rateLimiters.js";
 
 const router = express.Router();
+// Reconciliation routes load and submit a branch shift reconciliation.
 router.use(requireAuth, requireRole("branch"));
 router.use(requireBranch);
 

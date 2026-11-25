@@ -1,3 +1,4 @@
+// API handlers for staff branch details, profiles, and workers.
 import Branch from "../models/branch.js";
 import User from "../models/user.js";
 import Worker from "../models/Worker.js";

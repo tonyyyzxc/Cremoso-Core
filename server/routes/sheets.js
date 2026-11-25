@@ -13,6 +13,7 @@ import {
 } from "../middleware/rateLimiters.js";
 
 const router = express.Router();
+// Google Sheets routes handle OAuth and spreadsheet exports.
 
 router.get("/callback", handleSheetsCallback);
 router.get("/status", requireAuth, getSheetsStatus);

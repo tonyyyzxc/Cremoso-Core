@@ -1,3 +1,4 @@
+// Utilities for Google Sheets OAuth and authenticated API clients.
 import { google } from "googleapis";
 import User from "../models/user.js";
 import { isIntegrationEnabled } from "./integrationConfig.js";

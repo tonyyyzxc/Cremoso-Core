@@ -4,6 +4,7 @@ import { listInventory, setInventoryQuantity } from "../controllers/inventoryCon
 import { requireEditLock } from "../utils/editLock.js";
 
 const router = express.Router();
+// Inventory routes list stock and update menu-item quantities.
 router.use(requireAuth);
 
 router.get("/", requireRole("admin", "branch"), listInventory);

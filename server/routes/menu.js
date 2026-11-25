@@ -4,6 +4,7 @@ import { requireEditLock } from "../utils/editLock.js";
 import { listMenuItems, createMenuItem, updateMenuItem, deleteMenuItem } from "../controllers/menuController.js";
 
 const router = express.Router();
+// Menu routes list and manage menu items for the selected branch.
 router.use(requireAuth);
 
 router.get("/", listMenuItems);

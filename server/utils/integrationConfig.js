@@ -1,3 +1,4 @@
+// Utilities for checking and requiring enabled integration features.
 import AuthConfig from "../models/authConfig.js";
 
 export async function isIntegrationEnabled(setting) {

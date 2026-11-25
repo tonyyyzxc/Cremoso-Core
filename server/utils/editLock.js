@@ -1,3 +1,4 @@
+// Utilities for normalizing and enforcing collaborative edit locks.
 import EditLock from "../models/editLock.js";
 
 const EDITABLE_RESOURCE_TYPES = new Set([

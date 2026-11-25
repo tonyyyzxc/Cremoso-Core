@@ -1,3 +1,4 @@
+// Mongoose model for staff shift assignments and schedule state.
 import mongoose from "mongoose";
 
 const shiftScheduleSchema = new mongoose.Schema(
