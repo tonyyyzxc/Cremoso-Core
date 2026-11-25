@@ -30,7 +30,7 @@ This document describes functions currently available in the system, based on it
 - **FR-STF-04 — Order queue**: review pending orders for the assigned branch, confirm payment using an active payment method, or cancel a pending order with a reason.
 - **FR-STF-05 — Transactions**: review completed orders for a selected date, including order items, channel, payment method, completion time, and total.
 - **FR-STF-06 — Shift schedule**: view the shift schedule relevant to the staff member's branch.
-- **FR-STF-07 — Activity history**: review the staff member's own activity records, newest first, with pagination. Date, category, and status filter controls are currently displayed, but the server does not apply those filters to Staff requests (see current coverage notes below).
+- **FR-STF-07 — Activity history**: review the staff member's own activity records, newest first, with pagination. Date, category, and status filter controls are currently displayed, but the server does not apply those filters to Staff requests.
 - **FR-STF-08 — YourDrive**: connect or disconnect the user's Google Drive; browse folders, upload files, create folders, download files, and move files to Drive trash when the Drive integration is enabled.
 
 ## Branch Manager functions
@@ -63,7 +63,7 @@ This document describes functions currently available in the system, based on it
 - **FR-ADM-11 — Store operations settings**: enable or disable available sales channels and payment methods used by order entry and payment confirmation.
 - **FR-ADM-12 — Branch management**: list branches and workers, create branch records and branch login accounts, and update branch details.
 - **FR-ADM-13 — Account administration**: view and manage non-Super-Admin accounts, including creating Branch Manager and Staff accounts; update contact details, branch assignment, role, and active/disabled status; and delete accounts. Regular Admins cannot create, view, modify, disable, or delete Super Admin accounts or create and manage Admin accounts. They cannot grant the Admin role.
-- **FR-ADM-15 — Integration availability**: independently enable or disable Google sign-in, reCAPTCHA, Brevo password-reset email, PDF export, Google Sheets, Google Calendar, and Google Drive. Settings apply system-wide, including to the Admin who changes them. Google sign-in cannot be disabled while an account has no password set.
+- **FR-ADM-15 — Integration availability**: independently enable or disable Google sign-in, reCAPTCHA, Brevo password-reset email, PDF export, Google Sheets, Google Calendar, Google Drive, and Firebase Cloud Messaging. Settings apply system-wide, including to the Admin who changes them. Google sign-in cannot be disabled while an account has no password set.
 - **FR-ADM-16 — Activity logging control**: enable or pause activity recording. The setting-change event is retained even when recording is being paused; other events follow the configured setting.
 - **FR-ADM-17 — Activity history**: review company activity records and filter by date range, category, status, account, or branch, with newest-first pagination. The interface displays the time, account, branch, activity summary/action, category, status, and target. Super Admin activity and identifying details are hidden from regular Admins.
 - **FR-ADM-18 — Personal settings and Google Drive**: update the Admin's own profile and password and use the authenticated Google Drive functions available to signed-in users, subject to the integration being enabled.
@@ -78,7 +78,7 @@ This document describes functions currently available in the system, based on it
 
 ## Integration behavior
 
-- **FR-INT-01 — Independent integration controls**: Admins can independently enable or disable Google sign-in, reCAPTCHA, Brevo password-reset email, PDF report export, Google Sheets, Google Calendar, and Google Drive. The settings are system-wide and affect the Admin who changes them as well as other users. A disabled integration blocks its related operations; unrelated integrations remain available.
+- **FR-INT-01 — Independent integration controls**: Admins can independently enable or disable Google sign-in, reCAPTCHA, Brevo password-reset email, PDF report export, Google Sheets, Google Calendar, Google Drive, and Firebase Cloud Messaging. The settings are system-wide and affect the Admin who changes them as well as other users. A disabled integration blocks its related operations; unrelated integrations remain available.
 - **FR-INT-02 — Google sign-in integration**: supplies Google OAuth client credentials used to render and validate Google sign-in. Google sign-in requires a verified Google identity that matches an existing active system account.
 - **FR-INT-03 — reCAPTCHA integration**: supplies a site key for the login challenge and a secret key for server-side token verification. The login protection applies to password sign-in while enabled.
 - **FR-INT-04 — Brevo email integration**: uses a Brevo API key and verified sender to send password reset codes. It also sends Super Admin email verification codes for credential changes and a Brevo credential test message. The password-reset email toggle disables password recovery email functionality but does not disable Super Admin verification email.
@@ -113,7 +113,7 @@ This document describes functions currently available in the system, based on it
 - **FR-SYS-01 — Branch data scope**: branch-level sales, orders, menu, inventory, staff, workers, schedules, and reconciliations are associated with a branch. Staff and Branch Managers are limited to their assigned branch; Staff activity history is limited to their own records.
 - **FR-SYS-02 — Server-side access checks**: protected operations enforce authentication and role permissions on the server, not only through page visibility.
 - **FR-SYS-03 — Sales and order integrity**: order and manual-sale prices are calculated and persisted by the server; transaction records retain the item and price details used when the sale was recorded.
-- **FR-SYS-04 — Stock updates**: saved staff sales apply configured menu-item and supply usage deductions. Order entry checks current menu item availability and stock.
+- **FR-SYS-04 — Stock updates**: saved manual sales apply configured menu-item and supply usage deductions. Order entry checks current menu item availability and stock.
 - **FR-SYS-05 — Activity records**: activity history is timestamped, ordered newest first, and paginated. Visibility follows the user's role and branch scope; Super Admin details are restricted as described above.
 - **FR-SYS-06 — Session invalidation**: logging out ends the active session so it cannot continue to access authenticated endpoints.
 
